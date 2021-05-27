@@ -9,6 +9,8 @@ struct Locals {
 };
 [[group(0), binding(0)]]
 var r_locals: Locals;
+[[group(0), binding(1)]]
+var model_locals: Locals;
 
 [[stage(vertex)]]
 fn vs_main(
@@ -17,11 +19,11 @@ fn vs_main(
 ) -> VertexOutput {
     var out: VertexOutput;
     out.tex_coord = tex_coord;
-    out.position = r_locals.transform * position;
+    out.position =  r_locals.transform * model_locals.transform * position;
     return out;
 }
 
-[[group(0), binding(1)]]
+[[group(0), binding(2)]]
 var r_color: texture_2d<u32>;
 
 [[stage(fragment)]]

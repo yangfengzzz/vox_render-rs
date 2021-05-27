@@ -51,7 +51,7 @@ pub trait Example: 'static + Sized {
         device: &wgpu::Device,
         queue: &wgpu::Queue,
     );
-    fn update(&mut self, event: WindowEvent);
+    fn update(&mut self, queue: &wgpu::Queue);
     fn render(
         &mut self,
         frame: &wgpu::SwapChainTexture,
@@ -61,6 +61,7 @@ pub trait Example: 'static + Sized {
     );
 }
 
+//--------------------------------------------------------------------------------------------------
 struct Setup {
     window: winit::window::Window,
     event_loop: EventLoop<()>,
@@ -126,7 +127,7 @@ async fn setup<E: Example>(title: &str) -> Setup {
             other => panic!("Unknown power preference: {}", other),
         }
     } else {
-        wgpu::PowerPreference::default()
+        wgpu::PowerPreference::HighPerformance
     };
     let instance = wgpu::Instance::new(backend);
     let (size, surface) = unsafe {
@@ -184,6 +185,7 @@ async fn setup<E: Example>(title: &str) -> Setup {
     }
 }
 
+//--------------------------------------------------------------------------------------------------
 fn start<E: Example>(
     Setup {
         window,
@@ -271,7 +273,7 @@ fn start<E: Example>(
                     *control_flow = ControlFlow::Exit;
                 }
                 _ => {
-                    example.update(event);
+                    // example.update(event, &queue);
                 }
             },
             event::Event::RedrawRequested(_) => {
@@ -284,7 +286,7 @@ fn start<E: Example>(
                             .expect("Failed to acquire next swap chain texture!")
                     }
                 };
-
+                example.update(&queue);
                 example.render(&frame.output, &device, &queue, &spawner);
             }
             _ => {}
@@ -306,7 +308,7 @@ impl<'a> Spawner<'a> {
     }
 
     #[allow(dead_code)]
-    pub fn spawn_local(&self, future: impl Future<Output = ()> + 'a) {
+    pub fn spawn_local(&self, future: impl Future<Output=()> + 'a) {
         self.executor.spawn(future).detach();
     }
 
@@ -325,7 +327,7 @@ impl Spawner {
     }
 
     #[allow(dead_code)]
-    pub fn spawn_local(&self, future: impl Future<Output = ()> + 'static) {
+    pub fn spawn_local(&self, future: impl Future<Output=()> + 'static) {
         wasm_bindgen_futures::spawn_local(future);
     }
 }

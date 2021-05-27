@@ -5,6 +5,7 @@ use bytemuck::{Pod, Zeroable};
 use std::{borrow::Cow, mem};
 use wgpu::util::DeviceExt;
 use wgpu::Features;
+use cgmath::Matrix4;
 
 #[repr(C)]
 #[derive(Clone, Copy, Pod, Zeroable)]
@@ -84,19 +85,23 @@ fn create_texels(size: usize) -> Vec<u8> {
         .collect()
 }
 
+//--------------------------------------------------------------------------------------------------
 struct Example {
     vertex_buf: wgpu::Buffer,
     index_buf: wgpu::Buffer,
     index_count: usize,
     bind_group: wgpu::BindGroup,
     uniform_buf: wgpu::Buffer,
+    model_buf: wgpu::Buffer,
     pipeline: wgpu::RenderPipeline,
     pipeline_wire: Option<wgpu::RenderPipeline>,
+
+    angle:f32,
 }
 
 impl Example {
     fn generate_matrix(aspect_ratio: f32) -> cgmath::Matrix4<f32> {
-        let mx_projection = cgmath::perspective(cgmath::Deg(45f32), aspect_ratio, 1.0, 10.0);
+        let mx_projection = cgmath::perspective(cgmath::Deg(60f32), aspect_ratio, 1.0, 10.0);
         let mx_view = cgmath::Matrix4::look_at_rh(
             cgmath::Point3::new(1.5f32, -5.0, 3.0),
             cgmath::Point3::new(0f32, 0.0, 0.0),
@@ -150,6 +155,16 @@ impl framework::Example for Example {
                 },
                 wgpu::BindGroupLayoutEntry {
                     binding: 1,
+                    visibility: wgpu::ShaderStage::VERTEX,
+                    ty: wgpu::BindingType::Buffer {
+                        ty: wgpu::BufferBindingType::Uniform,
+                        has_dynamic_offset: false,
+                        min_binding_size: wgpu::BufferSize::new(64),
+                    },
+                    count: None,
+                },
+                wgpu::BindGroupLayoutEntry {
+                    binding: 2,
                     visibility: wgpu::ShaderStage::FRAGMENT,
                     ty: wgpu::BindingType::Texture {
                         multisampled: false,
@@ -208,6 +223,14 @@ impl framework::Example for Example {
             usage: wgpu::BufferUsage::UNIFORM | wgpu::BufferUsage::COPY_DST,
         });
 
+        let rotate = cgmath::Matrix4::from_angle_x(cgmath::Deg(0f32));
+        let mx_ref: &[f32; 16] = rotate.as_ref();
+        let model_buf = device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
+            label: Some("Model Buffer"),
+            contents: bytemuck::cast_slice(mx_ref),
+            usage: wgpu::BufferUsage::UNIFORM | wgpu::BufferUsage::COPY_DST,
+        });
+
         // Create bind group
         let bind_group = device.create_bind_group(&wgpu::BindGroupDescriptor {
             layout: &bind_group_layout,
@@ -218,6 +241,10 @@ impl framework::Example for Example {
                 },
                 wgpu::BindGroupEntry {
                     binding: 1,
+                    resource: model_buf.as_entire_binding(),
+                },
+                wgpu::BindGroupEntry {
+                    binding: 2,
                     resource: wgpu::BindingResource::TextureView(&texture_view),
                 },
             ],
@@ -324,8 +351,10 @@ impl framework::Example for Example {
             index_count: index_data.len(),
             bind_group,
             uniform_buf,
+            model_buf,
             pipeline,
             pipeline_wire,
+            angle: 0.0
         }
     }
 
@@ -340,8 +369,12 @@ impl framework::Example for Example {
         queue.write_buffer(&self.uniform_buf, 0, bytemuck::cast_slice(mx_ref));
     }
 
-    fn update(&mut self, _event: winit::event::WindowEvent) {
-        //empty
+    fn update(&mut self, queue: &wgpu::Queue,) {
+        self.angle += 1.0;
+        let rotate = Matrix4::from_angle_y(cgmath::Deg(self.angle));
+
+        let mx_ref: &[f32; 16] = rotate.as_ref();
+        queue.write_buffer(&self.model_buf, 0, bytemuck::cast_slice(mx_ref));
     }
 
     fn render(
