@@ -20,9 +20,9 @@ pub trait Vertex {
 #[repr(C)]
 #[derive(Copy, Clone, Debug, bytemuck::Pod, bytemuck::Zeroable)]
 pub struct ModelVertex {
-    position: [f32; 3],
-    tex_coords: [f32; 2],
-    normal: [f32; 3],
+    pub position: [f32; 3],
+    pub tex_coords: [f32; 2],
+    pub normal: [f32; 3],
 }
 
 impl Vertex for ModelVertex {
@@ -100,7 +100,7 @@ impl Model {
                     },
                     wgpu::BindGroupEntry {
                         binding: 1,
-                        resource: wgpu::BindingResource::Sampler(&diffuse_texture.sampler),
+                        resource: wgpu::BindingResource::Sampler(&diffuse_texture.sampler.as_ref().unwrap()),
                     },
                 ],
                 label: None,

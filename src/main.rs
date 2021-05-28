@@ -11,63 +11,57 @@ mod texture;
 mod camera;
 mod model;
 
-use bytemuck::{Pod, Zeroable};
-use std::{borrow::Cow, mem};
+use std::borrow::Cow;
 use wgpu::util::DeviceExt;
 use wgpu::Features;
 use winit::event::WindowEvent;
 use camera::*;
 use model::*;
+use texture::*;
 
-#[repr(C)]
-#[derive(Clone, Copy, Pod, Zeroable)]
-struct Vertex {
-    _pos: [f32; 4],
-    _tex_coord: [f32; 2],
-}
-
-fn vertex(pos: [i8; 3], tc: [i8; 2]) -> Vertex {
-    Vertex {
-        _pos: [pos[0] as f32, pos[1] as f32, pos[2] as f32, 1.0],
-        _tex_coord: [tc[0] as f32, tc[1] as f32],
+fn vertex(pos: [i8; 3], tc: [i8; 2], n: [i8; 3]) -> ModelVertex {
+    ModelVertex {
+        position: [pos[0] as f32, pos[1] as f32, pos[2] as f32],
+        tex_coords: [tc[0] as f32, tc[1] as f32],
+        normal: [n[0] as f32, n[1] as f32, n[2] as f32],
     }
 }
 
-fn create_vertices() -> (Vec<Vertex>, Vec<u16>) {
+fn create_vertices() -> (Vec<ModelVertex>, Vec<u32>) {
     let vertex_data = [
         // top (0, 0, 1)
-        vertex([-1, -1, 1], [0, 0]),
-        vertex([1, -1, 1], [1, 0]),
-        vertex([1, 1, 1], [1, 1]),
-        vertex([-1, 1, 1], [0, 1]),
+        vertex([-1, -1, 1], [0, 0], [0, 0, 0]),
+        vertex([1, -1, 1], [1, 0], [0, 0, 0]),
+        vertex([1, 1, 1], [1, 1], [0, 0, 0]),
+        vertex([-1, 1, 1], [0, 1], [0, 0, 0]),
         // bottom (0, 0, -1)
-        vertex([-1, 1, -1], [1, 0]),
-        vertex([1, 1, -1], [0, 0]),
-        vertex([1, -1, -1], [0, 1]),
-        vertex([-1, -1, -1], [1, 1]),
+        vertex([-1, 1, -1], [1, 0], [0, 0, 0]),
+        vertex([1, 1, -1], [0, 0], [0, 0, 0]),
+        vertex([1, -1, -1], [0, 1], [0, 0, 0]),
+        vertex([-1, -1, -1], [1, 1], [0, 0, 0]),
         // right (1, 0, 0)
-        vertex([1, -1, -1], [0, 0]),
-        vertex([1, 1, -1], [1, 0]),
-        vertex([1, 1, 1], [1, 1]),
-        vertex([1, -1, 1], [0, 1]),
+        vertex([1, -1, -1], [0, 0], [0, 0, 0]),
+        vertex([1, 1, -1], [1, 0], [0, 0, 0]),
+        vertex([1, 1, 1], [1, 1], [0, 0, 0]),
+        vertex([1, -1, 1], [0, 1], [0, 0, 0]),
         // left (-1, 0, 0)
-        vertex([-1, -1, 1], [1, 0]),
-        vertex([-1, 1, 1], [0, 0]),
-        vertex([-1, 1, -1], [0, 1]),
-        vertex([-1, -1, -1], [1, 1]),
+        vertex([-1, -1, 1], [1, 0], [0, 0, 0]),
+        vertex([-1, 1, 1], [0, 0], [0, 0, 0]),
+        vertex([-1, 1, -1], [0, 1], [0, 0, 0]),
+        vertex([-1, -1, -1], [1, 1], [0, 0, 0]),
         // front (0, 1, 0)
-        vertex([1, 1, -1], [1, 0]),
-        vertex([-1, 1, -1], [0, 0]),
-        vertex([-1, 1, 1], [0, 1]),
-        vertex([1, 1, 1], [1, 1]),
+        vertex([1, 1, -1], [1, 0], [0, 0, 0]),
+        vertex([-1, 1, -1], [0, 0], [0, 0, 0]),
+        vertex([-1, 1, 1], [0, 1], [0, 0, 0]),
+        vertex([1, 1, 1], [1, 1], [0, 0, 0]),
         // back (0, -1, 0)
-        vertex([1, -1, 1], [0, 0]),
-        vertex([-1, -1, 1], [1, 0]),
-        vertex([-1, -1, -1], [1, 1]),
-        vertex([1, -1, -1], [0, 1]),
+        vertex([1, -1, 1], [0, 0], [0, 0, 0]),
+        vertex([-1, -1, 1], [1, 0], [0, 0, 0]),
+        vertex([-1, -1, -1], [1, 1], [0, 0, 0]),
+        vertex([1, -1, -1], [0, 1], [0, 0, 0]),
     ];
 
-    let index_data: &[u16] = &[
+    let index_data: &[u32] = &[
         0, 1, 2, 2, 3, 0, // top
         4, 5, 6, 6, 7, 4, // bottom
         8, 9, 10, 10, 11, 8, // right
@@ -129,21 +123,17 @@ impl Uniforms {
 
 //--------------------------------------------------------------------------------------------------
 struct Example {
-    vertex_buf: wgpu::Buffer,
-    index_buf: wgpu::Buffer,
-    index_count: usize,
-
-    mat_bind_group: wgpu::BindGroup,
-
-    uniform_buf: wgpu::Buffer,
-    uniform_bind_group: wgpu::BindGroup,
-    pipeline: wgpu::RenderPipeline,
-    pipeline_wire: Option<wgpu::RenderPipeline>,
-
+    model: Model,
     camera: Camera,
     camera_controller: CameraController,
-    uniforms: Uniforms,
+
     angle: f32,
+    uniforms: Uniforms,
+    uniform_buf: wgpu::Buffer,
+    uniform_bind_group: wgpu::BindGroup,
+
+    pipeline: wgpu::RenderPipeline,
+    pipeline_wire: Option<wgpu::RenderPipeline>,
 }
 
 impl framework::Example for Example {
@@ -211,6 +201,8 @@ impl framework::Example for Example {
             push_constant_ranges: &[],
         });
 
+        //------------------------------------------------------------------------------------------
+
         // Create the texture
         let size = 256u32;
         let texels = create_texels(size as usize);
@@ -244,15 +236,6 @@ impl framework::Example for Example {
             texture_extent,
         );
 
-        // Create other resources
-        let mut uniforms = Uniforms::new();
-        uniforms.update_view_proj(&camera);
-        let uniform_buf = device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
-            label: Some("Uniform Buffer"),
-            contents: bytemuck::cast_slice(&[uniforms]),
-            usage: wgpu::BufferUsage::UNIFORM | wgpu::BufferUsage::COPY_DST,
-        });
-
         // Create bind group
         let mat_bind_group = device.create_bind_group(&wgpu::BindGroupDescriptor {
             layout: &mat_bind_group_layout,
@@ -263,6 +246,15 @@ impl framework::Example for Example {
                 },
             ],
             label: None,
+        });
+
+        // Create other resources
+        let mut uniforms = Uniforms::new();
+        uniforms.update_view_proj(&camera);
+        let uniform_buf = device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
+            label: Some("Uniform Buffer"),
+            contents: bytemuck::cast_slice(&[uniforms]),
+            usage: wgpu::BufferUsage::UNIFORM | wgpu::BufferUsage::COPY_DST,
         });
 
         let uniform_bind_group = device.create_bind_group(&wgpu::BindGroupDescriptor {
@@ -278,7 +270,6 @@ impl framework::Example for Example {
 
         //------------------------------------------------------------------------------------------
         // Create the vertex and index buffers
-        let vertex_size = mem::size_of::<Vertex>();
         let (vertex_data, index_data) = create_vertices();
 
         let vertex_buf = device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
@@ -293,6 +284,33 @@ impl framework::Example for Example {
             usage: wgpu::BufferUsage::INDEX,
         });
 
+        let mesh = Mesh {
+            name: "cube".to_string(),
+            vertex_buffer: vertex_buf,
+            index_buffer: index_buf,
+            num_elements: index_data.len() as u32,
+            material: 0,
+        };
+
+        let texture = Texture {
+            texture,
+            view: texture_view,
+            sampler: None,
+        };
+
+        let mat = Material {
+            name: "cube".to_string(),
+            diffuse_texture: texture,
+            bind_group: mat_bind_group,
+        };
+
+        let model = Model {
+            meshes: vec![mesh],
+            materials: vec![mat],
+        };
+
+        //------------------------------------------------------------------------------------------
+
         let mut flags = wgpu::ShaderFlags::VALIDATION;
         match adapter.get_info().backend {
             wgpu::Backend::Metal | wgpu::Backend::Vulkan | wgpu::Backend::Gl => {
@@ -306,22 +324,7 @@ impl framework::Example for Example {
             flags,
         });
 
-        let vertex_buffers = [wgpu::VertexBufferLayout {
-            array_stride: vertex_size as wgpu::BufferAddress,
-            step_mode: wgpu::InputStepMode::Vertex,
-            attributes: &[
-                wgpu::VertexAttribute {
-                    format: wgpu::VertexFormat::Float32x4,
-                    offset: 0,
-                    shader_location: 0,
-                },
-                wgpu::VertexAttribute {
-                    format: wgpu::VertexFormat::Float32x2,
-                    offset: 4 * 4,
-                    shader_location: 1,
-                },
-            ],
-        }];
+        let vertex_buffers = [ModelVertex::desc()];
 
         let pipeline = device.create_render_pipeline(&wgpu::RenderPipelineDescriptor {
             label: None,
@@ -388,18 +391,17 @@ impl framework::Example for Example {
 
         // Done
         Example {
-            vertex_buf,
-            index_buf,
-            index_count: index_data.len(),
-            mat_bind_group,
-            uniform_buf,
-            uniform_bind_group,
-            pipeline,
-            pipeline_wire,
-            uniforms,
+            model,
             camera,
             camera_controller,
+
             angle: 0.0,
+            uniforms,
+            uniform_buf,
+            uniform_bind_group,
+
+            pipeline,
+            pipeline_wire,
         }
     }
 
@@ -456,16 +458,13 @@ impl framework::Example for Example {
             });
             rpass.push_debug_group("Prepare data for draw.");
             rpass.set_pipeline(&self.pipeline);
-            rpass.set_bind_group(0, &self.mat_bind_group, &[]);
-            rpass.set_bind_group(1, &self.uniform_bind_group, &[]);
-            rpass.set_index_buffer(self.index_buf.slice(..), wgpu::IndexFormat::Uint16);
-            rpass.set_vertex_buffer(0, self.vertex_buf.slice(..));
             rpass.pop_debug_group();
+
             rpass.insert_debug_marker("Draw!");
-            rpass.draw_indexed(0..self.index_count as u32, 0, 0..1);
+            rpass.draw_model(&self.model, &self.uniform_bind_group);
             if let Some(ref pipe) = self.pipeline_wire {
                 rpass.set_pipeline(pipe);
-                rpass.draw_indexed(0..self.index_count as u32, 0, 0..1);
+                rpass.draw_model(&self.model, &self.uniform_bind_group);
             }
         }
 

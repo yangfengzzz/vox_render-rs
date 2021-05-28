@@ -7,8 +7,9 @@ struct Uniforms {
 var uniforms: Uniforms;
 
 struct VertexInput {
-    [[location(0)]] position: vec4<f32>;
-    [[location(1)]] tex_coords: vec2<f32>;
+    [[location(0)]] position: vec3<f32>;
+    [[location(1)]] tex_coord: vec2<f32>;
+    [[location(2)]] normal: vec3<f32>;
 };
 
 struct VertexOutput {
@@ -17,13 +18,11 @@ struct VertexOutput {
 };
 
 [[stage(vertex)]]
-fn vs_main(
-    [[location(0)]] position: vec4<f32>,
-    [[location(1)]] tex_coord: vec2<f32>,
+fn vs_main(model: VertexInput,
 ) -> VertexOutput {
     var out: VertexOutput;
-    out.tex_coord = tex_coord;
-    out.position =  uniforms.view_proj * uniforms.model * position;
+    out.tex_coord = model.tex_coord;
+    out.position =  uniforms.view_proj * uniforms.model * vec4<f32>(model.position, 1.0);
     return out;
 }
 

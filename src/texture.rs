@@ -13,7 +13,7 @@ use std::{num::NonZeroU32, path::Path};
 pub struct Texture {
     pub texture: wgpu::Texture,
     pub view: wgpu::TextureView,
-    pub sampler: wgpu::Sampler,
+    pub sampler: Option<wgpu::Sampler>,
 }
 
 impl Texture {
@@ -69,7 +69,7 @@ impl Texture {
         Self {
             texture,
             view,
-            sampler,
+            sampler: Some(sampler),
         }
     }
 
@@ -137,7 +137,7 @@ impl Texture {
         Ok(Self {
             texture,
             view,
-            sampler,
+            sampler: Some(sampler),
         })
     }
 }
