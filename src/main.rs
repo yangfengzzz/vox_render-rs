@@ -136,6 +136,7 @@ struct Example {
     pipeline_wire: Option<wgpu::RenderPipeline>,
 
     camera: Camera,
+    camera_controller: CameraController,
     uniforms: Uniforms,
     angle: f32,
 }
@@ -164,6 +165,7 @@ impl framework::Example for Example {
             znear: 0.1,
             zfar: 100.0,
         };
+        let camera_controller = CameraController::new(0.2);
 
         // Create the vertex and index buffers
         let vertex_size = mem::size_of::<Vertex>();
@@ -375,6 +377,7 @@ impl framework::Example for Example {
             pipeline_wire,
             uniforms,
             camera,
+            camera_controller,
             angle: 0.0,
         }
     }
@@ -391,13 +394,16 @@ impl framework::Example for Example {
     }
 
     fn update(&mut self, queue: &wgpu::Queue) {
+        self.camera_controller.update_camera(&mut self.camera);
+        self.uniforms.update_view_proj(&self.camera);
+
         self.angle += 1.0;
         self.uniforms.update_model(self.angle);
         queue.write_buffer(&self.uniform_buf, 0, bytemuck::cast_slice(&[self.uniforms]));
     }
 
-    fn input(&mut self, _: &WindowEvent) -> bool {
-        return false;
+    fn input(&mut self, event: &WindowEvent) -> bool {
+        return self.camera_controller.process_events(event);
     }
 
     fn render(
