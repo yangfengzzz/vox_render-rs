@@ -1,5 +1,5 @@
-#[path = "./framework.rs"]
 mod framework;
+mod texture;
 
 use bytemuck::{Pod, Zeroable};
 use std::{borrow::Cow, mem};
