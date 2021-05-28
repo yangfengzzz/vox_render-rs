@@ -3,7 +3,7 @@ struct Uniforms {
     view_proj: mat4x4<f32>;
     model: mat4x4<f32>;
 };
-[[group(0), binding(0)]]
+[[group(1), binding(0)]]
 var uniforms: Uniforms;
 
 struct VertexInput {
@@ -28,7 +28,7 @@ fn vs_main(
 }
 
 //-----------------------------------------------------------------------------
-[[group(0), binding(1)]]
+[[group(0), binding(0)]]
 var r_color: texture_2d<u32>;
 
 [[stage(fragment)]]

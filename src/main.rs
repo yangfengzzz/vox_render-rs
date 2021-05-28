@@ -133,10 +133,10 @@ struct Example {
     index_buf: wgpu::Buffer,
     index_count: usize,
 
-    bind_group: wgpu::BindGroup,
-
+    mat_bind_group: wgpu::BindGroup,
 
     uniform_buf: wgpu::Buffer,
+    uniform_bind_group: wgpu::BindGroup,
     pipeline: wgpu::RenderPipeline,
     pipeline_wire: Option<wgpu::RenderPipeline>,
 
@@ -172,24 +172,25 @@ impl framework::Example for Example {
         };
         let camera_controller = CameraController::new(0.2);
 
-        // Create the vertex and index buffers
-        let vertex_size = mem::size_of::<Vertex>();
-        let (vertex_data, index_data) = create_vertices();
-
-        let vertex_buf = device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
-            label: Some("Vertex Buffer"),
-            contents: bytemuck::cast_slice(&vertex_data),
-            usage: wgpu::BufferUsage::VERTEX,
-        });
-
-        let index_buf = device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
-            label: Some("Index Buffer"),
-            contents: bytemuck::cast_slice(&index_data),
-            usage: wgpu::BufferUsage::INDEX,
-        });
+        //------------------------------------------------------------------------------------------
 
         // Create pipeline layout
-        let bind_group_layout = device.create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor {
+        let mat_bind_group_layout = device.create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor {
+            label: None,
+            entries: &[
+                wgpu::BindGroupLayoutEntry {
+                    binding: 0,
+                    visibility: wgpu::ShaderStage::FRAGMENT,
+                    ty: wgpu::BindingType::Texture {
+                        multisampled: false,
+                        sample_type: wgpu::TextureSampleType::Uint,
+                        view_dimension: wgpu::TextureViewDimension::D2,
+                    },
+                    count: None,
+                },
+            ],
+        });
+        let uniform_bind_group_layout = device.create_bind_group_layout(&wgpu::BindGroupLayoutDescriptor {
             label: None,
             entries: &[
                 wgpu::BindGroupLayoutEntry {
@@ -202,21 +203,11 @@ impl framework::Example for Example {
                     },
                     count: None,
                 },
-                wgpu::BindGroupLayoutEntry {
-                    binding: 1,
-                    visibility: wgpu::ShaderStage::FRAGMENT,
-                    ty: wgpu::BindingType::Texture {
-                        multisampled: false,
-                        sample_type: wgpu::TextureSampleType::Uint,
-                        view_dimension: wgpu::TextureViewDimension::D2,
-                    },
-                    count: None,
-                },
             ],
         });
         let pipeline_layout = device.create_pipeline_layout(&wgpu::PipelineLayoutDescriptor {
             label: None,
-            bind_group_layouts: &[&bind_group_layout],
+            bind_group_layouts: &[&mat_bind_group_layout, &uniform_bind_group_layout],
             push_constant_ranges: &[],
         });
 
@@ -263,19 +254,43 @@ impl framework::Example for Example {
         });
 
         // Create bind group
-        let bind_group = device.create_bind_group(&wgpu::BindGroupDescriptor {
-            layout: &bind_group_layout,
+        let mat_bind_group = device.create_bind_group(&wgpu::BindGroupDescriptor {
+            layout: &mat_bind_group_layout,
+            entries: &[
+                wgpu::BindGroupEntry {
+                    binding: 0,
+                    resource: wgpu::BindingResource::TextureView(&texture_view),
+                },
+            ],
+            label: None,
+        });
+
+        let uniform_bind_group = device.create_bind_group(&wgpu::BindGroupDescriptor {
+            layout: &uniform_bind_group_layout,
             entries: &[
                 wgpu::BindGroupEntry {
                     binding: 0,
                     resource: uniform_buf.as_entire_binding(),
                 },
-                wgpu::BindGroupEntry {
-                    binding: 1,
-                    resource: wgpu::BindingResource::TextureView(&texture_view),
-                },
             ],
             label: None,
+        });
+
+        //------------------------------------------------------------------------------------------
+        // Create the vertex and index buffers
+        let vertex_size = mem::size_of::<Vertex>();
+        let (vertex_data, index_data) = create_vertices();
+
+        let vertex_buf = device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
+            label: Some("Vertex Buffer"),
+            contents: bytemuck::cast_slice(&vertex_data),
+            usage: wgpu::BufferUsage::VERTEX,
+        });
+
+        let index_buf = device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
+            label: Some("Index Buffer"),
+            contents: bytemuck::cast_slice(&index_data),
+            usage: wgpu::BufferUsage::INDEX,
         });
 
         let mut flags = wgpu::ShaderFlags::VALIDATION;
@@ -376,8 +391,9 @@ impl framework::Example for Example {
             vertex_buf,
             index_buf,
             index_count: index_data.len(),
-            bind_group,
+            mat_bind_group,
             uniform_buf,
+            uniform_bind_group,
             pipeline,
             pipeline_wire,
             uniforms,
@@ -440,7 +456,8 @@ impl framework::Example for Example {
             });
             rpass.push_debug_group("Prepare data for draw.");
             rpass.set_pipeline(&self.pipeline);
-            rpass.set_bind_group(0, &self.bind_group, &[]);
+            rpass.set_bind_group(0, &self.mat_bind_group, &[]);
+            rpass.set_bind_group(1, &self.uniform_bind_group, &[]);
             rpass.set_index_buffer(self.index_buf.slice(..), wgpu::IndexFormat::Uint16);
             rpass.set_vertex_buffer(0, self.vertex_buf.slice(..));
             rpass.pop_debug_group();
