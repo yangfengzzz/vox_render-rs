@@ -9,6 +9,7 @@
 use image::GenericImageView;
 use anyhow::*;
 use bytemuck::__core::num::NonZeroU32;
+use std::path::Path;
 
 pub struct Texture {
     pub texture: wgpu::Texture,
@@ -21,7 +22,7 @@ impl Texture {
         device: &wgpu::Device,
         queue: &wgpu::Queue,
         bytes: &[u8],
-        label: &str
+        label: &str,
     ) -> Result<Self> {
         let img = image::load_from_memory(bytes)?;
         Self::from_image(device, queue, &img, Some(label))
@@ -31,7 +32,7 @@ impl Texture {
         device: &wgpu::Device,
         queue: &wgpu::Queue,
         img: &image::DynamicImage,
-        label: Option<&str>
+        label: Option<&str>,
     ) -> Result<Self> {
         let rgba = img.as_rgba8().unwrap();
         let dimensions = img.dimensions();
@@ -82,5 +83,18 @@ impl Texture {
         );
 
         Ok(Self { texture, view, sampler })
+    }
+
+    pub fn load<P: AsRef<Path>>(
+        device: &wgpu::Device,
+        queue: &wgpu::Queue,
+        path: P,
+    ) -> Result<Self> {
+        // Needed to appease the borrow checker
+        let path_copy = path.as_ref().to_path_buf();
+        let label = path_copy.to_str();
+
+        let img = image::open(path)?;
+        Self::from_image(device, queue, &img, label)
     }
 }

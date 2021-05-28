@@ -9,6 +9,7 @@
 mod framework;
 mod texture;
 mod camera;
+mod model;
 
 use bytemuck::{Pod, Zeroable};
 use std::{borrow::Cow, mem};
