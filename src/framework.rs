@@ -33,31 +33,36 @@ pub trait Example: 'static + Sized {
     fn optional_features() -> wgpu::Features {
         wgpu::Features::empty()
     }
+
     fn required_features() -> wgpu::Features {
         wgpu::Features::empty()
     }
+
     fn required_limits() -> wgpu::Limits {
         wgpu::Limits::default()
     }
-    fn init(
-        sc_desc: &wgpu::SwapChainDescriptor,
-        adapter: &wgpu::Adapter,
-        device: &wgpu::Device,
-        queue: &wgpu::Queue,
+
+    fn init(sc_desc: &wgpu::SwapChainDescriptor,
+            adapter: &wgpu::Adapter,
+            device: &wgpu::Device,
+            queue: &wgpu::Queue,
     ) -> Self;
-    fn resize(
-        &mut self,
-        sc_desc: &wgpu::SwapChainDescriptor,
-        device: &wgpu::Device,
-        queue: &wgpu::Queue,
+
+    fn resize(&mut self,
+              sc_desc: &wgpu::SwapChainDescriptor,
+              device: &wgpu::Device,
+              queue: &wgpu::Queue,
     );
+
     fn update(&mut self, queue: &wgpu::Queue);
-    fn render(
-        &mut self,
-        frame: &wgpu::SwapChainTexture,
-        device: &wgpu::Device,
-        queue: &wgpu::Queue,
-        spawner: &Spawner,
+
+    fn input(&mut self, event: &WindowEvent) -> bool;
+
+    fn render(&mut self,
+              frame: &wgpu::SwapChainTexture,
+              device: &wgpu::Device,
+              queue: &wgpu::Queue,
+              spawner: &Spawner,
     );
 }
 
@@ -250,30 +255,29 @@ fn start<E: Example>(
                     window.request_redraw();
             }
             event::Event::WindowEvent {
-                event: WindowEvent::Resized(size),
-                ..
-            } => {
-                log::info!("Resizing to {:?}", size);
-                sc_desc.width = size.width.max(1);
-                sc_desc.height = size.height.max(1);
-                example.resize(&sc_desc, &device, &queue);
-                swap_chain = device.create_swap_chain(&surface, &sc_desc);
-            }
-            event::Event::WindowEvent { event, .. } => match event {
-                WindowEvent::KeyboardInput {
-                    input:
-                    event::KeyboardInput {
-                        virtual_keycode: Some(event::VirtualKeyCode::Escape),
-                        state: event::ElementState::Pressed,
+                ref event,
+                window_id, } if window_id == window.id() => if !example.input(event) {
+                match event {
+                    WindowEvent::KeyboardInput {
+                        input:
+                        event::KeyboardInput {
+                            virtual_keycode: Some(event::VirtualKeyCode::Escape),
+                            state: event::ElementState::Pressed,
+                            ..
+                        },
                         ..
-                    },
-                    ..
-                }
-                | WindowEvent::CloseRequested => {
-                    *control_flow = ControlFlow::Exit;
-                }
-                _ => {
-                    // example.update(event, &queue);
+                    }
+                    | WindowEvent::CloseRequested => {
+                        *control_flow = ControlFlow::Exit;
+                    }
+                    | WindowEvent::Resized(size) => {
+                        log::info!("Resizing to {:?}", size);
+                        sc_desc.width = size.width.max(1);
+                        sc_desc.height = size.height.max(1);
+                        example.resize(&sc_desc, &device, &queue);
+                        swap_chain = device.create_swap_chain(&surface, &sc_desc);
+                    }
+                    _ => {}
                 }
             },
             event::Event::RedrawRequested(_) => {

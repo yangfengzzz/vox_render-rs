@@ -6,6 +6,7 @@ use std::{borrow::Cow, mem};
 use wgpu::util::DeviceExt;
 use wgpu::Features;
 use cgmath::Matrix4;
+use winit::event::WindowEvent;
 
 #[repr(C)]
 #[derive(Clone, Copy, Pod, Zeroable)]
@@ -375,6 +376,10 @@ impl framework::Example for Example {
 
         let mx_ref: &[f32; 16] = rotate.as_ref();
         queue.write_buffer(&self.model_buf, 0, bytemuck::cast_slice(mx_ref));
+    }
+
+    fn input(&mut self, event: &WindowEvent) -> bool {
+        return false;
     }
 
     fn render(
