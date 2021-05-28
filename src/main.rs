@@ -17,6 +17,7 @@ use wgpu::util::DeviceExt;
 use wgpu::Features;
 use winit::event::WindowEvent;
 use camera::*;
+use model::*;
 
 #[repr(C)]
 #[derive(Clone, Copy, Pod, Zeroable)]
@@ -131,7 +132,10 @@ struct Example {
     vertex_buf: wgpu::Buffer,
     index_buf: wgpu::Buffer,
     index_count: usize,
+
     bind_group: wgpu::BindGroup,
+
+
     uniform_buf: wgpu::Buffer,
     pipeline: wgpu::RenderPipeline,
     pipeline_wire: Option<wgpu::RenderPipeline>,
