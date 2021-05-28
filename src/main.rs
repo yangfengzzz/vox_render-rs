@@ -14,8 +14,8 @@ use bytemuck::{Pod, Zeroable};
 use std::{borrow::Cow, mem};
 use wgpu::util::DeviceExt;
 use wgpu::Features;
-use cgmath::Matrix4;
 use winit::event::WindowEvent;
+use camera::*;
 
 #[repr(C)]
 #[derive(Clone, Copy, Pod, Zeroable)]
@@ -96,30 +96,48 @@ fn create_texels(size: usize) -> Vec<u8> {
 }
 
 //--------------------------------------------------------------------------------------------------
+// We need this for Rust to store our data correctly for the shaders
+#[repr(C)]
+// This is so we can store this in a buffer
+#[derive(Debug, Copy, Clone, bytemuck::Pod, bytemuck::Zeroable)]
+struct Uniforms {
+    // We can't use cgmath with bytemuck directly so we'll have
+    // to convert the Matrix4 into a 4x4 f32 array
+    view_proj: [[f32; 4]; 4],
+    model: [[f32; 4]; 4],
+}
+
+impl Uniforms {
+    fn new() -> Self {
+        use cgmath::SquareMatrix;
+        Self {
+            view_proj: cgmath::Matrix4::identity().into(),
+            model: cgmath::Matrix4::from_angle_x(cgmath::Deg(0f32)).into(),
+        }
+    }
+
+    fn update_view_proj(&mut self, camera: &Camera) {
+        self.view_proj = camera.build_view_projection_matrix().into();
+    }
+
+    fn update_model(&mut self, ratio: f32) {
+        self.model = cgmath::Matrix4::from_angle_x(cgmath::Deg(ratio)).into();
+    }
+}
+
+//--------------------------------------------------------------------------------------------------
 struct Example {
     vertex_buf: wgpu::Buffer,
     index_buf: wgpu::Buffer,
     index_count: usize,
     bind_group: wgpu::BindGroup,
     uniform_buf: wgpu::Buffer,
-    model_buf: wgpu::Buffer,
     pipeline: wgpu::RenderPipeline,
     pipeline_wire: Option<wgpu::RenderPipeline>,
 
-    angle:f32,
-}
-
-impl Example {
-    fn generate_matrix(aspect_ratio: f32) -> cgmath::Matrix4<f32> {
-        let mx_projection = cgmath::perspective(cgmath::Deg(60f32), aspect_ratio, 1.0, 10.0);
-        let mx_view = cgmath::Matrix4::look_at_rh(
-            cgmath::Point3::new(1.5f32, -5.0, 3.0),
-            cgmath::Point3::new(0f32, 0.0, 0.0),
-            cgmath::Vector3::unit_z(),
-        );
-        let mx_correction = framework::OPENGL_TO_WGPU_MATRIX;
-        mx_correction * mx_projection * mx_view
-    }
+    camera: Camera,
+    uniforms: Uniforms,
+    angle: f32,
 }
 
 impl framework::Example for Example {
@@ -133,6 +151,20 @@ impl framework::Example for Example {
         device: &wgpu::Device,
         queue: &wgpu::Queue,
     ) -> Self {
+        let camera = Camera {
+            // position the camera one unit up and 2 units back
+            // +z is out of the screen
+            eye: (1.5f32, -5.0, 3.0).into(),
+            // have it look at the origin
+            target: (0f32, 0.0, 0.0).into(),
+            // which way is "up"
+            up: cgmath::Vector3::unit_z(),
+            aspect: sc_desc.width as f32 / sc_desc.height as f32,
+            fovy: 45.0,
+            znear: 0.1,
+            zfar: 100.0,
+        };
+
         // Create the vertex and index buffers
         let vertex_size = mem::size_of::<Vertex>();
         let (vertex_data, index_data) = create_vertices();
@@ -159,22 +191,12 @@ impl framework::Example for Example {
                     ty: wgpu::BindingType::Buffer {
                         ty: wgpu::BufferBindingType::Uniform,
                         has_dynamic_offset: false,
-                        min_binding_size: wgpu::BufferSize::new(64),
+                        min_binding_size: wgpu::BufferSize::new(128),
                     },
                     count: None,
                 },
                 wgpu::BindGroupLayoutEntry {
                     binding: 1,
-                    visibility: wgpu::ShaderStage::VERTEX,
-                    ty: wgpu::BindingType::Buffer {
-                        ty: wgpu::BufferBindingType::Uniform,
-                        has_dynamic_offset: false,
-                        min_binding_size: wgpu::BufferSize::new(64),
-                    },
-                    count: None,
-                },
-                wgpu::BindGroupLayoutEntry {
-                    binding: 2,
                     visibility: wgpu::ShaderStage::FRAGMENT,
                     ty: wgpu::BindingType::Texture {
                         multisampled: false,
@@ -225,19 +247,11 @@ impl framework::Example for Example {
         );
 
         // Create other resources
-        let mx_total = Self::generate_matrix(sc_desc.width as f32 / sc_desc.height as f32);
-        let mx_ref: &[f32; 16] = mx_total.as_ref();
+        let mut uniforms = Uniforms::new();
+        uniforms.update_view_proj(&camera);
         let uniform_buf = device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
             label: Some("Uniform Buffer"),
-            contents: bytemuck::cast_slice(mx_ref),
-            usage: wgpu::BufferUsage::UNIFORM | wgpu::BufferUsage::COPY_DST,
-        });
-
-        let rotate = cgmath::Matrix4::from_angle_x(cgmath::Deg(0f32));
-        let mx_ref: &[f32; 16] = rotate.as_ref();
-        let model_buf = device.create_buffer_init(&wgpu::util::BufferInitDescriptor {
-            label: Some("Model Buffer"),
-            contents: bytemuck::cast_slice(mx_ref),
+            contents: bytemuck::cast_slice(&[uniforms]),
             usage: wgpu::BufferUsage::UNIFORM | wgpu::BufferUsage::COPY_DST,
         });
 
@@ -251,10 +265,6 @@ impl framework::Example for Example {
                 },
                 wgpu::BindGroupEntry {
                     binding: 1,
-                    resource: model_buf.as_entire_binding(),
-                },
-                wgpu::BindGroupEntry {
-                    binding: 2,
                     resource: wgpu::BindingResource::TextureView(&texture_view),
                 },
             ],
@@ -361,10 +371,11 @@ impl framework::Example for Example {
             index_count: index_data.len(),
             bind_group,
             uniform_buf,
-            model_buf,
             pipeline,
             pipeline_wire,
-            angle: 0.0
+            uniforms,
+            camera,
+            angle: 0.0,
         }
     }
 
@@ -374,20 +385,18 @@ impl framework::Example for Example {
         _device: &wgpu::Device,
         queue: &wgpu::Queue,
     ) {
-        let mx_total = Self::generate_matrix(sc_desc.width as f32 / sc_desc.height as f32);
-        let mx_ref: &[f32; 16] = mx_total.as_ref();
-        queue.write_buffer(&self.uniform_buf, 0, bytemuck::cast_slice(mx_ref));
+        self.camera.aspect = sc_desc.width as f32 / sc_desc.height as f32;
+        self.uniforms.update_view_proj(&self.camera);
+        queue.write_buffer(&self.uniform_buf, 0, bytemuck::cast_slice(&[self.uniforms]));
     }
 
-    fn update(&mut self, queue: &wgpu::Queue,) {
+    fn update(&mut self, queue: &wgpu::Queue) {
         self.angle += 1.0;
-        let rotate = Matrix4::from_angle_y(cgmath::Deg(self.angle));
-
-        let mx_ref: &[f32; 16] = rotate.as_ref();
-        queue.write_buffer(&self.model_buf, 0, bytemuck::cast_slice(mx_ref));
+        self.uniforms.update_model(self.angle);
+        queue.write_buffer(&self.uniform_buf, 0, bytemuck::cast_slice(&[self.uniforms]));
     }
 
-    fn input(&mut self, event: &WindowEvent) -> bool {
+    fn input(&mut self, _: &WindowEvent) -> bool {
         return false;
     }
 
