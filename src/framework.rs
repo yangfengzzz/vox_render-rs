@@ -1,3 +1,11 @@
+/*
+ * // Copyright (c) 2021 Feng Yang
+ * //
+ * // I am making my contributions/submissions to this project solely in my
+ * // personal capacity and am not conveying any rights to any intellectual
+ * // property of any third parties.
+ */
+
 use std::future::Future;
 #[cfg(not(target_arch = "wasm32"))]
 use std::time::{Duration, Instant};
