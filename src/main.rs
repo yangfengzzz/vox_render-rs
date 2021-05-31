@@ -10,8 +10,13 @@ mod framework;
 mod texture;
 mod camera;
 mod model;
-mod node;
-mod aabb;
+mod entity;
+mod layer;
+mod component;
+mod bounding_box;
+mod vector3;
+mod bounding_sphere;
+mod point3;
 
 use std::borrow::Cow;
 use wgpu::util::DeviceExt;
