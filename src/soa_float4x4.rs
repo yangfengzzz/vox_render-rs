@@ -115,6 +115,7 @@ impl SoaFloat4x4 {
 }
 
 // Returns the transpose of matrix _m.
+#[inline]
 pub fn transpose(_m: &SoaFloat4x4) -> SoaFloat4x4 {
     return SoaFloat4x4 {
         cols:
@@ -129,6 +130,7 @@ pub fn transpose(_m: &SoaFloat4x4) -> SoaFloat4x4 {
 // If _invertible is not nullptr, each component will be set to true if its
 // respective matrix is invertible. If _invertible is nullptr, then an assert is
 // triggered in case any of the 4 matrices isn't invertible.
+#[inline]
 pub fn invert(_m: &SoaFloat4x4, _invertible: &mut Option<m32x4>) -> SoaFloat4x4 {
     let cols = &_m.cols;
     let a00 = cols[2].z * cols[3].w - cols[3].z * cols[2].w;
@@ -191,6 +193,7 @@ pub fn invert(_m: &SoaFloat4x4, _invertible: &mut Option<m32x4>) -> SoaFloat4x4 
 
 // Scales matrix _m along the axis defined by _v components.
 // _v.w is ignored.
+#[inline]
 pub fn scale(_m: &SoaFloat4x4, _v: &SoaFloat4) -> SoaFloat4x4 {
     return SoaFloat4x4 {
         cols: [SoaFloat4::load(_m.cols[0].x * _v.x, _m.cols[0].y * _v.x,
@@ -207,7 +210,7 @@ pub fn scale(_m: &SoaFloat4x4, _v: &SoaFloat4) -> SoaFloat4x4 {
 // Computes the multiplication of matrix Float4x4 and vector  _v.
 impl Mul<SoaFloat4> for SoaFloat4x4 {
     type Output = SoaFloat4;
-
+    #[inline]
     fn mul(self, rhs: SoaFloat4) -> Self::Output {
         return SoaFloat4::load(
             self.cols[0].x * rhs.x + self.cols[1].x * rhs.y + self.cols[2].x * rhs.z +
@@ -223,7 +226,7 @@ impl Mul<SoaFloat4> for SoaFloat4x4 {
 
 impl Mul for SoaFloat4x4 {
     type Output = SoaFloat4x4;
-
+    #[inline]
     fn mul(self, rhs: Self) -> Self::Output {
         return SoaFloat4x4 {
             cols: [self.clone() * rhs.cols[0].clone(),
@@ -236,7 +239,7 @@ impl Mul for SoaFloat4x4 {
 
 impl Mul for &SoaFloat4x4 {
     type Output = SoaFloat4x4;
-
+    #[inline]
     fn mul(self, rhs: Self) -> Self::Output {
         return SoaFloat4x4 {
             cols: [self.clone() * rhs.cols[0].clone(),
@@ -249,7 +252,7 @@ impl Mul for &SoaFloat4x4 {
 
 impl Add for SoaFloat4x4 {
     type Output = SoaFloat4x4;
-
+    #[inline]
     fn add(self, rhs: Self) -> Self::Output {
         return SoaFloat4x4 {
             cols:
@@ -267,7 +270,7 @@ impl Add for SoaFloat4x4 {
 
 impl Add for &SoaFloat4x4 {
     type Output = SoaFloat4x4;
-
+    #[inline]
     fn add(self, rhs: Self) -> Self::Output {
         return SoaFloat4x4 {
             cols:
@@ -285,7 +288,7 @@ impl Add for &SoaFloat4x4 {
 
 impl Sub for SoaFloat4x4 {
     type Output = SoaFloat4x4;
-
+    #[inline]
     fn sub(self, rhs: Self) -> Self::Output {
         return SoaFloat4x4 {
             cols:
@@ -303,7 +306,7 @@ impl Sub for SoaFloat4x4 {
 
 impl Sub for &SoaFloat4x4 {
     type Output = SoaFloat4x4;
-
+    #[inline]
     fn sub(self, rhs: Self) -> Self::Output {
         return SoaFloat4x4 {
             cols:
