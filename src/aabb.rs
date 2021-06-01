@@ -7,7 +7,8 @@
  */
 
 use crate::vec_float::{Float3, min3, max3};
-use cgmath::Matrix4;
+use cgmath::{Matrix4, Vector4, Vector3};
+use std::ops::Mul;
 
 // Defines an axis aligned box.
 #[derive(Clone)]
@@ -80,5 +81,20 @@ pub fn merge(_a: &AABB, _b: &AABB) -> AABB {
 
 // Compute box transformation by a matrix.
 pub fn transform_box(_matrix: &Matrix4<f32>, _box: &AABB) -> AABB {
-    todo!()
+    let min: Vector4<f32> = cgmath::Vector4::new(_box.min.value.x, _box.min.value.y, _box.min.value.z, 1.0);
+    let max: Vector4<f32> = cgmath::Vector4::new(_box.max.value.x, _box.max.value.y, _box.max.value.z, 1.0);
+
+    // Transforms min and max.
+    let ta = _matrix.mul(min);
+    let tb = _matrix.mul(max);
+
+    // Finds new min and max and store them in box.
+    return AABB {
+        min: Float3 {
+            value: Vector3::new(ta.x, ta.y, ta.z)
+        },
+        max: Float3 {
+            value: Vector3::new(tb.x, tb.y, tb.z)
+        },
+    };
 }
