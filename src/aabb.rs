@@ -7,7 +7,7 @@
  */
 
 use crate::vec_float::{Float3, min3, max3};
-use crate::float4x4::*;
+use cgmath::Matrix4;
 
 // Defines an axis aligned box.
 #[derive(Clone)]
@@ -79,6 +79,6 @@ pub fn merge(_a: &AABB, _b: &AABB) -> AABB {
 }
 
 // Compute box transformation by a matrix.
-pub fn transform_box(_matrix: &Float4x4, _box: &AABB) -> AABB {
+pub fn transform_box(_matrix: &Matrix4<f32>, _box: &AABB) -> AABB {
     todo!()
 }
