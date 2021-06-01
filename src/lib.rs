@@ -9,3 +9,4 @@
 pub mod math_constant;
 pub mod vec_float;
 pub mod soa_float;
+pub mod soa_quaternion;

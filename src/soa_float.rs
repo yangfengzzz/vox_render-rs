@@ -815,25 +815,49 @@ pub fn normalize2(_v: &SoaFloat2) -> SoaFloat2 {
 }
 
 //--------------------------------------------------------------------------------------------------
+// Test if each vector _v is normalized.
+pub fn is_normalized4(_v: &SoaFloat4) -> m32x4 {
+    let len2 = _v.x * _v.x + _v.y * _v.y + _v.z * _v.z + _v.w * _v.w;
+    return (len2 - f32x4::new(1.0, 1.0, 1.0, 1.0)).abs().
+        lt(f32x4::new(K_NORMALIZATION_TOLERANCE_SQ, K_NORMALIZATION_TOLERANCE_SQ,
+                      K_NORMALIZATION_TOLERANCE_SQ, K_NORMALIZATION_TOLERANCE_SQ));
+}
+
+pub fn is_normalized3(_v: &SoaFloat3) -> m32x4 {
+    let len2 = _v.x * _v.x + _v.y * _v.y + _v.z * _v.z;
+    return (len2 - f32x4::new(1.0, 1.0, 1.0, 1.0)).abs().
+        lt(f32x4::new(K_NORMALIZATION_TOLERANCE_SQ, K_NORMALIZATION_TOLERANCE_SQ,
+                      K_NORMALIZATION_TOLERANCE_SQ, K_NORMALIZATION_TOLERANCE_SQ));
+}
+
+pub fn is_normalized2(_v: &SoaFloat2) -> m32x4 {
+    let len2 = _v.x * _v.x + _v.y * _v.y;
+    return (len2 - f32x4::new(1.0, 1.0, 1.0, 1.0)).abs().
+        lt(f32x4::new(K_NORMALIZATION_TOLERANCE_SQ, K_NORMALIZATION_TOLERANCE_SQ,
+                      K_NORMALIZATION_TOLERANCE_SQ, K_NORMALIZATION_TOLERANCE_SQ));
+}
+
+
+//--------------------------------------------------------------------------------------------------
 // Test if each vector _v is normalized using estimated tolerance.
 pub fn is_normalized_est4(_v: &SoaFloat4) -> m32x4 {
     let len2 = _v.x * _v.x + _v.y * _v.y + _v.z * _v.z + _v.w * _v.w;
     return (len2 - f32x4::new(1.0, 1.0, 1.0, 1.0)).abs().
-        le(f32x4::new(K_NORMALIZATION_TOLERANCE_EST_SQ, K_NORMALIZATION_TOLERANCE_EST_SQ,
+        lt(f32x4::new(K_NORMALIZATION_TOLERANCE_EST_SQ, K_NORMALIZATION_TOLERANCE_EST_SQ,
                       K_NORMALIZATION_TOLERANCE_EST_SQ, K_NORMALIZATION_TOLERANCE_EST_SQ));
 }
 
 pub fn is_normalized_est3(_v: &SoaFloat3) -> m32x4 {
     let len2 = _v.x * _v.x + _v.y * _v.y + _v.z * _v.z;
     return (len2 - f32x4::new(1.0, 1.0, 1.0, 1.0)).abs().
-        le(f32x4::new(K_NORMALIZATION_TOLERANCE_EST_SQ, K_NORMALIZATION_TOLERANCE_EST_SQ,
+        lt(f32x4::new(K_NORMALIZATION_TOLERANCE_EST_SQ, K_NORMALIZATION_TOLERANCE_EST_SQ,
                       K_NORMALIZATION_TOLERANCE_EST_SQ, K_NORMALIZATION_TOLERANCE_EST_SQ));
 }
 
 pub fn is_normalized_est2(_v: &SoaFloat2) -> m32x4 {
     let len2 = _v.x * _v.x + _v.y * _v.y;
     return (len2 - f32x4::new(1.0, 1.0, 1.0, 1.0)).abs().
-        le(f32x4::new(K_NORMALIZATION_TOLERANCE_EST_SQ, K_NORMALIZATION_TOLERANCE_EST_SQ,
+        lt(f32x4::new(K_NORMALIZATION_TOLERANCE_EST_SQ, K_NORMALIZATION_TOLERANCE_EST_SQ,
                       K_NORMALIZATION_TOLERANCE_EST_SQ, K_NORMALIZATION_TOLERANCE_EST_SQ));
 }
 
