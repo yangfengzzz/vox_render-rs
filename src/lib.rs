@@ -8,7 +8,7 @@
 
 pub mod math_constant;
 pub mod vec_float;
-// pub mod quaternion;
+pub mod quaternion;
 // pub mod transform;
 
 pub mod soa_float;
