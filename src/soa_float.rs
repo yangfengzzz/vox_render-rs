@@ -9,7 +9,6 @@
 use crate::math_constant::*;
 use packed_simd_2::{f32x4, m32x4};
 use std::ops::{Add, Sub, Neg, Mul, Div, BitAnd};
-use std::cmp::Ordering;
 
 #[derive(Clone)]
 pub struct SoaFloat2 {
@@ -542,6 +541,56 @@ impl Div<f32x4> for SoaFloat2 {
 
 //--------------------------------------------------------------------------------------------------
 // Returns true if each element of a is less than each element of _b.
+impl SoaFloat4 {
+    pub fn lt(&self, other: &Self) -> m32x4 {
+        let x = self.x.lt(other.x);
+        let y = self.y.lt(other.y);
+        let z = self.z.lt(other.z);
+        let w = self.w.lt(other.w);
+        return x.bitand(y).bitand(z).bitand(w);
+    }
+
+    pub fn le(&self, other: &Self) -> m32x4 {
+        let x = self.x.le(other.x);
+        let y = self.y.le(other.y);
+        let z = self.z.le(other.z);
+        let w = self.w.le(other.w);
+        return x.bitand(y).bitand(z).bitand(w);
+    }
+
+    pub fn gt(&self, other: &Self) -> m32x4 {
+        let x = self.x.gt(other.x);
+        let y = self.y.gt(other.y);
+        let z = self.z.gt(other.z);
+        let w = self.w.gt(other.w);
+        return x.bitand(y).bitand(z).bitand(w);
+    }
+
+    pub fn ge(&self, other: &Self) -> m32x4 {
+        let x = self.x.ge(other.x);
+        let y = self.y.ge(other.y);
+        let z = self.z.ge(other.z);
+        let w = self.w.ge(other.w);
+        return x.bitand(y).bitand(z).bitand(w);
+    }
+
+    pub fn eq(&self, other: &Self) -> m32x4 {
+        let x = self.x.eq(other.x);
+        let y = self.y.eq(other.y);
+        let z = self.z.eq(other.z);
+        let w = self.w.eq(other.w);
+        return x.bitand(y).bitand(z).bitand(w);
+    }
+
+    pub fn ne(&self, other: &Self) -> m32x4 {
+        let x = self.x.ne(other.x);
+        let y = self.y.ne(other.y);
+        let z = self.z.ne(other.z);
+        let w = self.w.ne(other.w);
+        return x.bitand(y).bitand(z).bitand(w);
+    }
+}
+
 impl PartialEq for SoaFloat4 {
     fn eq(&self, other: &Self) -> bool {
         let x = self.x == other.x;
@@ -552,16 +601,47 @@ impl PartialEq for SoaFloat4 {
     }
 }
 
-impl PartialOrd for SoaFloat4 {
-    fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
+impl SoaFloat3 {
+    pub fn lt(&self, other: &Self) -> m32x4 {
+        let x = self.x.lt(other.x);
+        let y = self.y.lt(other.y);
+        let z = self.z.lt(other.z);
+        return x.bitand(y).bitand(z);
+    }
+
+    pub fn le(&self, other: &Self) -> m32x4 {
         let x = self.x.le(other.x);
         let y = self.y.le(other.y);
         let z = self.z.le(other.z);
-        let w = self.w.le(other.w);
-        match x.bitand(y).bitand(z).bitand(w).and() {
-            true => Some(Ordering::Less),
-            false => Some(Ordering::Greater),
-        }
+        return x.bitand(y).bitand(z);
+    }
+
+    pub fn gt(&self, other: &Self) -> m32x4 {
+        let x = self.x.gt(other.x);
+        let y = self.y.gt(other.y);
+        let z = self.z.gt(other.z);
+        return x.bitand(y).bitand(z);
+    }
+
+    pub fn ge(&self, other: &Self) -> m32x4 {
+        let x = self.x.ge(other.x);
+        let y = self.y.ge(other.y);
+        let z = self.z.ge(other.z);
+        return x.bitand(y).bitand(z);
+    }
+
+    pub fn eq(&self, other: &Self) -> m32x4 {
+        let x = self.x.eq(other.x);
+        let y = self.y.eq(other.y);
+        let z = self.z.eq(other.z);
+        return x.bitand(y).bitand(z);
+    }
+
+    pub fn ne(&self, other: &Self) -> m32x4 {
+        let x = self.x.ne(other.x);
+        let y = self.y.ne(other.y);
+        let z = self.z.ne(other.z);
+        return x.bitand(y).bitand(z);
     }
 }
 
@@ -574,15 +654,41 @@ impl PartialEq for SoaFloat3 {
     }
 }
 
-impl PartialOrd for SoaFloat3 {
-    fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
+impl SoaFloat2 {
+    pub fn lt(&self, other: &Self) -> m32x4 {
+        let x = self.x.lt(other.x);
+        let y = self.y.lt(other.y);
+        return x.bitand(y);
+    }
+
+    pub fn le(&self, other: &Self) -> m32x4 {
         let x = self.x.le(other.x);
         let y = self.y.le(other.y);
-        let z = self.z.le(other.z);
-        match x.bitand(y).bitand(z).and() {
-            true => Some(Ordering::Less),
-            false => Some(Ordering::Greater),
-        }
+        return x.bitand(y);
+    }
+
+    pub fn gt(&self, other: &Self) -> m32x4 {
+        let x = self.x.gt(other.x);
+        let y = self.y.gt(other.y);
+        return x.bitand(y);
+    }
+
+    pub fn ge(&self, other: &Self) -> m32x4 {
+        let x = self.x.ge(other.x);
+        let y = self.y.ge(other.y);
+        return x.bitand(y);
+    }
+
+    pub fn eq(&self, other: &Self) -> m32x4 {
+        let x = self.x.eq(other.x);
+        let y = self.y.eq(other.y);
+        return x.bitand(y);
+    }
+
+    pub fn ne(&self, other: &Self) -> m32x4 {
+        let x = self.x.ne(other.x);
+        let y = self.y.ne(other.y);
+        return x.bitand(y);
     }
 }
 
@@ -591,17 +697,6 @@ impl PartialEq for SoaFloat2 {
         let x = self.x == other.x;
         let y = self.y == other.y;
         return x && y;
-    }
-}
-
-impl PartialOrd for SoaFloat2 {
-    fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
-        let x = self.x.le(other.x);
-        let y = self.y.le(other.y);
-        match x.bitand(y).and() {
-            true => Some(Ordering::Less),
-            false => Some(Ordering::Greater),
-        }
     }
 }
 
