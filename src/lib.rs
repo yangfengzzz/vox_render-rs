@@ -8,7 +8,7 @@
 
 pub mod math_constant;
 pub mod vec_float;
-pub mod quaternion;g
+pub mod quaternion;
 pub mod transform;
 pub mod aabb;
 pub mod rect;
