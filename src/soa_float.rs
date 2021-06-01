@@ -542,6 +542,7 @@ impl Div<f32x4> for SoaFloat2 {
 //--------------------------------------------------------------------------------------------------
 // Returns true if each element of a is less than each element of _b.
 impl SoaFloat4 {
+    #[inline]
     pub fn lt(&self, other: &Self) -> m32x4 {
         let x = self.x.lt(other.x);
         let y = self.y.lt(other.y);
@@ -550,6 +551,7 @@ impl SoaFloat4 {
         return x.bitand(y).bitand(z).bitand(w);
     }
 
+    #[inline]
     pub fn le(&self, other: &Self) -> m32x4 {
         let x = self.x.le(other.x);
         let y = self.y.le(other.y);
@@ -558,6 +560,7 @@ impl SoaFloat4 {
         return x.bitand(y).bitand(z).bitand(w);
     }
 
+    #[inline]
     pub fn gt(&self, other: &Self) -> m32x4 {
         let x = self.x.gt(other.x);
         let y = self.y.gt(other.y);
@@ -566,6 +569,7 @@ impl SoaFloat4 {
         return x.bitand(y).bitand(z).bitand(w);
     }
 
+    #[inline]
     pub fn ge(&self, other: &Self) -> m32x4 {
         let x = self.x.ge(other.x);
         let y = self.y.ge(other.y);
@@ -574,6 +578,7 @@ impl SoaFloat4 {
         return x.bitand(y).bitand(z).bitand(w);
     }
 
+    #[inline]
     pub fn eq(&self, other: &Self) -> m32x4 {
         let x = self.x.eq(other.x);
         let y = self.y.eq(other.y);
@@ -582,6 +587,7 @@ impl SoaFloat4 {
         return x.bitand(y).bitand(z).bitand(w);
     }
 
+    #[inline]
     pub fn ne(&self, other: &Self) -> m32x4 {
         let x = self.x.ne(other.x);
         let y = self.y.ne(other.y);
@@ -592,6 +598,7 @@ impl SoaFloat4 {
 }
 
 impl PartialEq for SoaFloat4 {
+    #[inline]
     fn eq(&self, other: &Self) -> bool {
         let x = self.x == other.x;
         let y = self.y == other.y;
@@ -602,6 +609,7 @@ impl PartialEq for SoaFloat4 {
 }
 
 impl SoaFloat3 {
+    #[inline]
     pub fn lt(&self, other: &Self) -> m32x4 {
         let x = self.x.lt(other.x);
         let y = self.y.lt(other.y);
@@ -609,6 +617,7 @@ impl SoaFloat3 {
         return x.bitand(y).bitand(z);
     }
 
+    #[inline]
     pub fn le(&self, other: &Self) -> m32x4 {
         let x = self.x.le(other.x);
         let y = self.y.le(other.y);
@@ -616,6 +625,7 @@ impl SoaFloat3 {
         return x.bitand(y).bitand(z);
     }
 
+    #[inline]
     pub fn gt(&self, other: &Self) -> m32x4 {
         let x = self.x.gt(other.x);
         let y = self.y.gt(other.y);
@@ -623,6 +633,7 @@ impl SoaFloat3 {
         return x.bitand(y).bitand(z);
     }
 
+    #[inline]
     pub fn ge(&self, other: &Self) -> m32x4 {
         let x = self.x.ge(other.x);
         let y = self.y.ge(other.y);
@@ -630,6 +641,7 @@ impl SoaFloat3 {
         return x.bitand(y).bitand(z);
     }
 
+    #[inline]
     pub fn eq(&self, other: &Self) -> m32x4 {
         let x = self.x.eq(other.x);
         let y = self.y.eq(other.y);
@@ -637,6 +649,7 @@ impl SoaFloat3 {
         return x.bitand(y).bitand(z);
     }
 
+    #[inline]
     pub fn ne(&self, other: &Self) -> m32x4 {
         let x = self.x.ne(other.x);
         let y = self.y.ne(other.y);
@@ -646,6 +659,7 @@ impl SoaFloat3 {
 }
 
 impl PartialEq for SoaFloat3 {
+    #[inline]
     fn eq(&self, other: &Self) -> bool {
         let x = self.x == other.x;
         let y = self.y == other.y;
@@ -655,36 +669,42 @@ impl PartialEq for SoaFloat3 {
 }
 
 impl SoaFloat2 {
+    #[inline]
     pub fn lt(&self, other: &Self) -> m32x4 {
         let x = self.x.lt(other.x);
         let y = self.y.lt(other.y);
         return x.bitand(y);
     }
 
+    #[inline]
     pub fn le(&self, other: &Self) -> m32x4 {
         let x = self.x.le(other.x);
         let y = self.y.le(other.y);
         return x.bitand(y);
     }
 
+    #[inline]
     pub fn gt(&self, other: &Self) -> m32x4 {
         let x = self.x.gt(other.x);
         let y = self.y.gt(other.y);
         return x.bitand(y);
     }
 
+    #[inline]
     pub fn ge(&self, other: &Self) -> m32x4 {
         let x = self.x.ge(other.x);
         let y = self.y.ge(other.y);
         return x.bitand(y);
     }
 
+    #[inline]
     pub fn eq(&self, other: &Self) -> m32x4 {
         let x = self.x.eq(other.x);
         let y = self.y.eq(other.y);
         return x.bitand(y);
     }
 
+    #[inline]
     pub fn ne(&self, other: &Self) -> m32x4 {
         let x = self.x.ne(other.x);
         let y = self.y.ne(other.y);
@@ -693,6 +713,7 @@ impl SoaFloat2 {
 }
 
 impl PartialEq for SoaFloat2 {
+    #[inline]
     fn eq(&self, other: &Self) -> bool {
         let x = self.x == other.x;
         let y = self.y == other.y;

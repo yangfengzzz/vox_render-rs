@@ -6,8 +6,7 @@
  * // property of any third parties.
  */
 
-use std::ops::{Add, Sub, Neg, Mul, Div};
-use std::cmp::Ordering;
+use std::ops::{Add, Sub, Neg, Mul, Div, BitAnd};
 
 // Declares a 2d float vector.
 #[derive(Clone)]
@@ -651,6 +650,62 @@ pub fn compare2(_a: &Float2, _b: &Float2, _tolerance: f32) -> bool {
 }
 
 //--------------------------------------------------------------------------------------------------
+impl Float4 {
+    #[inline]
+    pub fn lt(&self, other: &Self) -> bool {
+        let x = self.x.lt(&other.x);
+        let y = self.y.lt(&other.y);
+        let z = self.z.lt(&other.z);
+        let w = self.w.lt(&other.w);
+        return x.bitand(y).bitand(z).bitand(w);
+    }
+
+    #[inline]
+    pub fn le(&self, other: &Self) -> bool {
+        let x = self.x.le(&other.x);
+        let y = self.y.le(&other.y);
+        let z = self.z.le(&other.z);
+        let w = self.w.le(&other.w);
+        return x.bitand(y).bitand(z).bitand(w);
+    }
+
+    #[inline]
+    pub fn gt(&self, other: &Self) -> bool {
+        let x = self.x.gt(&other.x);
+        let y = self.y.gt(&other.y);
+        let z = self.z.gt(&other.z);
+        let w = self.w.gt(&other.w);
+        return x.bitand(y).bitand(z).bitand(w);
+    }
+
+    #[inline]
+    pub fn ge(&self, other: &Self) -> bool {
+        let x = self.x.ge(&other.x);
+        let y = self.y.ge(&other.y);
+        let z = self.z.ge(&other.z);
+        let w = self.w.ge(&other.w);
+        return x.bitand(y).bitand(z).bitand(w);
+    }
+
+    #[inline]
+    pub fn eq(&self, other: &Self) -> bool {
+        let x = self.x.eq(&other.x);
+        let y = self.y.eq(&other.y);
+        let z = self.z.eq(&other.z);
+        let w = self.w.eq(&other.w);
+        return x.bitand(y).bitand(z).bitand(w);
+    }
+
+    #[inline]
+    pub fn ne(&self, other: &Self) -> bool {
+        let x = self.x.ne(&other.x);
+        let y = self.y.ne(&other.y);
+        let z = self.z.ne(&other.z);
+        let w = self.w.ne(&other.w);
+        return x.bitand(y).bitand(z).bitand(w);
+    }
+}
+
 impl PartialEq for Float4 {
     #[inline]
     fn eq(&self, other: &Self) -> bool {
@@ -658,13 +713,53 @@ impl PartialEq for Float4 {
     }
 }
 
-impl PartialOrd for Float4 {
+impl Float3 {
     #[inline]
-    fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
-        match self.x < other.x && self.y < other.y && self.z < other.z && self.w < other.w {
-            true => Some(Ordering::Less),
-            false => Some(Ordering::Greater),
-        }
+    pub fn lt(&self, other: &Self) -> bool {
+        let x = self.x.lt(&other.x);
+        let y = self.y.lt(&other.y);
+        let z = self.z.lt(&other.z);
+        return x.bitand(y).bitand(z);
+    }
+
+    #[inline]
+    pub fn le(&self, other: &Self) -> bool {
+        let x = self.x.le(&other.x);
+        let y = self.y.le(&other.y);
+        let z = self.z.le(&other.z);
+        return x.bitand(y).bitand(z);
+    }
+
+    #[inline]
+    pub fn gt(&self, other: &Self) -> bool {
+        let x = self.x.gt(&other.x);
+        let y = self.y.gt(&other.y);
+        let z = self.z.gt(&other.z);
+        return x.bitand(y).bitand(z);
+    }
+
+    #[inline]
+    pub fn ge(&self, other: &Self) -> bool {
+        let x = self.x.ge(&other.x);
+        let y = self.y.ge(&other.y);
+        let z = self.z.ge(&other.z);
+        return x.bitand(y).bitand(z);
+    }
+
+    #[inline]
+    pub fn eq(&self, other: &Self) -> bool {
+        let x = self.x.eq(&other.x);
+        let y = self.y.eq(&other.y);
+        let z = self.z.eq(&other.z);
+        return x.bitand(y).bitand(z);
+    }
+
+    #[inline]
+    pub fn ne(&self, other: &Self) -> bool {
+        let x = self.x.ne(&other.x);
+        let y = self.y.ne(&other.y);
+        let z = self.z.ne(&other.z);
+        return x.bitand(y).bitand(z);
     }
 }
 
@@ -675,13 +770,47 @@ impl PartialEq for Float3 {
     }
 }
 
-impl PartialOrd for Float3 {
+impl Float2 {
     #[inline]
-    fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
-        match self.x < other.x && self.y < other.y && self.z < other.z {
-            true => Some(Ordering::Less),
-            false => Some(Ordering::Greater),
-        }
+    pub fn lt(&self, other: &Self) -> bool {
+        let x = self.x.lt(&other.x);
+        let y = self.y.lt(&other.y);
+        return x.bitand(y);
+    }
+
+    #[inline]
+    pub fn le(&self, other: &Self) -> bool {
+        let x = self.x.le(&other.x);
+        let y = self.y.le(&other.y);
+        return x.bitand(y);
+    }
+
+    #[inline]
+    pub fn gt(&self, other: &Self) -> bool {
+        let x = self.x.gt(&other.x);
+        let y = self.y.gt(&other.y);
+        return x.bitand(y);
+    }
+
+    #[inline]
+    pub fn ge(&self, other: &Self) -> bool {
+        let x = self.x.ge(&other.x);
+        let y = self.y.ge(&other.y);
+        return x.bitand(y);
+    }
+
+    #[inline]
+    pub fn eq(&self, other: &Self) -> bool {
+        let x = self.x.eq(&other.x);
+        let y = self.y.eq(&other.y);
+        return x.bitand(y);
+    }
+
+    #[inline]
+    pub fn ne(&self, other: &Self) -> bool {
+        let x = self.x.ne(&other.x);
+        let y = self.y.ne(&other.y);
+        return x.bitand(y);
     }
 }
 
@@ -689,16 +818,6 @@ impl PartialEq for Float2 {
     #[inline]
     fn eq(&self, other: &Self) -> bool {
         return self.x == other.x && self.y == other.y;
-    }
-}
-
-impl PartialOrd for Float2 {
-    #[inline]
-    fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
-        match self.x < other.x && self.y < other.y {
-            true => Some(Ordering::Less),
-            false => Some(Ordering::Greater),
-        }
     }
 }
 
