@@ -251,7 +251,7 @@ pub fn to_axis_angle(_q: &Quaternion) -> Float4 {
         // If s close to zero then direction of axis is not important.
         Float4::new(1.0, 0.0, 0.0, angle)
     } else {
-        // Normalize axis
+        // normalize axis
         let inv_s = 1.0 / s;
         Float4::new(_q.x * inv_s, _q.y * inv_s, _q.z * inv_s, angle)
     };

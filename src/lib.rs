@@ -15,3 +15,6 @@ pub mod soa_float;
 pub mod soa_quaternion;
 pub mod soa_transform;
 pub mod soa_float4x4;
+pub mod simd_quaternion;
+
+pub mod rect;
