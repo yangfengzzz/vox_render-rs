@@ -1793,6 +1793,7 @@ version = "0.1.0"
 dependencies = [
  "anyhow",
  "async-executor",
+ "bit-vec",
  "bytemuck",
  "cgmath",
  "env_logger",
