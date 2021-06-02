@@ -292,6 +292,7 @@ pub mod simd_float4 {
     // r.y = 0
     // r.z = 0
     // r.w = 0
+    #[inline]
     pub fn load_x_ptr_u(_f: [f32; 4]) -> SimdFloat4 {
         unsafe {
             return _mm_load_ss(_f.as_ptr());
@@ -304,6 +305,7 @@ pub mod simd_float4 {
     // r.y = _f[0]
     // r.z = _f[0]
     // r.w = _f[0]
+    #[inline]
     pub fn load1ptr_u(_f: [f32; 4]) -> SimdFloat4 {
         unsafe {
             return _mm_load_ps1(_f.as_ptr());
@@ -317,6 +319,7 @@ pub mod simd_float4 {
     // r.y = _f[1]
     // r.z = 0
     // r.w = 0
+    #[inline]
     pub fn load2ptr_u(_f: [f32; 4]) -> SimdFloat4 {
         unsafe {
             return _mm_unpacklo_ps(_mm_load_ss(_f.as_ptr().add(0)), _mm_load_ss(_f.as_ptr().add(1)));
@@ -330,6 +333,7 @@ pub mod simd_float4 {
     // r.y = _f[1]
     // r.z = _f[2]
     // r.w = 0
+    #[inline]
     pub fn load3ptr_u(_f: [f32; 4]) -> SimdFloat4 {
         unsafe {
             return _mm_movelh_ps(
@@ -340,6 +344,7 @@ pub mod simd_float4 {
     }
 
     // Convert from integer to float.
+    #[inline]
     pub fn from_int(_i: SimdInt4) -> SimdFloat4 {
         unsafe {
             return _mm_cvtepi32_ps(_i);
@@ -348,6 +353,7 @@ pub mod simd_float4 {
 }
 
 // Returns the x component of _v as a float.
+#[inline]
 pub fn get_x(_v: SimdFloat4) -> f32 {
     unsafe {
         return _mm_cvtss_f32(_v);
@@ -355,6 +361,7 @@ pub fn get_x(_v: SimdFloat4) -> f32 {
 }
 
 // Returns the y component of _v as a float.
+#[inline]
 pub fn get_y(_v: SimdFloat4) -> f32 {
     unsafe {
         return _mm_cvtss_f32(ozz_sse_splat_f!(_v, 1));
@@ -362,6 +369,7 @@ pub fn get_y(_v: SimdFloat4) -> f32 {
 }
 
 // Returns the z component of _v as a float.
+#[inline]
 pub fn get_z(_v: SimdFloat4) -> f32 {
     unsafe {
         return _mm_cvtss_f32(_mm_movehl_ps(_v, _v));
@@ -369,6 +377,7 @@ pub fn get_z(_v: SimdFloat4) -> f32 {
 }
 
 // Returns the w component of _v as a float.
+#[inline]
 pub fn get_w(_v: SimdFloat4) -> f32 {
     unsafe {
         return _mm_cvtss_f32(ozz_sse_splat_f!(_v, 3));
@@ -376,6 +385,7 @@ pub fn get_w(_v: SimdFloat4) -> f32 {
 }
 
 // Returns _v with the x component set to x component of _f.
+#[inline]
 pub fn set_x(_v: SimdFloat4, _f: SimdFloat4) -> SimdFloat4 {
     unsafe {
         return _mm_move_ss(_v, _f);
@@ -383,6 +393,7 @@ pub fn set_x(_v: SimdFloat4, _f: SimdFloat4) -> SimdFloat4 {
 }
 
 // Returns _v with the y component set to  x component of _f.
+#[inline]
 pub fn set_y(_v: SimdFloat4, _f: SimdFloat4) -> SimdFloat4 {
     unsafe {
         let xfnn = _mm_unpacklo_ps(_v, _f);
@@ -392,6 +403,7 @@ pub fn set_y(_v: SimdFloat4, _f: SimdFloat4) -> SimdFloat4 {
 
 
 // Returns _v with the z component set to  x component of _f.
+#[inline]
 pub fn set_z(_v: SimdFloat4, _f: SimdFloat4) -> SimdFloat4 {
     unsafe {
         let ffww = _mm_shuffle_ps(_f, _v, _mm_shuffle!(3, 3, 0, 0));
@@ -401,9 +413,218 @@ pub fn set_z(_v: SimdFloat4, _f: SimdFloat4) -> SimdFloat4 {
 
 
 // Returns _v with the w component set to  x component of _f.
+#[inline]
 pub fn set_w(_v: SimdFloat4, _f: SimdFloat4) -> SimdFloat4 {
     unsafe {
         let ffzz = _mm_shuffle_ps(_f, _v, _mm_shuffle!(2, 2, 0, 0));
         return _mm_shuffle_ps(_v, ffzz, _mm_shuffle!(0, 2, 1, 0));
     }
 }
+
+// Returns _v with the _i th component set to _f.
+// _i must be in range [0,3]
+pub union SimdFloat4Union {
+    ret: SimdFloat4,
+    af: [f32; 4],
+}
+#[inline]
+pub fn set_i(_v: SimdFloat4, _f: SimdFloat4, _ith: usize) -> SimdFloat4 {
+    unsafe {
+        let mut u = SimdFloat4Union {
+            ret: _v,
+        };
+
+        u.af[_ith] = _mm_cvtss_f32(_f);
+        return u.ret;
+    }
+}
+
+// Stores the 4 components of _v to the four first floats of _f.
+// _f must be aligned to 16 bytes.
+// _f[0] = _v.x
+// _f[1] = _v.y
+// _f[2] = _v.z
+// _f[3] = _v.w
+#[inline]
+pub fn store_ptr(_v: SimdFloat4, _f: &mut [f32; 4]) {
+    todo!()
+}
+
+// Stores the x component of _v to the first float of _f.
+// _f must be aligned to 16 bytes.
+// _f[0] = _v.x
+#[inline]
+pub fn store1ptr(_v: SimdFloat4, _f: &mut [f32; 4]) {
+    todo!()
+}
+
+// Stores x and y components of _v to the two first floats of _f.
+// _f must be aligned to 16 bytes.
+// _f[0] = _v.x
+// _f[1] = _v.y
+#[inline]
+pub fn store2ptr(_v: SimdFloat4, _f: &mut [f32; 4]) {
+    todo!()
+}
+
+// Stores x, y and z components of _v to the three first floats of _f.
+// _f must be aligned to 16 bytes.
+// _f[0] = _v.x
+// _f[1] = _v.y
+// _f[2] = _v.z
+#[inline]
+pub fn store3ptr(_v: SimdFloat4, _f: &mut [f32; 4]) {
+    todo!()
+}
+
+// Stores the 4 components of _v to the four first floats of _f.
+// _f must be aligned to 4 bytes.
+// _f[0] = _v.x
+// _f[1] = _v.y
+// _f[2] = _v.z
+// _f[3] = _v.w
+#[inline]
+pub fn store_ptr_u(_v: SimdFloat4, _f: &mut [f32; 4]) {
+    todo!()
+}
+
+// Stores the x component of _v to the first float of _f.
+// _f must be aligned to 4 bytes.
+// _f[0] = _v.x
+#[inline]
+pub fn store1ptr_u(_v: SimdFloat4, _f: &mut [f32; 4]) {
+    todo!()
+}
+
+// Stores x and y components of _v to the two first floats of _f.
+// _f must be aligned to 4 bytes.
+// _f[0] = _v.x
+// _f[1] = _v.y
+#[inline]
+pub fn store2ptr_u(_v: SimdFloat4, _f: &mut [f32; 4]) {
+    todo!()
+}
+
+// Stores x, y and z components of _v to the three first floats of _f.
+// _f must be aligned to 4 bytes.
+// _f[0] = _v.x
+// _f[1] = _v.y
+// _f[2] = _v.z
+#[inline]
+pub fn store3ptr_u(_v: SimdFloat4, _f: &mut [f32; 4]) {
+    todo!()
+}
+
+// Replicates x of _a to all the components of the returned vector.
+#[inline]
+pub fn splat_x(_v: SimdFloat4) -> SimdFloat4 {
+    todo!()
+}
+
+// Replicates y of _a to all the components of the returned vector.
+#[inline]
+pub fn splat_y(_v: SimdFloat4) -> SimdFloat4 {
+    todo!()
+}
+
+// Replicates z of _a to all the components of the returned vector.
+#[inline]
+pub fn splat_z(_v: SimdFloat4) -> SimdFloat4 {
+    todo!()
+}
+
+// Replicates w of _a to all the components of the returned vector.
+#[inline]
+pub fn splat_w(_v: SimdFloat4) -> SimdFloat4 {
+    todo!()
+}
+
+
+// swizzle X, y, z and w components based on compile time arguments _X, _Y, _Z
+// and _W. Arguments can vary from 0 (X), to 3 (w).
+#[inline]
+pub fn swizzle0123(_v: SimdFloat4) -> SimdFloat4 {
+    return _v;
+}
+
+#[inline]
+pub fn swizzle0101(_v: SimdFloat4) -> SimdFloat4 {
+    unsafe {
+        return _mm_movelh_ps(_v, _v);
+    }
+}
+
+#[inline]
+pub fn swizzle2323(_v: SimdFloat4) -> SimdFloat4 {
+    unsafe {
+        return _mm_movehl_ps(_v, _v);
+    }
+}
+
+#[inline]
+pub fn swizzle0011(_v: SimdFloat4) -> SimdFloat4 {
+    unsafe {
+        return _mm_unpacklo_ps(_v, _v);
+    }
+}
+
+#[inline]
+pub fn swizzle2233(_v: SimdFloat4) -> SimdFloat4 {
+    unsafe {
+        return _mm_unpackhi_ps(_v, _v);
+    }
+}
+
+// Transposes the x components of the 4 SimdFloat4 of _in into the 1
+// SimdFloat4 of _out.
+#[inline]
+pub fn transpose4x1(_in: [SimdFloat4; 4], _out: &mut [SimdFloat4; 1]) {
+    todo!()
+}
+
+// Transposes x, y, z and w components of _in to the x components of _out.
+// Remaining y, z and w are set to 0.
+#[inline]
+pub fn transpose1x4(_in: [SimdFloat4; 1], _out: &mut [SimdFloat4; 4]) {
+    todo!()
+}
+
+// Transposes the 1 SimdFloat4 of _in into the x components of the 4
+// SimdFloat4 of _out. Remaining y, z and w are set to 0.
+#[inline]
+pub fn transpose2x4(_in: [SimdFloat4; 2], _out: &mut [SimdFloat4; 4]) {
+    todo!()
+}
+
+// Transposes the x and y components of the 4 SimdFloat4 of _in into the 2
+// SimdFloat4 of _out.
+#[inline]
+pub fn transpose4x2(_in: [SimdFloat4; 4], _out: &mut [SimdFloat4; 2]) {
+    todo!()
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
