@@ -46,7 +46,7 @@ macro_rules! ozz_sse_splat_i {
 #[macro_export]
 macro_rules! ozz_sse_hadd2_f {
         ($_v:expr) => {
-            _mm_add_ss($_v, ozz_sse_splat_i!($_v, 1))
+            _mm_add_ss($_v, ozz_sse_splat_f!($_v, 1))
         };
     }
 
@@ -62,7 +62,7 @@ macro_rules! ozz_sse_hadd4_f {
         ($_v:expr, $_r:expr) => {
             {
                 let haddxyzw = _mm_add_ps($_v, _mm_movehl_ps($_v, $_v));
-                $_r = _mm_add_ss(haddxyzw, ozz_sse_splat_f(haddxyzw, 1));
+                $_r = _mm_add_ss(haddxyzw, ozz_sse_splat_f!(haddxyzw, 1));
             }
         };
     }
@@ -72,7 +72,7 @@ macro_rules! ozz_sse_dot2_f {
         ($_a:expr, $_b:expr, $_r:expr) => {
             {
                 let ab = _mm_mul_ps($_a, $_b);
-                $_r = _mm_add_ss(ab, ozz_sse_splat_f(ab, 1));
+                $_r = _mm_add_ss(ab, ozz_sse_splat_f!(ab, 1));
             }
         };
     }
@@ -797,7 +797,7 @@ pub mod simd_float4 {
     #[inline]
     pub fn hadd2(_v: SimdFloat4) -> SimdFloat4 {
         unsafe {
-            return ozz_sse_hadd2_f!(_v)
+            return ozz_sse_hadd2_f!(_v);
         }
     }
 
@@ -811,7 +811,7 @@ pub mod simd_float4 {
     #[inline]
     pub fn hadd3(_v: SimdFloat4) -> SimdFloat4 {
         unsafe {
-            return ozz_sse_hadd3_f!(_v)
+            return ozz_sse_hadd3_f!(_v);
         }
     }
 
@@ -824,7 +824,11 @@ pub mod simd_float4 {
     // r.w = _a.w
     #[inline]
     pub fn hadd4(_v: SimdFloat4) -> SimdFloat4 {
-        todo!()
+        unsafe {
+            let hadd4: __m128;
+            ozz_sse_hadd4_f!(_v, hadd4);
+            return hadd4;
+        }
     }
 
     // Computes the dot product of x and y components of _v. The result is
@@ -836,7 +840,11 @@ pub mod simd_float4 {
     // r.w = ?
     #[inline]
     pub fn dot2(_a: SimdFloat4, _b: SimdFloat4) -> SimdFloat4 {
-        todo!()
+        unsafe {
+            let dot2: __m128;
+            ozz_sse_dot2_f!(_a, _b, dot2);
+            return dot2;
+        }
     }
 
     // Computes the dot product of x, y and z components of _v. The result is
@@ -848,7 +856,11 @@ pub mod simd_float4 {
     // r.w = ?
     #[inline]
     pub fn dot3(_a: SimdFloat4, _b: SimdFloat4) -> SimdFloat4 {
-        todo!()
+        unsafe {
+            let dot3: __m128;
+            ozz_sse_dot3_f!(_a, _b, dot3);
+            return dot3;
+        }
     }
 
     // Computes the dot product of x, y, z and w components of _v. The result is
@@ -860,7 +872,11 @@ pub mod simd_float4 {
     // r.w = ?
     #[inline]
     pub fn dot4(_a: SimdFloat4, _b: SimdFloat4) -> SimdFloat4 {
-        todo!()
+        unsafe {
+            let dot4: __m128;
+            ozz_sse_dot4_f!(_a, _b, dot4);
+            return dot4;
+        }
     }
 
     // Computes the cross product of x, y and z components of _v. The result is
@@ -872,20 +888,33 @@ pub mod simd_float4 {
     // r.w = ?
     #[inline]
     pub fn cross3(_a: SimdFloat4, _b: SimdFloat4) -> SimdFloat4 {
-        todo!()
+        unsafe {
+            // Implementation with 3 shuffles only is based on:
+            // https://geometrian.com/programming/tutorials/cross-product
+            let shufa = ozz_shuffle_ps1!(_a, _mm_shuffle!(3, 0, 2, 1));
+            let shufb = ozz_shuffle_ps1!(_b, _mm_shuffle!(3, 0, 2, 1));
+            let shufc = ozz_msub!(_a, shufb, _mm_mul_ps(_b, shufa));
+            return ozz_shuffle_ps1!(shufc, _mm_shuffle!(3, 0, 2, 1));
+        }
     }
 
     // Returns the per component estimated reciprocal of _v.
     #[inline]
     pub fn rcp_est(_v: SimdFloat4) -> SimdFloat4 {
-        todo!()
+        unsafe {
+            return _mm_rcp_ps(_v);
+        }
     }
 
     // Returns the per component estimated reciprocal of _v, where approximation is
     // improved with one more new Newton-Raphson step.
     #[inline]
     pub fn rcp_est_nr(_v: SimdFloat4) -> SimdFloat4 {
-        todo!()
+        unsafe {
+            let nr = _mm_rcp_ps(_v);
+            // Do one more Newton-Raphson step to improve precision.
+            return ozz_nmadd!(_mm_mul_ps(nr, nr), _v, _mm_add_ps(nr, nr));
+        }
     }
 
     // Returns the estimated reciprocal of the x component of _v and stores it in
@@ -893,7 +922,9 @@ pub mod simd_float4 {
     // the same as their respective components in _v.
     #[inline]
     pub fn rcp_est_x(_v: SimdFloat4) -> SimdFloat4 {
-        todo!()
+        unsafe {
+            return _mm_rcp_ss(_v);
+        }
     }
 
     // Returns the estimated reciprocal of the x component of _v, where
@@ -901,13 +932,19 @@ pub mod simd_float4 {
     // the returned vector are undefined.
     #[inline]
     pub fn rcp_est_xnr(_v: SimdFloat4) -> SimdFloat4 {
-        todo!()
+        unsafe {
+            let nr = _mm_rcp_ss(_v);
+            // Do one more Newton-Raphson step to improve precision.
+            return ozz_nmaddx!(_mm_mul_ss(nr, nr), _v, _mm_add_ss(nr, nr));
+        }
     }
 
     // Returns the per component square root of _v.
     #[inline]
     pub fn sqrt(_v: SimdFloat4) -> SimdFloat4 {
-        todo!()
+        unsafe {
+            return _mm_sqrt_ps(_v);
+        }
     }
 
     // Returns the square root of the x component of _v and stores it in the x
@@ -915,20 +952,29 @@ pub mod simd_float4 {
     // same as their respective components in _v.
     #[inline]
     pub fn sqrt_x(_v: SimdFloat4) -> SimdFloat4 {
-        todo!()
+        unsafe {
+            return _mm_sqrt_ss(_v);
+        }
     }
 
     // Returns the per component estimated reciprocal square root of _v.
     #[inline]
     pub fn rsqrt_est(_v: SimdFloat4) -> SimdFloat4 {
-        todo!()
+        unsafe {
+            return _mm_rsqrt_ps(_v);
+        }
     }
 
     // Returns the per component estimated reciprocal square root of _v, where
     // approximation is improved with one more new Newton-Raphson step.
     #[inline]
     pub fn rsqrt_est_nr(_v: SimdFloat4) -> SimdFloat4 {
-        todo!()
+        unsafe {
+            let nr = _mm_rsqrt_ps(_v);
+            // Do one more Newton-Raphson step to improve precision.
+            return _mm_mul_ps(_mm_mul_ps(_mm_set_ps1(0.5), nr),
+                              ozz_nmadd!(_mm_mul_ps(_v, nr), nr, _mm_set_ps1(3.0)));
+        }
     }
 
     // Returns the estimated reciprocal square root of the x component of _v and
@@ -936,7 +982,9 @@ pub mod simd_float4 {
     // vector are the same as their respective components in _v.
     #[inline]
     pub fn rsqrt_est_x(_v: SimdFloat4) -> SimdFloat4 {
-        todo!()
+        unsafe {
+            return _mm_rsqrt_ss(_v);
+        }
     }
 
     // Returns the estimated reciprocal square root of the x component of _v, where
@@ -944,19 +992,30 @@ pub mod simd_float4 {
     // the returned vector are undefined.
     #[inline]
     pub fn rsqrt_est_xnr(_v: SimdFloat4) -> SimdFloat4 {
-        todo!()
+        unsafe {
+            let nr = _mm_rsqrt_ss(_v);
+            // Do one more Newton-Raphson step to improve precision.
+            return _mm_mul_ss(_mm_mul_ss(_mm_set_ps1(0.5), nr),
+                              ozz_nmaddx!(_mm_mul_ss(_v, nr), nr, _mm_set_ps1(3.0)));
+        }
     }
 
     // Returns the per element absolute value of _v.
     #[inline]
     pub fn abs(_v: SimdFloat4) -> SimdFloat4 {
-        todo!()
+        unsafe {
+            let zero = _mm_setzero_si128();
+            return _mm_and_ps(
+                _mm_castsi128_ps(_mm_srli_epi32(_mm_cmpeq_epi32(zero, zero), 1)), _v);
+        }
     }
 
     // Returns the sign bit of _v.
     #[inline]
     pub fn sign(_v: SimdFloat4) -> SimdInt4 {
-        todo!()
+        unsafe {
+            return _mm_slli_epi32(_mm_srli_epi32(_mm_castps_si128(_v), 31), 31);
+        }
     }
 
     // Returns the per component minimum of _a and _b.
@@ -995,21 +1054,33 @@ pub mod simd_float4 {
     // undefined.
     #[inline]
     pub fn length2(_v: SimdFloat4) -> SimdFloat4 {
-        todo!()
+        unsafe {
+            let sq_len;
+            ozz_sse_dot2_f!(_v, _v, sq_len);
+            return _mm_sqrt_ss(sq_len);
+        }
     }
 
     // Computes the length of the components x, y and z of _v, and stores it in the
     // x component of the returned vector. undefined.
     #[inline]
     pub fn length3(_v: SimdFloat4) -> SimdFloat4 {
-        todo!()
+        unsafe {
+            let sq_len;
+            ozz_sse_dot3_f!(_v, _v, sq_len);
+            return _mm_sqrt_ss(sq_len);
+        }
     }
 
     // Computes the length of _v, and stores it in the x component of the returned
     // vector. y, z, w of the returned vector are undefined.
     #[inline]
     pub fn length4(_v: SimdFloat4) -> SimdFloat4 {
-        todo!()
+        unsafe {
+            let sq_len;
+            ozz_sse_dot4_f!(_v, _v, sq_len);
+            return _mm_sqrt_ss(sq_len);
+        }
     }
 
     // Computes the square length of the components x and y of _v, and stores it
@@ -1017,7 +1088,11 @@ pub mod simd_float4 {
     // undefined.
     #[inline]
     pub fn length2sqr(_v: SimdFloat4) -> SimdFloat4 {
-        todo!()
+        unsafe {
+            let sq_len;
+            ozz_sse_dot2_f!(_v, _v, sq_len);
+            return sq_len;
+        }
     }
 
 
@@ -1026,7 +1101,11 @@ pub mod simd_float4 {
     // undefined.
     #[inline]
     pub fn length3sqr(_v: SimdFloat4) -> SimdFloat4 {
-        todo!()
+        unsafe {
+            let sq_len;
+            ozz_sse_dot3_f!(_v, _v, sq_len);
+            return sq_len;
+        }
     }
 
 
@@ -1035,7 +1114,11 @@ pub mod simd_float4 {
     // undefined.
     #[inline]
     pub fn length4sqr(_v: SimdFloat4) -> SimdFloat4 {
-        todo!()
+        unsafe {
+            let sq_len;
+            ozz_sse_dot4_f!(_v, _v, sq_len);
+            return sq_len;
+        }
     }
 
 
@@ -1044,7 +1127,15 @@ pub mod simd_float4 {
     // vector are the same as their respective components in _v.
     #[inline]
     pub fn normalize2(_v: SimdFloat4) -> SimdFloat4 {
-        todo!()
+        unsafe {
+            let sq_len;
+            ozz_sse_dot2_f!(_v, _v, sq_len);
+            debug_assert!(_mm_cvtss_f32(sq_len) != 0.0 && "_v is not normalizable".parse().unwrap());
+            let inv_len = _mm_div_ss(one(), _mm_sqrt_ss(sq_len));
+            let inv_lenxxxx = ozz_sse_splat_f!(inv_len, 0);
+            let norm = _mm_mul_ps(_v, inv_lenxxxx);
+            return _mm_movelh_ps(norm, _mm_movehl_ps(_v, _v));
+        }
     }
 
 
@@ -1053,14 +1144,30 @@ pub mod simd_float4 {
     // vector is the same as its respective component in _v.
     #[inline]
     pub fn normalize3(_v: SimdFloat4) -> SimdFloat4 {
-        todo!()
+        unsafe {
+            let sq_len;
+            ozz_sse_dot3_f!(_v, _v, sq_len);
+            debug_assert!(_mm_cvtss_f32(sq_len) != 0.0 && "_v is not normalizable".parse().unwrap());
+            let inv_len = _mm_div_ss(one(), _mm_sqrt_ss(sq_len));
+            let vwxyz = ozz_shuffle_ps1!(_v, _mm_shuffle!(0, 1, 2, 3));
+            let inv_lenxxxx = ozz_sse_splat_f!(inv_len, 0);
+            let normwxyz = _mm_move_ss(_mm_mul_ps(vwxyz, inv_lenxxxx), vwxyz);
+            return ozz_shuffle_ps1!(normwxyz, _mm_shuffle!(0, 1, 2, 3));
+        }
     }
 
 
     // Returns the normalized vector _v.
     #[inline]
     pub fn normalize4(_v: SimdFloat4) -> SimdFloat4 {
-        todo!()
+        unsafe {
+            let sq_len;
+            ozz_sse_dot4_f!(_v, _v, sq_len);
+            debug_assert!(_mm_cvtss_f32(sq_len) != 0.0 && "_v is not normalizable".parse().unwrap());
+            let inv_len = _mm_div_ss(one(), _mm_sqrt_ss(sq_len));
+            let inv_lenxxxx = ozz_sse_splat_f!(inv_len, 0);
+            return _mm_mul_ps(_v, inv_lenxxxx);
+        }
     }
 
 
@@ -1069,7 +1176,15 @@ pub mod simd_float4 {
     // returned vector are the same as their respective components in _v.
     #[inline]
     pub fn normalize_est2(_v: SimdFloat4) -> SimdFloat4 {
-        todo!()
+        unsafe {
+            let sq_len;
+            ozz_sse_dot2_f!(_v, _v, sq_len);
+            debug_assert!(_mm_cvtss_f32(sq_len) != 0.0 && "_v is not normalizable".parse().unwrap());
+            let inv_len = _mm_rsqrt_ss(sq_len);
+            let inv_lenxxxx = ozz_sse_splat_f!(inv_len, 0);
+            let norm = _mm_mul_ps(_v, inv_lenxxxx);
+            return _mm_movelh_ps(norm, _mm_movehl_ps(_v, _v));
+        }
     }
 
 
@@ -1078,14 +1193,30 @@ pub mod simd_float4 {
     // returned vector is the same as its respective component in _v.
     #[inline]
     pub fn normalize_est3(_v: SimdFloat4) -> SimdFloat4 {
-        todo!()
+        unsafe {
+            let sq_len;
+            ozz_sse_dot3_f!(_v, _v, sq_len);
+            debug_assert!(_mm_cvtss_f32(sq_len) != 0.0 && "_v is not normalizable".parse().unwrap());
+            let inv_len = _mm_rsqrt_ss(sq_len);
+            let vwxyz = ozz_shuffle_ps1!(_v, _mm_shuffle!(0, 1, 2, 3));
+            let inv_lenxxxx = ozz_sse_splat_f!(inv_len, 0);
+            let normwxyz = _mm_move_ss(_mm_mul_ps(vwxyz, inv_lenxxxx), vwxyz);
+            return ozz_shuffle_ps1!(normwxyz, _mm_shuffle!(0, 1, 2, 3));
+        }
     }
 
 
     // Returns the estimated normalized vector _v.
     #[inline]
     pub fn normalize_est4(_v: SimdFloat4) -> SimdFloat4 {
-        todo!()
+        unsafe {
+            let sq_len;
+            ozz_sse_dot4_f!(_v, _v, sq_len);
+            debug_assert!(_mm_cvtss_f32(sq_len) != 0.0 && "_v is not normalizable".parse().unwrap());
+            let inv_len = _mm_rsqrt_ss(sq_len);
+            let inv_lenxxxx = ozz_sse_splat_f!(inv_len, 0);
+            return _mm_mul_ps(_v, inv_lenxxxx);
+        }
     }
 
     // Tests if the components x and y of _v forms a normalized vector.
@@ -1093,7 +1224,15 @@ pub mod simd_float4 {
     // set to 0.
     #[inline]
     pub fn is_normalized2(_v: SimdFloat4) -> SimdInt4 {
-        todo!()
+        unsafe {
+            let max = _mm_set_ss(1.0 + crate::math_constant::K_NORMALIZATION_TOLERANCE_SQ);
+            let min = _mm_set_ss(1.0 - crate::math_constant::K_NORMALIZATION_TOLERANCE_SQ);
+            let dot;
+            ozz_sse_dot2_f!(_v, _v, dot);
+            let dotx000 = _mm_move_ss(_mm_setzero_ps(), dot);
+            return _mm_castps_si128(
+                _mm_and_ps(_mm_cmplt_ss(dotx000, max), _mm_cmpgt_ss(dotx000, min)));
+        }
     }
 
     // Tests if the components x, y and z of _v forms a normalized vector.
@@ -1101,7 +1240,15 @@ pub mod simd_float4 {
     // set to 0.
     #[inline]
     pub fn is_normalized3(_v: SimdFloat4) -> SimdInt4 {
-        todo!()
+        unsafe {
+            let max = _mm_set_ss(1.0 + crate::math_constant::K_NORMALIZATION_TOLERANCE_SQ);
+            let min = _mm_set_ss(1.0 - crate::math_constant::K_NORMALIZATION_TOLERANCE_SQ);
+            let dot;
+            ozz_sse_dot3_f!(_v, _v, dot);
+            let dotx000 = _mm_move_ss(_mm_setzero_ps(), dot);
+            return _mm_castps_si128(
+                _mm_and_ps(_mm_cmplt_ss(dotx000, max), _mm_cmpgt_ss(dotx000, min)));
+        }
     }
 
     // Tests if the _v is a normalized vector.
@@ -1109,7 +1256,15 @@ pub mod simd_float4 {
     // set to 0.
     #[inline]
     pub fn is_normalized4(_v: SimdFloat4) -> SimdInt4 {
-        todo!()
+        unsafe {
+            let max = _mm_set_ss(1.0 + crate::math_constant::K_NORMALIZATION_TOLERANCE_SQ);
+            let min = _mm_set_ss(1.0 - crate::math_constant::K_NORMALIZATION_TOLERANCE_SQ);
+            let dot;
+            ozz_sse_dot4_f!(_v, _v, dot);
+            let dotx000 = _mm_move_ss(_mm_setzero_ps(), dot);
+            return _mm_castps_si128(
+                _mm_and_ps(_mm_cmplt_ss(dotx000, max), _mm_cmpgt_ss(dotx000, min)));
+        }
     }
 
     // Tests if the components x and y of _v forms a normalized vector.
@@ -1119,7 +1274,15 @@ pub mod simd_float4 {
     // set to 0.
     #[inline]
     pub fn is_normalized_est2(_v: SimdFloat4) -> SimdInt4 {
-        todo!()
+        unsafe {
+            let max = _mm_set_ss(1.0 + crate::math_constant::K_NORMALIZATION_TOLERANCE_EST_SQ);
+            let min = _mm_set_ss(1.0 - crate::math_constant::K_NORMALIZATION_TOLERANCE_EST_SQ);
+            let dot;
+            ozz_sse_dot2_f!(_v, _v, dot);
+            let dotx000 = _mm_move_ss(_mm_setzero_ps(), dot);
+            return _mm_castps_si128(
+                _mm_and_ps(_mm_cmplt_ss(dotx000, max), _mm_cmpgt_ss(dotx000, min)));
+        }
     }
 
     // Tests if the components x, y and z of _v forms a normalized vector.
@@ -1129,7 +1292,15 @@ pub mod simd_float4 {
     // set to 0.
     #[inline]
     pub fn is_normalized_est3(_v: SimdFloat4) -> SimdInt4 {
-        todo!()
+        unsafe {
+            let max = _mm_set_ss(1.0 + crate::math_constant::K_NORMALIZATION_TOLERANCE_EST_SQ);
+            let min = _mm_set_ss(1.0 - crate::math_constant::K_NORMALIZATION_TOLERANCE_EST_SQ);
+            let dot;
+            ozz_sse_dot3_f!(_v, _v, dot);
+            let dotx000 = _mm_move_ss(_mm_setzero_ps(), dot);
+            return _mm_castps_si128(
+                _mm_and_ps(_mm_cmplt_ss(dotx000, max), _mm_cmpgt_ss(dotx000, min)));
+        }
     }
 
     // Tests if the _v is a normalized vector.
@@ -1139,7 +1310,15 @@ pub mod simd_float4 {
     // set to 0.
     #[inline]
     pub fn is_normalized_est4(_v: SimdFloat4) -> SimdInt4 {
-        todo!()
+        unsafe {
+            let max = _mm_set_ss(1.0 + crate::math_constant::K_NORMALIZATION_TOLERANCE_EST_SQ);
+            let min = _mm_set_ss(1.0 - crate::math_constant::K_NORMALIZATION_TOLERANCE_EST_SQ);
+            let dot;
+            ozz_sse_dot4_f!(_v, _v, dot);
+            let dotx000 = _mm_move_ss(_mm_setzero_ps(), dot);
+            return _mm_castps_si128(
+                _mm_and_ps(_mm_cmplt_ss(dotx000, max), _mm_cmpgt_ss(dotx000, min)));
+        }
     }
 
     // Returns the normalized vector of the components x and y of _v if it is
@@ -1147,7 +1326,17 @@ pub mod simd_float4 {
     // the same as their respective components in _v.
     #[inline]
     pub fn normalize_safe2(_v: SimdFloat4, _safe: SimdFloat4) -> SimdFloat4 {
-        todo!()
+        unsafe {
+            let sq_len;
+            ozz_sse_dot2_f!(_v, _v, sq_len);
+            let inv_len = _mm_div_ss(one(), _mm_sqrt_ss(sq_len));
+            let inv_lenxxxx = ozz_sse_splat_f!(inv_len, 0);
+            let norm = _mm_mul_ps(_v, inv_lenxxxx);
+            let cond = _mm_castps_si128(
+                _mm_cmple_ps(ozz_sse_splat_f!(sq_len, 0), _mm_setzero_ps()));
+            let cfalse = _mm_movelh_ps(norm, _mm_movehl_ps(_v, _v));
+            return ozz_sse_select_f!(cond, _safe, cfalse);
+        }
     }
 
     // Returns the normalized vector of the components x, y, z and w of _v if it is
@@ -1155,14 +1344,34 @@ pub mod simd_float4 {
     // as its respective components in _v.
     #[inline]
     pub fn normalize_safe3(_v: SimdFloat4, _safe: SimdFloat4) -> SimdFloat4 {
-        todo!()
+        unsafe {
+            let sq_len;
+            ozz_sse_dot3_f!(_v, _v, sq_len);
+            let inv_len = _mm_div_ss(one(), _mm_sqrt_ss(sq_len));
+            let vwxyz = ozz_shuffle_ps1!(_v, _mm_shuffle!(0, 1, 2, 3));
+            let inv_lenxxxx = ozz_sse_splat_f!(inv_len, 0);
+            let normwxyz = _mm_move_ss(_mm_mul_ps(vwxyz, inv_lenxxxx), vwxyz);
+            let cond = _mm_castps_si128(
+                _mm_cmple_ps(ozz_sse_splat_f!(sq_len, 0), _mm_setzero_ps()));
+            let cfalse = ozz_shuffle_ps1!(normwxyz, _mm_shuffle!(0, 1, 2, 3));
+            return ozz_sse_select_f!(cond, _safe, cfalse);
+        }
     }
 
     // Returns the normalized vector _v if it is normalizable, otherwise returns
     // _safe.
     #[inline]
     pub fn normalize_safe4(_v: SimdFloat4, _safe: SimdFloat4) -> SimdFloat4 {
-        todo!()
+        unsafe {
+            let sq_len;
+            ozz_sse_dot4_f!(_v, _v, sq_len);
+            let inv_len = _mm_div_ss(one(), _mm_sqrt_ss(sq_len));
+            let inv_lenxxxx = ozz_sse_splat_f!(inv_len, 0);
+            let cond = _mm_castps_si128(
+                _mm_cmple_ps(ozz_sse_splat_f!(sq_len, 0), _mm_setzero_ps()));
+            let cfalse = _mm_mul_ps(_v, inv_lenxxxx);
+            return ozz_sse_select_f!(cond, _safe, cfalse);
+        }
     }
 
     // Returns the estimated normalized vector of the components x and y of _v if it
@@ -1170,7 +1379,17 @@ pub mod simd_float4 {
     // the same as their respective components in _v.
     #[inline]
     pub fn normalize_safe_est2(_v: SimdFloat4, _safe: SimdFloat4) -> SimdFloat4 {
-        todo!()
+        unsafe {
+            let sq_len;
+            ozz_sse_dot2_f!(_v, _v, sq_len);
+            let inv_len = _mm_rsqrt_ss(sq_len);
+            let inv_lenxxxx = ozz_sse_splat_f!(inv_len, 0);
+            let norm = _mm_mul_ps(_v, inv_lenxxxx);
+            let cond = _mm_castps_si128(
+                _mm_cmple_ps(ozz_sse_splat_f!(sq_len, 0), _mm_setzero_ps()));
+            let cfalse = _mm_movelh_ps(norm, _mm_movehl_ps(_v, _v));
+            return ozz_sse_select_f!(cond, _safe, cfalse);
+        }
     }
 
     // Returns the estimated normalized vector of the components x, y, z and w of _v
@@ -1178,14 +1397,34 @@ pub mod simd_float4 {
     // the same as its respective components in _v.
     #[inline]
     pub fn normalize_safe_est3(_v: SimdFloat4, _safe: SimdFloat4) -> SimdFloat4 {
-        todo!()
+        unsafe {
+            let sq_len;
+            ozz_sse_dot3_f!(_v, _v, sq_len);
+            let inv_len = _mm_rsqrt_ss(sq_len);
+            let vwxyz = ozz_shuffle_ps1!(_v, _mm_shuffle!(0, 1, 2, 3));
+            let inv_lenxxxx = ozz_sse_splat_f!(inv_len, 0);
+            let normwxyz = _mm_move_ss(_mm_mul_ps(vwxyz, inv_lenxxxx), vwxyz);
+            let cond = _mm_castps_si128(
+                _mm_cmple_ps(ozz_sse_splat_f!(sq_len, 0), _mm_setzero_ps()));
+            let cfalse = ozz_shuffle_ps1!(normwxyz, _mm_shuffle!(0, 1, 2, 3));
+            return ozz_sse_select_f!(cond, _safe, cfalse);
+        }
     }
 
     // Returns the estimated normalized vector _v if it is normalizable, otherwise
     // returns _safe.
     #[inline]
     pub fn normalize_safe_est4(_v: SimdFloat4, _safe: SimdFloat4) -> SimdFloat4 {
-        todo!()
+        unsafe {
+            let sq_len;
+            ozz_sse_dot4_f!(_v, _v, sq_len);
+            let inv_len = _mm_rsqrt_ss(sq_len);
+            let inv_lenxxxx = ozz_sse_splat_f!(inv_len, 0);
+            let cond = _mm_castps_si128(
+                _mm_cmple_ps(ozz_sse_splat_f!(sq_len, 0), _mm_setzero_ps()));
+            let cfalse = _mm_mul_ps(_v, inv_lenxxxx);
+            return ozz_sse_select_f!(cond, _safe, cfalse);
+        }
     }
 
     // Computes the per element linear interpolation of _a and _b, where _alpha is
