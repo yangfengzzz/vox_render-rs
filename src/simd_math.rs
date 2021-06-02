@@ -14,47 +14,50 @@ pub type SimdFloat4 = __m128;
 // Vector of four integer values.
 pub type SimdInt4 = __m128i;
 
-pub mod simd_float4 {
-    use std::arch::x86_64::*;
-    use crate::simd_math::{SimdInt4, SimdFloat4};
-
-    macro_rules! _mm_shuffle {
+#[macro_export]
+macro_rules! _mm_shuffle {
         ($z:expr, $y:expr, $x:expr, $w:expr) => {
             (($z << 6) | ($y << 4) | ($x << 2) | $w)
         };
     }
 
-    macro_rules! ozz_shuffle_ps1 {
+#[macro_export]
+macro_rules! ozz_shuffle_ps1 {
         ($_v:expr, $_m:expr) => {
             _mm_shuffle_ps($_v, $_v, $_m)
         };
     }
 
-    macro_rules! ozz_sse_splat_f {
+#[macro_export]
+macro_rules! ozz_sse_splat_f {
         ($_v:expr, $_i:expr) => {
-            ozz_shuffle_ps1($_v, _mm_shuffle($_i,$_i,$_i,$_i))
+            ozz_shuffle_ps1!($_v, _mm_shuffle!($_i,$_i,$_i,$_i))
         };
     }
 
-    macro_rules! ozz_sse_splat_i {
+#[macro_export]
+macro_rules! ozz_sse_splat_i {
         ($_v:expr, $_i:expr) => {
-            _mm_shuffle_epi32($_v, _mm_shuffle($_i, $_i, $_i, $_i))
+            _mm_shuffle_epi32($_v, _mm_shuffle!($_i, $_i, $_i, $_i))
         };
     }
 
-    macro_rules! ozz_sse_hadd2_f {
+#[macro_export]
+macro_rules! ozz_sse_hadd2_f {
         ($_v:expr) => {
             _mm_add_ss($_v, ozz_sse_splat_i($_v, 1))
         };
     }
 
-    macro_rules! ozz_sse_hadd3_f {
+#[macro_export]
+macro_rules! ozz_sse_hadd3_f {
         ($_v:expr) => {
             _mm_add_ss(_mm_add_ss($_v, ozz_sse_splat_f($_v, 2)), ozz_sse_splat_f($_v, 1))
         };
     }
 
-    macro_rules! ozz_sse_hadd4_f {
+#[macro_export]
+macro_rules! ozz_sse_hadd4_f {
         ($_v:expr, $_r:expr) => {
             {
                 let haddxyzw = _mm_add_ps($_v, _mm_movehl_ps($_v, $_v));
@@ -63,7 +66,8 @@ pub mod simd_float4 {
         };
     }
 
-    macro_rules! ozz_sse_dot2_f {
+#[macro_export]
+macro_rules! ozz_sse_dot2_f {
         ($_a:expr, $_b:expr, $_r:expr) => {
             {
                 let ab = _mm_mul_ps($_a, $_b);
@@ -72,79 +76,95 @@ pub mod simd_float4 {
         };
     }
 
-    macro_rules! ozz_sse_dot3_f {
+#[macro_export]
+macro_rules! ozz_sse_dot3_f {
         ($_a:expr, $_b:expr, $_r:expr) => {
             $_r = _mm_dp_ps($_a, $_b, 0x7f);
         };
     }
 
-    macro_rules! ozz_sse_dot4_f {
+#[macro_export]
+macro_rules! ozz_sse_dot4_f {
         ($_a:expr, $_b:expr, $_r:expr) => {
             $_r = _mm_dp_ps($_a, $_b, 0xff);
         };
     }
 
-    macro_rules! ozz_madd {
+#[macro_export]
+macro_rules! ozz_madd {
         ($_a:expr, $_b:expr, $_c:expr) => {
             _mm_add_ps(_mm_mul_ps($_a, $_b), $_c)
         };
     }
 
-    macro_rules! ozz_msub {
+#[macro_export]
+macro_rules! ozz_msub {
         ($_a:expr, $_b:expr, $_c:expr) => {
             _mm_sub_ps(_mm_mul_ps($_a, $_b), $_c)
         };
     }
 
-    macro_rules! ozz_nmadd {
+#[macro_export]
+macro_rules! ozz_nmadd {
         ($_a:expr, $_b:expr, $_c:expr) => {
             _mm_sub_ps($_c, _mm_mul_ps($_a, $_b))
         };
     }
 
-    macro_rules! ozz_nmsub {
+#[macro_export]
+macro_rules! ozz_nmsub {
         ($_a:expr, $_b:expr, $_c:expr) => {
             (-_mm_add_ps(_mm_mul_ps($_a, $_b), $_c))
         };
     }
 
-    macro_rules! ozz_maddx {
+#[macro_export]
+macro_rules! ozz_maddx {
         ($_a:expr, $_b:expr, $_c:expr) => {
             _mm_add_ss(_mm_mul_ss($_a, $_b), $_c)
         };
     }
 
-    macro_rules! ozz_msubx {
+#[macro_export]
+macro_rules! ozz_msubx {
         ($_a:expr, $_b:expr, $_c:expr) => {
             _mm_sub_ss(_mm_mul_ss($_a, $_b), $_c)
         };
     }
 
-    macro_rules! ozz_nmaddx {
+#[macro_export]
+macro_rules! ozz_nmaddx {
         ($_a:expr, $_b:expr, $_c:expr) => {
             _mm_sub_ss($_c, _mm_mul_ss($_a, $_b))
         };
     }
 
-    macro_rules! ozz_nmsubx {
+#[macro_export]
+macro_rules! ozz_nmsubx {
         ($_a:expr, $_b:expr, $_c:expr) => {
             (-_mm_add_ss(_mm_mul_ss($_a, $_b), $_c))
         };
     }
 
-    macro_rules! ozz_sse_select_f {
+#[macro_export]
+macro_rules! ozz_sse_select_f {
         ($_b:expr, $_true:expr, $_false:expr) => {
             _mm_blendv_ps($_false, $_true, _mm_castsi128_ps($_b))
         };
     }
 
-    macro_rules! ozz_sse_select_i {
+#[macro_export]
+macro_rules! ozz_sse_select_i {
         ($_b:expr, $_true:expr, $_false:expr) => {
             _mm_blendv_epi8($_false, $_true, $_b)
         };
     }
 
-    //----------------------------------------------------------------------------------------------
+//----------------------------------------------------------------------------------------------
+pub mod simd_float4 {
+    use std::arch::x86_64::*;
+    use crate::simd_math::{SimdInt4, SimdFloat4};
+
     // Returns a SimdFloat4 vector with all components set to 0.
     #[inline]
     pub fn zero() -> SimdFloat4 {
@@ -329,42 +349,61 @@ pub mod simd_float4 {
 
 // Returns the x component of _v as a float.
 pub fn get_x(_v: SimdFloat4) -> f32 {
-    todo!()
+    unsafe {
+        return _mm_cvtss_f32(_v);
+    }
 }
 
 // Returns the y component of _v as a float.
 pub fn get_y(_v: SimdFloat4) -> f32 {
-    todo!()
+    unsafe {
+        return _mm_cvtss_f32(ozz_sse_splat_f!(_v, 1));
+    }
 }
 
 // Returns the z component of _v as a float.
 pub fn get_z(_v: SimdFloat4) -> f32 {
-    todo!()
+    unsafe {
+        return _mm_cvtss_f32(_mm_movehl_ps(_v, _v));
+    }
 }
 
 // Returns the w component of _v as a float.
 pub fn get_w(_v: SimdFloat4) -> f32 {
-    todo!()
+    unsafe {
+        return _mm_cvtss_f32(ozz_sse_splat_f!(_v, 3));
+    }
 }
 
 // Returns _v with the x component set to x component of _f.
 pub fn set_x(_v: SimdFloat4, _f: SimdFloat4) -> SimdFloat4 {
-    todo!()
+    unsafe {
+        return _mm_move_ss(_v, _f);
+    }
 }
 
 // Returns _v with the y component set to  x component of _f.
 pub fn set_y(_v: SimdFloat4, _f: SimdFloat4) -> SimdFloat4 {
-    todo!()
+    unsafe {
+        let xfnn = _mm_unpacklo_ps(_v, _f);
+        return _mm_shuffle_ps(xfnn, _v, _mm_shuffle!(3, 2, 1, 0));
+    }
 }
 
 
 // Returns _v with the z component set to  x component of _f.
 pub fn set_z(_v: SimdFloat4, _f: SimdFloat4) -> SimdFloat4 {
-    todo!()
+    unsafe {
+        let ffww = _mm_shuffle_ps(_f, _v, _mm_shuffle!(3, 3, 0, 0));
+        return _mm_shuffle_ps(_v, ffww, _mm_shuffle!(2, 0, 1, 0));
+    }
 }
 
 
 // Returns _v with the w component set to  x component of _f.
 pub fn set_w(_v: SimdFloat4, _f: SimdFloat4) -> SimdFloat4 {
-    todo!()
+    unsafe {
+        let ffzz = _mm_shuffle_ps(_f, _v, _mm_shuffle!(2, 2, 0, 0));
+        return _mm_shuffle_ps(_v, ffzz, _mm_shuffle!(0, 2, 1, 0));
+    }
 }
