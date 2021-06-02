@@ -46,14 +46,14 @@ macro_rules! ozz_sse_splat_i {
 #[macro_export]
 macro_rules! ozz_sse_hadd2_f {
         ($_v:expr) => {
-            _mm_add_ss($_v, ozz_sse_splat_i($_v, 1))
+            _mm_add_ss($_v, ozz_sse_splat_i!($_v, 1))
         };
     }
 
 #[macro_export]
 macro_rules! ozz_sse_hadd3_f {
         ($_v:expr) => {
-            _mm_add_ss(_mm_add_ss($_v, ozz_sse_splat_f($_v, 2)), ozz_sse_splat_f($_v, 1))
+            _mm_add_ss(_mm_add_ss($_v, ozz_sse_splat_f!($_v, 2)), ozz_sse_splat_f!($_v, 1))
         };
     }
 
@@ -449,7 +449,9 @@ pub mod simd_float4 {
     // _f[3] = _v.w
     #[inline]
     pub fn store_ptr(_v: SimdFloat4, _f: &mut [f32; 4]) {
-        todo!()
+        unsafe {
+            _mm_store_ps(_f.as_mut_ptr(), _v);
+        }
     }
 
     // Stores the x component of _v to the first float of _f.
@@ -457,7 +459,9 @@ pub mod simd_float4 {
     // _f[0] = _v.x
     #[inline]
     pub fn store1ptr(_v: SimdFloat4, _f: &mut [f32; 4]) {
-        todo!()
+        unsafe {
+            _mm_store_ss(_f.as_mut_ptr(), _v);
+        }
     }
 
     // Stores x and y components of _v to the two first floats of _f.
@@ -487,7 +491,9 @@ pub mod simd_float4 {
     // _f[3] = _v.w
     #[inline]
     pub fn store_ptr_u(_v: SimdFloat4, _f: &mut [f32; 4]) {
-        todo!()
+        unsafe {
+            _mm_storeu_ps(_f.as_mut_ptr(), _v);
+        }
     }
 
     // Stores the x component of _v to the first float of _f.
@@ -495,7 +501,9 @@ pub mod simd_float4 {
     // _f[0] = _v.x
     #[inline]
     pub fn store1ptr_u(_v: SimdFloat4, _f: &mut [f32; 4]) {
-        todo!()
+        unsafe {
+            _mm_store_ss(_f.as_mut_ptr(), _v);
+        }
     }
 
     // Stores x and y components of _v to the two first floats of _f.
@@ -504,7 +512,10 @@ pub mod simd_float4 {
     // _f[1] = _v.y
     #[inline]
     pub fn store2ptr_u(_v: SimdFloat4, _f: &mut [f32; 4]) {
-        todo!()
+        unsafe {
+            _mm_store_ss(_f.as_mut_ptr().add(0), _v);
+            _mm_store_ss(_f.as_mut_ptr().add(1), ozz_sse_splat_f!(_v, 1));
+        }
     }
 
     // Stores x, y and z components of _v to the three first floats of _f.
@@ -514,33 +525,44 @@ pub mod simd_float4 {
     // _f[2] = _v.z
     #[inline]
     pub fn store3ptr_u(_v: SimdFloat4, _f: &mut [f32; 4]) {
-        todo!()
+        unsafe {
+            _mm_store_ss(_f.as_mut_ptr().add(0), _v);
+            _mm_store_ss(_f.as_mut_ptr().add(1), ozz_sse_splat_f!(_v, 1));
+            _mm_store_ss(_f.as_mut_ptr().add(2), _mm_movehl_ps(_v, _v));
+        }
     }
 
     // Replicates x of _a to all the components of the returned vector.
     #[inline]
     pub fn splat_x(_v: SimdFloat4) -> SimdFloat4 {
-        todo!()
+        unsafe {
+            return ozz_sse_splat_f!(_v, 0);
+        }
     }
 
     // Replicates y of _a to all the components of the returned vector.
     #[inline]
     pub fn splat_y(_v: SimdFloat4) -> SimdFloat4 {
-        todo!()
+        unsafe {
+            return ozz_sse_splat_f!(_v, 1);
+        }
     }
 
     // Replicates z of _a to all the components of the returned vector.
     #[inline]
     pub fn splat_z(_v: SimdFloat4) -> SimdFloat4 {
-        todo!()
+        unsafe {
+            return ozz_sse_splat_f!(_v, 2);
+        }
     }
 
     // Replicates w of _a to all the components of the returned vector.
     #[inline]
     pub fn splat_w(_v: SimdFloat4) -> SimdFloat4 {
-        todo!()
+        unsafe {
+            return ozz_sse_splat_f!(_v, 3);
+        }
     }
-
 
     // swizzle X, y, z and w components based on compile time arguments _X, _Y, _Z
     // and _W. Arguments can vary from 0 (X), to 3 (w).
@@ -581,75 +603,167 @@ pub mod simd_float4 {
     // SimdFloat4 of _out.
     #[inline]
     pub fn transpose4x1(_in: [SimdFloat4; 4], _out: &mut [SimdFloat4; 1]) {
-        todo!()
+        unsafe {
+            let xz = _mm_unpacklo_ps(_in[0], _in[2]);
+            let yw = _mm_unpacklo_ps(_in[1], _in[3]);
+            _out[0] = _mm_unpacklo_ps(xz, yw);
+        }
     }
 
     // Transposes x, y, z and w components of _in to the x components of _out.
     // Remaining y, z and w are set to 0.
     #[inline]
     pub fn transpose1x4(_in: [SimdFloat4; 1], _out: &mut [SimdFloat4; 4]) {
-        todo!()
+        unsafe {
+            let zwzw = _mm_movehl_ps(_in[0], _in[0]);
+            let yyyy = ozz_sse_splat_f!(_in[0], 1);
+            let wwww = ozz_sse_splat_f!(_in[0], 3);
+            let zero = _mm_setzero_ps();
+            _out[0] = _mm_move_ss(zero, _in[0]);
+            _out[1] = _mm_move_ss(zero, yyyy);
+            _out[2] = _mm_move_ss(zero, zwzw);
+            _out[3] = _mm_move_ss(zero, wwww);
+        }
     }
 
     // Transposes the 1 SimdFloat4 of _in into the x components of the 4
     // SimdFloat4 of _out. Remaining y, z and w are set to 0.
     #[inline]
     pub fn transpose2x4(_in: [SimdFloat4; 2], _out: &mut [SimdFloat4; 4]) {
-        todo!()
+        unsafe {
+            let tmp0 = _mm_unpacklo_ps(_in[0], _in[1]);
+            let tmp1 = _mm_unpackhi_ps(_in[0], _in[1]);
+            let zero = _mm_setzero_ps();
+            _out[0] = _mm_movelh_ps(tmp0, zero);
+            _out[1] = _mm_movehl_ps(zero, tmp0);
+            _out[2] = _mm_movelh_ps(tmp1, zero);
+            _out[3] = _mm_movehl_ps(zero, tmp1);
+        }
     }
 
     // Transposes the x and y components of the 4 SimdFloat4 of _in into the 2
     // SimdFloat4 of _out.
     #[inline]
     pub fn transpose4x2(_in: [SimdFloat4; 4], _out: &mut [SimdFloat4; 2]) {
-        todo!()
+        unsafe {
+            let tmp0 = _mm_unpacklo_ps(_in[0], _in[2]);
+            let tmp1 = _mm_unpacklo_ps(_in[1], _in[3]);
+            _out[0] = _mm_unpacklo_ps(tmp0, tmp1);
+            _out[1] = _mm_unpackhi_ps(tmp0, tmp1);
+        }
     }
 
     // Transposes the x, y and z components of the 4 SimdFloat4 of _in into the 3
     // SimdFloat4 of _out.
     #[inline]
     pub fn transpose4x3(_in: [SimdFloat4; 4], _out: &mut [SimdFloat4; 3]) {
-        todo!()
+        unsafe {
+            let tmp0 = _mm_unpacklo_ps(_in[0], _in[2]);
+            let tmp1 = _mm_unpacklo_ps(_in[1], _in[3]);
+            let tmp2 = _mm_unpackhi_ps(_in[0], _in[2]);
+            let tmp3 = _mm_unpackhi_ps(_in[1], _in[3]);
+            _out[0] = _mm_unpacklo_ps(tmp0, tmp1);
+            _out[1] = _mm_unpackhi_ps(tmp0, tmp1);
+            _out[2] = _mm_unpacklo_ps(tmp2, tmp3);
+        }
     }
 
     // Transposes the 3 SimdFloat4 of _in into the x, y and z components of the 4
     // SimdFloat4 of _out. Remaining w are set to 0.
     #[inline]
     pub fn transpose3x4(_in: [SimdFloat4; 3], _out: &mut [SimdFloat4; 4]) {
-        todo!()
+        unsafe {
+            let zero = _mm_setzero_ps();
+            let temp0 = _mm_unpacklo_ps(_in[0], _in[1]);
+            let temp1 = _mm_unpacklo_ps(_in[2], zero);
+            let temp2 = _mm_unpackhi_ps(_in[0], _in[1]);
+            let temp3 = _mm_unpackhi_ps(_in[2], zero);
+            _out[0] = _mm_movelh_ps(temp0, temp1);
+            _out[1] = _mm_movehl_ps(temp1, temp0);
+            _out[2] = _mm_movelh_ps(temp2, temp3);
+            _out[3] = _mm_movehl_ps(temp3, temp2);
+        }
     }
 
     // Transposes the 4 SimdFloat4 of _in into the 4 SimdFloat4 of _out.
     #[inline]
     pub fn transpose4x4(_in: [SimdFloat4; 4], _out: &mut [SimdFloat4; 4]) {
-        todo!()
+        unsafe {
+            let tmp0 = _mm_unpacklo_ps(_in[0], _in[2]);
+            let tmp1 = _mm_unpacklo_ps(_in[1], _in[3]);
+            let tmp2 = _mm_unpackhi_ps(_in[0], _in[2]);
+            let tmp3 = _mm_unpackhi_ps(_in[1], _in[3]);
+            _out[0] = _mm_unpacklo_ps(tmp0, tmp1);
+            _out[1] = _mm_unpackhi_ps(tmp0, tmp1);
+            _out[2] = _mm_unpacklo_ps(tmp2, tmp3);
+            _out[3] = _mm_unpackhi_ps(tmp2, tmp3);
+        }
     }
 
     // Transposes the 16 SimdFloat4 of _in into the 16 SimdFloat4 of _out.
     #[inline]
     pub fn transpose16x16(_in: [SimdFloat4; 16], _out: &mut [SimdFloat4; 16]) {
-        todo!()
+        unsafe {
+            let tmp0 = _mm_unpacklo_ps(_in[0], _in[2]);
+            let tmp1 = _mm_unpacklo_ps(_in[1], _in[3]);
+            _out[0] = _mm_unpacklo_ps(tmp0, tmp1);
+            _out[4] = _mm_unpackhi_ps(tmp0, tmp1);
+            let tmp2 = _mm_unpackhi_ps(_in[0], _in[2]);
+            let tmp3 = _mm_unpackhi_ps(_in[1], _in[3]);
+            _out[8] = _mm_unpacklo_ps(tmp2, tmp3);
+            _out[12] = _mm_unpackhi_ps(tmp2, tmp3);
+            let tmp4 = _mm_unpacklo_ps(_in[4], _in[6]);
+            let tmp5 = _mm_unpacklo_ps(_in[5], _in[7]);
+            _out[1] = _mm_unpacklo_ps(tmp4, tmp5);
+            _out[5] = _mm_unpackhi_ps(tmp4, tmp5);
+            let tmp6 = _mm_unpackhi_ps(_in[4], _in[6]);
+            let tmp7 = _mm_unpackhi_ps(_in[5], _in[7]);
+            _out[9] = _mm_unpacklo_ps(tmp6, tmp7);
+            _out[13] = _mm_unpackhi_ps(tmp6, tmp7);
+            let tmp8 = _mm_unpacklo_ps(_in[8], _in[10]);
+            let tmp9 = _mm_unpacklo_ps(_in[9], _in[11]);
+            _out[2] = _mm_unpacklo_ps(tmp8, tmp9);
+            _out[6] = _mm_unpackhi_ps(tmp8, tmp9);
+            let tmp10 = _mm_unpackhi_ps(_in[8], _in[10]);
+            let tmp11 = _mm_unpackhi_ps(_in[9], _in[11]);
+            _out[10] = _mm_unpacklo_ps(tmp10, tmp11);
+            _out[14] = _mm_unpackhi_ps(tmp10, tmp11);
+            let tmp12 = _mm_unpacklo_ps(_in[12], _in[14]);
+            let tmp13 = _mm_unpacklo_ps(_in[13], _in[15]);
+            _out[3] = _mm_unpacklo_ps(tmp12, tmp13);
+            _out[7] = _mm_unpackhi_ps(tmp12, tmp13);
+            let tmp14 = _mm_unpackhi_ps(_in[12], _in[14]);
+            let tmp15 = _mm_unpackhi_ps(_in[13], _in[15]);
+            _out[11] = _mm_unpacklo_ps(tmp14, tmp15);
+            _out[15] = _mm_unpackhi_ps(tmp14, tmp15);
+        }
     }
 
     // Multiplies _a and _b, then adds _c.
     // v = (_a * _b) + _c
     #[inline]
     pub fn madd(_a: SimdFloat4, _b: SimdFloat4, _c: SimdFloat4) -> SimdFloat4 {
-        todo!()
+        unsafe {
+            return ozz_madd!(_a, _b, _c);
+        }
     }
 
     // Multiplies _a and _b, then subs _c.
     // v = (_a * _b) + _c
     #[inline]
     pub fn msub(_a: SimdFloat4, _b: SimdFloat4, _c: SimdFloat4) -> SimdFloat4 {
-        todo!()
+        unsafe {
+            return ozz_msub!(_a, _b, _c);
+        }
     }
 
     // Multiplies _a and _b, negate it, then adds _c.
     // v = -(_a * _b) + _c
     #[inline]
     pub fn nmadd(_a: SimdFloat4, _b: SimdFloat4, _c: SimdFloat4) -> SimdFloat4 {
-        todo!()
+        unsafe {
+            return ozz_nmadd!(_a, _b, _c);
+        }
     }
 
     // Multiplies _a and _b, negate it, then subs _c.
@@ -668,7 +782,9 @@ pub mod simd_float4 {
     // r.w = _a.w
     #[inline]
     pub fn div_x(_a: SimdFloat4, _b: SimdFloat4) -> SimdFloat4 {
-        todo!()
+        unsafe {
+            return _mm_div_ss(_a, _b);
+        }
     }
 
     // Computes the (horizontal) addition of x and y components of _v. The result is
@@ -680,7 +796,9 @@ pub mod simd_float4 {
     // r.w = _a.w
     #[inline]
     pub fn hadd2(_v: SimdFloat4) -> SimdFloat4 {
-        todo!()
+        unsafe {
+            return ozz_sse_hadd2_f!(_v)
+        }
     }
 
     // Computes the (horizontal) addition of x, y and z components of _v. The result
@@ -692,7 +810,9 @@ pub mod simd_float4 {
     // r.w = _a.w
     #[inline]
     pub fn hadd3(_v: SimdFloat4) -> SimdFloat4 {
-        todo!()
+        unsafe {
+            return ozz_sse_hadd3_f!(_v)
+        }
     }
 
     // Computes the (horizontal) addition of x and y components of _v. The result is
