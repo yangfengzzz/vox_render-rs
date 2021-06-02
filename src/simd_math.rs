@@ -427,6 +427,7 @@ pub union SimdFloat4Union {
     ret: SimdFloat4,
     af: [f32; 4],
 }
+
 #[inline]
 pub fn set_i(_v: SimdFloat4, _f: SimdFloat4, _ith: usize) -> SimdFloat4 {
     unsafe {
@@ -603,16 +604,155 @@ pub fn transpose4x2(_in: [SimdFloat4; 4], _out: &mut [SimdFloat4; 2]) {
     todo!()
 }
 
+// Transposes the x, y and z components of the 4 SimdFloat4 of _in into the 3
+// SimdFloat4 of _out.
+#[inline]
+pub fn transpose4x3(_in: [SimdFloat4; 4], _out: &mut [SimdFloat4; 3]) {
+    todo!()
+}
 
+// Transposes the 3 SimdFloat4 of _in into the x, y and z components of the 4
+// SimdFloat4 of _out. Remaining w are set to 0.
+#[inline]
+pub fn transpose3x4(_in: [SimdFloat4; 3], _out: &mut [SimdFloat4; 4]) {
+    todo!()
+}
 
+// Transposes the 4 SimdFloat4 of _in into the 4 SimdFloat4 of _out.
+#[inline]
+pub fn transpose4x4(_in: [SimdFloat4; 4], _out: &mut [SimdFloat4; 4]) {
+    todo!()
+}
 
+// Transposes the 16 SimdFloat4 of _in into the 16 SimdFloat4 of _out.
+#[inline]
+pub fn transpose16x16(_in: [SimdFloat4; 16], _out: &mut [SimdFloat4; 16]) {
+    todo!()
+}
 
+// Multiplies _a and _b, then adds _c.
+// v = (_a * _b) + _c
+#[inline]
+pub fn madd(_a: SimdFloat4, _b: SimdFloat4, _c: SimdFloat4) -> SimdFloat4 {
+    todo!()
+}
 
+// Multiplies _a and _b, then subs _c.
+// v = (_a * _b) + _c
+#[inline]
+pub fn msub(_a: SimdFloat4, _b: SimdFloat4, _c: SimdFloat4) -> SimdFloat4 {
+    todo!()
+}
 
+// Multiplies _a and _b, negate it, then adds _c.
+// v = -(_a * _b) + _c
+#[inline]
+pub fn nmadd(_a: SimdFloat4, _b: SimdFloat4, _c: SimdFloat4) -> SimdFloat4 {
+    todo!()
+}
 
+// Multiplies _a and _b, negate it, then subs _c.
+// v = -(_a * _b) + _c
+#[inline]
+pub fn nmsub(_a: SimdFloat4, _b: SimdFloat4, _c: SimdFloat4) -> SimdFloat4 {
+    todo!()
+}
 
+// Divides the x component of _a by the _x component of _b and stores it in the
+// x component of the returned vector. y, z, w of the returned vector are the
+// same as _a respective components.
+// r.x = _a.x / _b.x
+// r.y = _a.y
+// r.z = _a.z
+// r.w = _a.w
+#[inline]
+pub fn div_x(_a: SimdFloat4, _b: SimdFloat4) -> SimdFloat4 {
+    todo!()
+}
 
+// Computes the (horizontal) addition of x and y components of _v. The result is
+// stored in the x component of the returned value. y, z, w of the returned
+// vector are the same as their respective components in _v.
+// r.x = _a.x + _a.y
+// r.y = _a.y
+// r.z = _a.z
+// r.w = _a.w
+#[inline]
+pub fn hadd2(_v: SimdFloat4) -> SimdFloat4 {
+    todo!()
+}
 
+// Computes the (horizontal) addition of x, y and z components of _v. The result
+// is stored in the x component of the returned value. y, z, w of the returned
+// vector are the same as their respective components in _v.
+// r.x = _a.x + _a.y + _a.z
+// r.y = _a.y
+// r.z = _a.z
+// r.w = _a.w
+#[inline]
+pub fn hadd3(_v: SimdFloat4) -> SimdFloat4 {
+    todo!()
+}
+
+// Computes the (horizontal) addition of x and y components of _v. The result is
+// stored in the x component of the returned value. y, z, w of the returned
+// vector are the same as their respective components in _v.
+// r.x = _a.x + _a.y + _a.z + _a.w
+// r.y = _a.y
+// r.z = _a.z
+// r.w = _a.w
+#[inline]
+pub fn hadd4(_v: SimdFloat4) -> SimdFloat4 {
+    todo!()
+}
+
+// Computes the dot product of x and y components of _v. The result is
+// stored in the x component of the returned value. y, z, w of the returned
+// vector are undefined.
+// r.x = _a.x * _a.x + _a.y * _a.y
+// r.y = ?
+// r.z = ?
+// r.w = ?
+#[inline]
+pub fn dot2(_a: SimdFloat4, _b: SimdFloat4) -> SimdFloat4 {
+    todo!()
+}
+
+// Computes the dot product of x, y and z components of _v. The result is
+// stored in the x component of the returned value. y, z, w of the returned
+// vector are undefined.
+// r.x = _a.x * _a.x + _a.y * _a.y + _a.z * _a.z
+// r.y = ?
+// r.z = ?
+// r.w = ?
+#[inline]
+pub fn dot3(_a: SimdFloat4, _b: SimdFloat4) -> SimdFloat4 {
+    todo!()
+}
+
+// Computes the dot product of x, y, z and w components of _v. The result is
+// stored in the x component of the returned value. y, z, w of the returned
+// vector are undefined.
+// r.x = _a.x * _a.x + _a.y * _a.y + _a.z * _a.z + _a.w * _a.w
+// r.y = ?
+// r.z = ?
+// r.w = ?
+#[inline]
+pub fn dot4(_a: SimdFloat4, _b: SimdFloat4) -> SimdFloat4 {
+    todo!()
+}
+
+// Computes the cross product of x, y and z components of _v. The result is
+// stored in the x, y and z components of the returned value. w of the returned
+// vector is undefined.
+// r.x = _a.y * _b.z - _a.z * _b.y
+// r.y = _a.z * _b.x - _a.x * _b.z
+// r.z = _a.x * _b.y - _a.y * _b.x
+// r.w = ?
+#[inline]
+pub fn cross3(_a: SimdFloat4, _b: SimdFloat4) -> SimdFloat4 {
+    todo!()
+}
 
 
 
