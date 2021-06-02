@@ -19,3 +19,4 @@ pub mod soa_transform;
 pub mod soa_float4x4;
 
 pub mod animation_keyframe;
+pub mod simd_math;
