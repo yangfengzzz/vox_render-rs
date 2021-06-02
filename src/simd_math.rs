@@ -7,6 +7,7 @@
  */
 
 use std::arch::x86_64::*;
+use std::ops::{Mul, Add, Sub};
 
 // Vector of four floating point values.
 pub type SimdFloat4 = __m128;
@@ -1606,5 +1607,564 @@ pub mod simd_int4 {
     pub fn set_i(_v: SimdInt4, _i: SimdInt4, _ith: usize) -> SimdInt4 {
         todo!()
     }
+
+    // Stores the 4 components of _v to the four first integers of _i.
+    // _i must be aligned to 16 bytes.
+    // _i[0] = _v.x
+    // _i[1] = _v.y
+    // _i[2] = _v.z
+    // _i[3] = _v.w
+    #[inline]
+    pub fn store_ptr(_v: SimdInt4, _i: &mut [i32; 4]) {
+        todo!()
+    }
+
+    // Stores the x component of _v to the first integers of _i.
+    // _i must be aligned to 16 bytes.
+    // _i[0] = _v.x
+    #[inline]
+    pub fn store1ptr(_v: SimdInt4, _i: &mut [i32; 4]) {
+        todo!()
+    }
+
+    // Stores x and y components of _v to the two first integers of _i.
+    // _i must be aligned to 16 bytes.
+    // _i[0] = _v.x
+    // _i[1] = _v.y
+    #[inline]
+    pub fn store2ptr(_v: SimdInt4, _i: &mut [i32; 4]) {
+        todo!()
+    }
+
+    // Stores x, y and z components of _v to the three first integers of _i.
+    // _i must be aligned to 16 bytes.
+    // _i[0] = _v.x
+    // _i[1] = _v.y
+    // _i[2] = _v.z
+    #[inline]
+    pub fn store3ptr(_v: SimdInt4, _i: &mut [i32; 4]) {
+        todo!()
+    }
+
+    // Stores the 4 components of _v to the four first integers of _i.
+    // _i must be aligned to 4 bytes.
+    // _i[0] = _v.x
+    // _i[1] = _v.y
+    // _i[2] = _v.z
+    // _i[3] = _v.w
+    #[inline]
+    pub fn store_ptr_u(_v: SimdInt4, _i: &mut [i32; 4]) {
+        todo!()
+    }
+
+    // Stores the x component of _v to the first float of _i.
+    // _i must be aligned to 4 bytes.
+    // _i[0] = _v.x
+    #[inline]
+    pub fn store1ptr_u(_v: SimdInt4, _i: &mut [i32; 4]) {
+        todo!()
+    }
+
+    // Stores x and y components of _v to the two first integers of _i.
+    // _i must be aligned to 4 bytes.
+    // _i[0] = _v.x
+    // _i[1] = _v.y
+    #[inline]
+    pub fn store2ptr_u(_v: SimdInt4, _i: &mut [i32; 4]) {
+        todo!()
+    }
+
+    // Stores x, y and z components of _v to the three first integers of _i.
+    // _i must be aligned to 4 bytes.
+    // _i[0] = _v.x
+    // _i[1] = _v.y
+    // _i[2] = _v.z
+    #[inline]
+    pub fn store3ptr_u(_v: SimdInt4, _i: &mut [i32; 4]) {
+        todo!()
+    }
+
+    // Replicates x of _a to all the components of the returned vector.
+    #[inline]
+    pub fn splat_x(_v: SimdInt4) -> SimdInt4 {
+        todo!()
+    }
+
+    // Replicates y of _a to all the components of the returned vector.
+    #[inline]
+    pub fn splat_y(_v: SimdInt4) -> SimdInt4 {
+        todo!()
+    }
+
+    // Replicates z of _a to all the components of the returned vector.
+    #[inline]
+    pub fn splat_z(_v: SimdInt4) -> SimdInt4 {
+        todo!()
+    }
+
+    // Replicates w of _a to all the components of the returned vector.
+    #[inline]
+    pub fn splat_w(_v: SimdInt4) -> SimdInt4 {
+        todo!()
+    }
+
+    // Swizzle x, y, z and w components based on compile time arguments _X, _Y, _Z
+    // and _W. Arguments can vary from 0 (x), to 3 (w).
+    #[inline]
+    pub fn swizzle0123(_v: SimdInt4) -> SimdInt4 {
+        todo!()
+    }
+
+    // Creates a 4-bit mask from the most significant bits of each component of _v.
+    // i := sign(a3)<<3 | sign(a2)<<2 | sign(a1)<<1 | sign(a0)
+    #[inline]
+    pub fn move_mask(_v: SimdInt4) -> i32 {
+        todo!()
+    }
+
+    // Returns true if all the components of _v are not 0.
+    #[inline]
+    pub fn are_all_true(_v: SimdInt4) -> bool {
+        todo!()
+    }
+
+    // Returns true if x, y and z components of _v are not 0.
+    #[inline]
+    pub fn are_all_true3(_v: SimdInt4) -> bool {
+        todo!()
+    }
+
+    // Returns true if x and y components of _v are not 0.
+    #[inline]
+    pub fn are_all_true2(_v: SimdInt4) -> bool {
+        todo!()
+    }
+
+    // Returns true if x component of _v is not 0.
+    #[inline]
+    pub fn are_all_true1(_v: SimdInt4) -> bool {
+        todo!()
+    }
+
+    // Returns true if all the components of _v are 0.
+    #[inline]
+    pub fn are_all_false(_v: SimdInt4) -> bool {
+        todo!()
+    }
+
+    // Returns true if x, y and z components of _v are 0.
+    #[inline]
+    pub fn are_all_false3(_v: SimdInt4) -> bool {
+        todo!()
+    }
+
+    // Returns true if x and y components of _v are 0.
+    #[inline]
+    pub fn are_all_false2(_v: SimdInt4) -> bool {
+        todo!()
+    }
+
+    // Returns true if x component of _v is 0.
+    #[inline]
+    pub fn are_all_false1(_v: SimdInt4) -> bool {
+        todo!()
+    }
+
+    // Computes the (horizontal) addition of x and y components of _v. The result is
+    // stored in the x component of the returned value. y, z, w of the returned
+    // vector are the same as their respective components in _v.
+    // r.x = _a.x + _a.y
+    // r.y = _a.y
+    // r.z = _a.z
+    // r.w = _a.w
+    #[inline]
+    pub fn hadd2(_v: SimdInt4) -> SimdInt4 {
+        todo!()
+    }
+
+    // Computes the (horizontal) addition of x, y and z components of _v. The result
+    // is stored in the x component of the returned value. y, z, w of the returned
+    // vector are the same as their respective components in _v.
+    // r.x = _a.x + _a.y + _a.z
+    // r.y = _a.y
+    // r.z = _a.z
+    // r.w = _a.w
+    #[inline]
+    pub fn hadd3(_v: SimdInt4) -> SimdInt4 {
+        todo!()
+    }
+
+    // Computes the (horizontal) addition of x and y components of _v. The result is
+    // stored in the x component of the returned value. y, z, w of the returned
+    // vector are the same as their respective components in _v.
+    // r.x = _a.x + _a.y + _a.z + _a.w
+    // r.y = _a.y
+    // r.z = _a.z
+    // r.w = _a.w
+    #[inline]
+    pub fn hadd4(_v: SimdInt4) -> SimdInt4 {
+        todo!()
+    }
+
+    // Returns the per element absolute value of _v.
+    #[inline]
+    pub fn abs(_v: SimdInt4) -> SimdInt4 {
+        todo!()
+    }
+
+    // Returns the sign bit of _v.
+    #[inline]
+    pub fn sign(_v: SimdInt4) -> SimdInt4 {
+        todo!()
+    }
+
+    // Returns the per component minimum of _a and _b.
+    #[inline]
+    pub fn min(_a: SimdInt4, _b: SimdInt4) -> SimdInt4 {
+        todo!()
+    }
+
+    // Returns the per component maximum of _a and _b.
+    #[inline]
+    pub fn max(_a: SimdInt4, _b: SimdInt4) -> SimdInt4 {
+        todo!()
+    }
+
+    // Returns the per component minimum of _v and 0.
+    #[inline]
+    pub fn min0(_v: SimdInt4) -> SimdInt4 {
+        todo!()
+    }
+
+    // Returns the per component maximum of _v and 0.
+    #[inline]
+    pub fn max0(_v: SimdInt4) -> SimdInt4 {
+        todo!()
+    }
+
+    // Clamps each element of _x between _a and _b.
+    // Result is unknown if _a is not less or equal to _b.
+    #[inline]
+    pub fn clamp(_a: SimdInt4, _v: SimdInt4, _b: SimdInt4) -> SimdInt4 {
+        todo!()
+    }
+
+    // Returns boolean selection of vectors _true and _false according to consition
+    // _b. All bits a each component of _b must have the same value (O or
+    // 0xffffffff) to ensure portability.
+    #[inline]
+    pub fn select(_b: SimdInt4, _true: SimdInt4, _false: SimdInt4) -> SimdInt4 {
+        todo!()
+    }
+
+    // Returns per element binary and operation of _a and _b.
+    // _v[0...127] = _a[0...127] & _b[0...127]
+    #[inline]
+    pub fn and(_a: SimdInt4, _b: SimdInt4) -> SimdInt4 {
+        todo!()
+    }
+
+    // Returns per element binary and operation of _a and ~_b.
+    // _v[0...127] = _a[0...127] & ~_b[0...127]
+    #[inline]
+    pub fn and_not(_a: SimdInt4, _b: SimdInt4) -> SimdInt4 {
+        todo!()
+    }
+
+    // Returns per element binary or operation of _a and _b.
+    // _v[0...127] = _a[0...127] | _b[0...127]
+    #[inline]
+    pub fn or(_a: SimdInt4, _b: SimdInt4) -> SimdInt4 {
+        todo!()
+    }
+
+    // Returns per element binary logical xor operation of _a and _b.
+    // _v[0...127] = _a[0...127] ^ _b[0...127]
+    #[inline]
+    pub fn xor(_a: SimdInt4, _b: SimdInt4) -> SimdInt4 {
+        todo!()
+    }
+
+    // Returns per element binary complement of _v.
+    // _v[0...127] = ~_b[0...127]
+    #[inline]
+    pub fn not(_v: SimdInt4) -> SimdInt4 {
+        todo!()
+    }
+
+    // Shifts the 4 signed or unsigned 32-bit integers in a left by count _bits
+    // while shifting in zeros.
+    #[inline]
+    pub fn shift_l(_v: SimdInt4, _bits: i32) -> SimdInt4 {
+        todo!()
+    }
+
+    // Shifts the 4 signed 32-bit integers in a right by count bits while shifting
+    // in the sign bit.
+    #[inline]
+    pub fn shift_r(_v: SimdInt4, _bits: i32) -> SimdInt4 {
+        todo!()
+    }
+
+    // Shifts the 4 signed or unsigned 32-bit integers in a right by count bits
+    // while shifting in zeros.
+    #[inline]
+    pub fn shift_ru(_v: SimdInt4, _bits: i32) -> SimdInt4 {
+        todo!()
+    }
+
+    // Per element "equal" comparison of _a and _b.
+    #[inline]
+    pub fn cmp_eq(_a: SimdInt4, _b: SimdInt4) -> SimdInt4 {
+        todo!()
+    }
+
+    // Per element "not equal" comparison of _a and _b.
+    #[inline]
+    pub fn cmp_ne(_a: SimdInt4, _b: SimdInt4) -> SimdInt4 {
+        todo!()
+    }
+
+    // Per element "less than" comparison of _a and _b.
+    #[inline]
+    pub fn cmp_lt(_a: SimdInt4, _b: SimdInt4) -> SimdInt4 {
+        todo!()
+    }
+
+    // Per element "less than or equal" comparison of _a and _b.
+    #[inline]
+    pub fn cmp_le(_a: SimdInt4, _b: SimdInt4) -> SimdInt4 {
+        todo!()
+    }
+
+    // Per element "greater than" comparison of _a and _b.
+    #[inline]
+    pub fn cmp_gt(_a: SimdInt4, _b: SimdInt4) -> SimdInt4 {
+        todo!()
+    }
+
+    // Per element "greater than or equal" comparison of _a and _b.
+    #[inline]
+    pub fn cmp_ge(_a: SimdInt4, _b: SimdInt4) -> SimdInt4 {
+        todo!()
+    }
 }
 
+//--------------------------------------------------------------------------------------------------
+// Declare the 4x4 matrix type. Uses the column major convention where the
+// matrix-times-vector is written v'=Mv:
+// [ m.cols[0].x m.cols[1].x m.cols[2].x m.cols[3].x ]   {v.x}
+// | m.cols[0].y m.cols[1].y m.cols[2].y m.cols[3].y | * {v.y}
+// | m.cols[0].z m.cols[1].y m.cols[2].y m.cols[3].y |   {v.z}
+// [ m.cols[0].w m.cols[1].w m.cols[2].w m.cols[3].w ]   {v.1}
+pub struct Float4x4 {
+    // Matrix columns.
+    pub cols: [SimdFloat4; 4],
+}
+
+impl Float4x4 {
+    // Returns the identity matrix.
+    #[inline]
+    pub fn identity() -> Float4x4 {
+        todo!()
+    }
+
+    // Returns a translation matrix.
+    // _v.w is ignored.
+    #[inline]
+    pub fn translation(_v: SimdFloat4) -> Float4x4 {
+        todo!()
+    }
+
+    // Returns a scaling matrix that scales along _v.
+    // _v.w is ignored.
+    #[inline]
+    pub fn scaling(_v: SimdFloat4) -> Float4x4 {
+        todo!()
+    }
+
+    // Returns the rotation matrix built from Euler angles defined by x, y and z
+    // components of _v. Euler angles are ordered Heading, Elevation and Bank, or
+    // Yaw, Pitch and Roll. _v.w is ignored.
+    #[inline]
+    pub fn from_euler(_v: SimdFloat4) -> Float4x4 {
+        todo!()
+    }
+
+    // Returns the rotation matrix built from axis defined by _axis.xyz and
+    // _angle.x
+    #[inline]
+    pub fn from_axis_angle(_axis: SimdFloat4, _angle: SimdFloat4) -> Float4x4 {
+        todo!()
+    }
+
+    // Returns the rotation matrix built from quaternion defined by x, y, z and w
+    // components of _v.
+    #[inline]
+    pub fn from_quaternion(_v: SimdFloat4) -> Float4x4 {
+        todo!()
+    }
+
+    // Returns the affine transformation matrix built from split translation,
+    // rotation (quaternion) and scale.
+    #[inline]
+    pub fn from_affine(_translation: SimdFloat4,
+                       _quaternion: SimdFloat4,
+                       _scale: SimdFloat4) -> Float4x4 {
+        todo!()
+    }
+}
+
+// Returns the transpose of matrix _m.
+#[inline]
+pub fn transpose(_m: &Float4x4) -> Float4x4 {
+    todo!()
+}
+
+// Returns the inverse of matrix _m.
+// If _invertible is not nullptr, its x component will be set to true if matrix is
+// invertible. If _invertible is nullptr, then an assert is triggered in case the
+// matrix isn't invertible.
+#[inline]
+pub fn invert(_m: &Float4x4, _invertible: Option<SimdInt4>) -> Float4x4 {
+    todo!()
+}
+
+// Translates matrix _m along the axis defined by _v components.
+// _v.w is ignored.
+#[inline]
+pub fn translate(_m: &Float4x4, _v: SimdFloat4) -> Float4x4 {
+    todo!()
+}
+
+// Scales matrix _m along each axis with x, y, z components of _v.
+// _v.w is ignored.
+#[inline]
+pub fn scale(_m: &Float4x4, _v: SimdFloat4) -> Float4x4 {
+    todo!()
+}
+
+// Multiply each column of matrix _m with vector _v.
+#[inline]
+pub fn column_multiply(_m: &Float4x4, _v: SimdFloat4) -> Float4x4 {
+    todo!()
+}
+
+// Tests if each 3 column of upper 3x3 matrix of _m is a normal matrix.
+// Returns the result in the x, y and z component of the returned vector. w is
+// set to 0.
+#[inline]
+pub fn is_normalized(_m: &Float4x4) -> SimdInt4 {
+    todo!()
+}
+
+// Tests if each 3 column of upper 3x3 matrix of _m is a normal matrix.
+// Uses the estimated tolerance
+// Returns the result in the x, y and z component of the returned vector. w is
+// set to 0.
+#[inline]
+pub fn is_normalized_est(_m: &Float4x4) -> SimdInt4 {
+    todo!()
+}
+
+// Tests if the upper 3x3 matrix of _m is an orthogonal matrix.
+// A matrix that contains a reflexion cannot be considered orthogonal.
+// Returns the result in the x component of the returned vector. y, z and w are
+// set to 0.
+#[inline]
+pub fn is_orthogonal(_m: &Float4x4) -> SimdInt4 {
+    todo!()
+}
+
+// Returns the quaternion that represent the rotation of matrix _m.
+// _m must be normalized and orthogonal.
+// the return quaternion is normalized.
+#[inline]
+pub fn to_quaternion(_m: &Float4x4) -> SimdFloat4 {
+    todo!()
+}
+
+// Decompose a general 3D transformation matrix _m into its scalar, rotational
+// and translational components.
+// Returns false if it was not possible to decompose the matrix. This would be
+// because more than 1 of the 3 first column of _m are scaled to 0.
+#[inline]
+pub fn to_affine(_m: &Float4x4, _translation: &mut SimdFloat4, _quaternion: &mut SimdFloat4, _scale: &mut SimdFloat4) -> bool {
+    todo!()
+}
+
+// Computes the transformation of a Float4x4 matrix and a point _p.
+// This is equivalent to multiplying a matrix by a SimdFloat4 with a w component
+// of 1.
+#[inline]
+pub fn transform_point(_m: &Float4x4, _v: SimdFloat4) -> SimdFloat4 {
+    todo!()
+}
+
+// Computes the transformation of a Float4x4 matrix and a vector _v.
+// This is equivalent to multiplying a matrix by a SimdFloat4 with a w component
+// of 0.
+#[inline]
+pub fn transform_vector(_m: &Float4x4, _v: SimdFloat4) -> SimdFloat4 {
+    todo!()
+}
+
+// Computes the multiplication of matrix Float4x4 and vector _v.
+impl Mul<SimdFloat4> for Float4x4 {
+    type Output = SimdFloat4;
+    #[inline]
+    fn mul(self, rhs: SimdFloat4) -> Self::Output {
+        todo!()
+    }
+}
+
+// Computes the multiplication of two matrices _a and _b.
+impl Mul for Float4x4 {
+    type Output = Float4x4;
+    #[inline]
+    fn mul(self, rhs: Self) -> Self::Output {
+        todo!()
+    }
+}
+
+// Computes the per element addition of two matrices _a and _b.
+impl Add for Float4x4 {
+    type Output = Float4x4;
+    #[inline]
+    fn add(self, rhs: Self) -> Self::Output {
+        todo!()
+    }
+}
+
+// Computes the per element subtraction of two matrices _a and _b.
+impl Sub for Float4x4 {
+    type Output = Float4x4;
+    #[inline]
+    fn sub(self, rhs: Self) -> Self::Output {
+        todo!()
+    }
+}
+
+// Converts from a float to a half.
+#[inline]
+pub fn float_to_half(_f: f32) -> u16 {
+    todo!()
+}
+
+// Converts from a half to a float.
+#[inline]
+pub fn half_to_float(_h: u16) -> f32 {
+    todo!()
+}
+
+// Converts from a float to a half.
+#[inline]
+pub fn float_to_half_simd(_f: SimdFloat4) -> SimdInt4 {
+    todo!()
+}
+
+// Converts from a half to a float.
+#[inline]
+pub fn half_to_float_simd(_h: SimdInt4) -> SimdFloat4 {
+    todo!()
+}
