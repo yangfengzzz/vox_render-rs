@@ -529,6 +529,62 @@ pub mod simd_float4 {
     }
 
     #[inline]
+    pub fn swizzle3332(_v: SimdFloat4) -> SimdFloat4 {
+        unsafe {
+            return ozz_shuffle_ps1!(_v, _mm_shuffle!(3, 3, 3, 2));
+        }
+    }
+
+    #[inline]
+    pub fn swizzle3330(_v: SimdFloat4) -> SimdFloat4 {
+        unsafe {
+            return ozz_shuffle_ps1!(_v, _mm_shuffle!(3, 3, 3, 0));
+        }
+    }
+
+    #[inline]
+    pub fn swizzle0122(_v: SimdFloat4) -> SimdFloat4 {
+        unsafe {
+            return ozz_shuffle_ps1!(_v, _mm_shuffle!(0, 1, 2, 2));
+        }
+    }
+
+    #[inline]
+    pub fn swizzle0120(_v: SimdFloat4) -> SimdFloat4 {
+        unsafe {
+            return ozz_shuffle_ps1!(_v, _mm_shuffle!(0, 1, 2, 0));
+        }
+    }
+
+    #[inline]
+    pub fn swizzle1201(_v: SimdFloat4) -> SimdFloat4 {
+        unsafe {
+            return ozz_shuffle_ps1!(_v, _mm_shuffle!(1, 2, 0, 1));
+        }
+    }
+
+    #[inline]
+    pub fn swizzle2011(_v: SimdFloat4) -> SimdFloat4 {
+        unsafe {
+            return ozz_shuffle_ps1!(_v, _mm_shuffle!(2, 0, 1, 1));
+        }
+    }
+
+    #[inline]
+    pub fn swizzle2013(_v: SimdFloat4) -> SimdFloat4 {
+        unsafe {
+            return ozz_shuffle_ps1!(_v, _mm_shuffle!(2, 0, 1, 3));
+        }
+    }
+
+    #[inline]
+    pub fn swizzle1203(_v: SimdFloat4) -> SimdFloat4 {
+        unsafe {
+            return ozz_shuffle_ps1!(_v, _mm_shuffle!(1, 2, 0, 3));
+        }
+    }
+
+    #[inline]
     pub fn swizzle0101(_v: SimdFloat4) -> SimdFloat4 {
         unsafe {
             return _mm_movelh_ps(_v, _v);
