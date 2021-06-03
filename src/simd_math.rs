@@ -3386,23 +3386,75 @@ impl Sub for Float4x4 {
 // Converts from a float to a half.
 #[inline]
 pub fn float_to_half(_f: f32) -> u16 {
-    todo!()
+    unsafe {
+        let h = _mm_cvtsi128_si32(float_to_half_simd(_mm_set1_ps(_f)));
+        return h as u16;
+    }
 }
 
 // Converts from a half to a float.
 #[inline]
 pub fn half_to_float(_h: u16) -> f32 {
-    todo!()
+    unsafe {
+        return _mm_cvtss_f32(half_to_float_simd(_mm_set1_epi32(_h as i32)));
+    }
 }
 
 // Converts from a float to a half.
 #[inline]
+#[allow(overflowing_literals)]
 pub fn float_to_half_simd(_f: SimdFloat4) -> SimdInt4 {
-    todo!()
+    unsafe {
+        let mask_sign = _mm_set1_epi32(0x80000000);
+        let mask_round = _mm_set1_epi32(!0xfff);
+        let f32infty = _mm_set1_epi32(255 << 23);
+        let magic = _mm_castsi128_ps(_mm_set1_epi32(15 << 23));
+        let nanbit = _mm_set1_epi32(0x200);
+        let infty_as_fp16 = _mm_set1_epi32(0x7c00);
+        let clamp = _mm_castsi128_ps(_mm_set1_epi32((31 << 23) - 0x1000));
+
+        let msign = _mm_castsi128_ps(mask_sign);
+        let justsign = _mm_and_ps(msign, _f);
+        let absf = _mm_xor_ps(_f, justsign);
+        let mround = _mm_castsi128_ps(mask_round);
+        let absf_int = _mm_castps_si128(absf);
+        let b_isnan = _mm_cmpgt_epi32(absf_int, f32infty);
+        let b_isnormal = _mm_cmpgt_epi32(f32infty, _mm_castps_si128(absf));
+        let inf_or_nan =
+            _mm_or_si128(_mm_and_si128(b_isnan, nanbit), infty_as_fp16);
+        let fnosticky = _mm_and_ps(absf, mround);
+        let scaled = _mm_mul_ps(fnosticky, magic);
+        // Logically, we want PMINSD on "biased", but this should gen better code
+        let clamped = _mm_min_ps(scaled, clamp);
+        let biased =
+            _mm_sub_epi32(_mm_castps_si128(clamped), _mm_castps_si128(mround));
+        let shifted = _mm_srli_epi32(biased, 13);
+        let normal = _mm_and_si128(shifted, b_isnormal);
+        let not_normal = _mm_andnot_si128(b_isnormal, inf_or_nan);
+        let joined = _mm_or_si128(normal, not_normal);
+
+        let sign_shift = _mm_srli_epi32(_mm_castps_si128(justsign), 16);
+        return _mm_or_si128(joined, sign_shift);
+    }
 }
 
 // Converts from a half to a float.
 #[inline]
 pub fn half_to_float_simd(_h: SimdInt4) -> SimdFloat4 {
-    todo!()
+    unsafe {
+        let mask_nosign = _mm_set1_epi32(0x7fff);
+        let magic = _mm_castsi128_ps(_mm_set1_epi32((254 - 15) << 23));
+        let was_infnan = _mm_set1_epi32(0x7bff);
+        let exp_infnan = _mm_castsi128_ps(_mm_set1_epi32(255 << 23));
+
+        let expmant = _mm_and_si128(mask_nosign, _h);
+        let shifted = _mm_slli_epi32(expmant, 13);
+        let scaled = _mm_mul_ps(_mm_castsi128_ps(shifted), magic);
+        let b_wasinfnan = _mm_cmpgt_epi32(expmant, was_infnan);
+        let sign = _mm_slli_epi32(_mm_xor_si128(_h, expmant), 16);
+        let infnanexp =
+            _mm_and_ps(_mm_castsi128_ps(b_wasinfnan), exp_infnan);
+        let sign_inf = _mm_or_ps(_mm_castsi128_ps(sign), infnanexp);
+        return _mm_or_ps(scaled, sign_inf);
+    }
 }
