@@ -11,7 +11,7 @@ pub mod simd_math;
 pub mod simd_quaternion;
 
 pub mod vec_float;
-// pub mod quaternion;
+pub mod quaternion;
 // pub mod transform;
 // pub mod aabb;
 // pub mod rect;
