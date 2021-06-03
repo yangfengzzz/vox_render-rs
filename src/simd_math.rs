@@ -16,49 +16,42 @@ pub type SimdFloat4 = __m128;
 // Vector of four integer values.
 pub type SimdInt4 = __m128i;
 
-#[macro_export]
 macro_rules! _mm_shuffle {
         ($z:expr, $y:expr, $x:expr, $w:expr) => {
             (($z << 6) | ($y << 4) | ($x << 2) | $w)
         };
     }
 
-#[macro_export]
 macro_rules! ozz_shuffle_ps1 {
         ($_v:expr, $_m:expr) => {
             _mm_shuffle_ps($_v, $_v, $_m)
         };
     }
 
-#[macro_export]
 macro_rules! ozz_sse_splat_f {
         ($_v:expr, $_i:expr) => {
             ozz_shuffle_ps1!($_v, _mm_shuffle!($_i,$_i,$_i,$_i))
         };
     }
 
-#[macro_export]
 macro_rules! ozz_sse_splat_i {
         ($_v:expr, $_i:expr) => {
             _mm_shuffle_epi32($_v, _mm_shuffle!($_i, $_i, $_i, $_i))
         };
     }
 
-#[macro_export]
 macro_rules! ozz_sse_hadd2_f {
         ($_v:expr) => {
             _mm_add_ss($_v, ozz_sse_splat_f!($_v, 1))
         };
     }
 
-#[macro_export]
 macro_rules! ozz_sse_hadd3_f {
         ($_v:expr) => {
             _mm_add_ss(_mm_add_ss($_v, ozz_sse_splat_f!($_v, 2)), ozz_sse_splat_f!($_v, 1))
         };
     }
 
-#[macro_export]
 macro_rules! ozz_sse_hadd4_f {
         ($_v:expr, $_r:expr) => {
             {
@@ -68,7 +61,6 @@ macro_rules! ozz_sse_hadd4_f {
         };
     }
 
-#[macro_export]
 macro_rules! ozz_sse_dot2_f {
         ($_a:expr, $_b:expr, $_r:expr) => {
             {
@@ -78,84 +70,48 @@ macro_rules! ozz_sse_dot2_f {
         };
     }
 
-#[macro_export]
 macro_rules! ozz_sse_dot3_f {
         ($_a:expr, $_b:expr, $_r:expr) => {
             $_r = _mm_dp_ps($_a, $_b, 0x7f);
         };
     }
 
-#[macro_export]
 macro_rules! ozz_sse_dot4_f {
         ($_a:expr, $_b:expr, $_r:expr) => {
             $_r = _mm_dp_ps($_a, $_b, 0xff);
         };
     }
 
-#[macro_export]
 macro_rules! ozz_madd {
         ($_a:expr, $_b:expr, $_c:expr) => {
             _mm_add_ps(_mm_mul_ps($_a, $_b), $_c)
         };
     }
 
-#[macro_export]
 macro_rules! ozz_msub {
         ($_a:expr, $_b:expr, $_c:expr) => {
             _mm_sub_ps(_mm_mul_ps($_a, $_b), $_c)
         };
     }
 
-#[macro_export]
 macro_rules! ozz_nmadd {
         ($_a:expr, $_b:expr, $_c:expr) => {
             _mm_sub_ps($_c, _mm_mul_ps($_a, $_b))
         };
     }
 
-#[macro_export]
-macro_rules! ozz_nmsub {
-        ($_a:expr, $_b:expr, $_c:expr) => {
-            (-_mm_add_ps(_mm_mul_ps($_a, $_b), $_c))
-        };
-    }
-
-#[macro_export]
-macro_rules! ozz_maddx {
-        ($_a:expr, $_b:expr, $_c:expr) => {
-            _mm_add_ss(_mm_mul_ss($_a, $_b), $_c)
-        };
-    }
-
-#[macro_export]
-macro_rules! ozz_msubx {
-        ($_a:expr, $_b:expr, $_c:expr) => {
-            _mm_sub_ss(_mm_mul_ss($_a, $_b), $_c)
-        };
-    }
-
-#[macro_export]
 macro_rules! ozz_nmaddx {
         ($_a:expr, $_b:expr, $_c:expr) => {
             _mm_sub_ss($_c, _mm_mul_ss($_a, $_b))
         };
     }
 
-#[macro_export]
-macro_rules! ozz_nmsubx {
-        ($_a:expr, $_b:expr, $_c:expr) => {
-            (-_mm_add_ss(_mm_mul_ss($_a, $_b), $_c))
-        };
-    }
-
-#[macro_export]
 macro_rules! ozz_sse_select_f {
         ($_b:expr, $_true:expr, $_false:expr) => {
             _mm_blendv_ps($_false, $_true, _mm_castsi128_ps($_b))
         };
     }
 
-#[macro_export]
 macro_rules! ozz_sse_select_i {
         ($_b:expr, $_true:expr, $_false:expr) => {
             _mm_blendv_epi8($_false, $_true, $_b)
@@ -771,7 +727,9 @@ pub mod simd_float4 {
     // v = -(_a * _b) + _c
     #[inline]
     pub fn nmsub(_a: SimdFloat4, _b: SimdFloat4, _c: SimdFloat4) -> SimdFloat4 {
-        todo!()
+        unsafe {
+            return _mm_sub_ps(zero(), _mm_add_ps(_mm_mul_ps(_a, _b), _c));
+        }
     }
 
     // Divides the x component of _a by the _x component of _b and stores it in the
