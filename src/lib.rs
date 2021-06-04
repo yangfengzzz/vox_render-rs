@@ -8,15 +8,15 @@
 
 pub mod math_constant;
 pub mod simd_math;
-pub mod simd_quaternion;
+// pub mod simd_quaternion;
 
 pub mod vec_float;
 pub mod quaternion;
 pub mod transform;
-pub mod aabb;
+// pub mod aabb;
 pub mod rect;
 
-pub mod soa_float;
+// pub mod soa_float;
 // pub mod soa_quaternion;
 // pub mod soa_transform;
 // pub mod soa_float4x4;
