@@ -121,6 +121,11 @@ pub struct SimdFloat4 {
     pub data: __m128,
 }
 
+pub union SimdFloat4Union {
+    ret: __m128,
+    af: [f32; 4],
+}
+
 impl SimdFloat4 {
     #[inline]
     pub fn new(data: __m128) -> SimdFloat4 {
@@ -353,7 +358,7 @@ impl SimdFloat4 {
     #[inline]
     pub fn set_x(&mut self, _f: SimdFloat4) {
         unsafe {
-            self.data =_mm_move_ss(self.data, _f.data);
+            self.data = _mm_move_ss(self.data, _f.data);
         }
     }
 
@@ -362,7 +367,7 @@ impl SimdFloat4 {
     pub fn set_y(&mut self, _f: SimdFloat4) {
         unsafe {
             let xfnn = _mm_unpacklo_ps(self.data, _f.data);
-            self.data =_mm_shuffle_ps(xfnn, self.data, _mm_shuffle!(3, 2, 1, 0));
+            self.data = _mm_shuffle_ps(xfnn, self.data, _mm_shuffle!(3, 2, 1, 0));
         }
     }
 
@@ -372,7 +377,7 @@ impl SimdFloat4 {
     pub fn set_z(&mut self, _f: SimdFloat4) {
         unsafe {
             let ffww = _mm_shuffle_ps(_f.data, self.data, _mm_shuffle!(3, 3, 0, 0));
-            self.data =_mm_shuffle_ps(self.data, ffww, _mm_shuffle!(2, 0, 1, 0));
+            self.data = _mm_shuffle_ps(self.data, ffww, _mm_shuffle!(2, 0, 1, 0));
         }
     }
 
@@ -382,243 +387,238 @@ impl SimdFloat4 {
     pub fn set_w(&mut self, _f: SimdFloat4) {
         unsafe {
             let ffzz = _mm_shuffle_ps(_f.data, self.data, _mm_shuffle!(2, 2, 0, 0));
-            self.data =_mm_shuffle_ps(self.data, ffzz, _mm_shuffle!(0, 2, 1, 0));
+            self.data = _mm_shuffle_ps(self.data, ffzz, _mm_shuffle!(0, 2, 1, 0));
         }
     }
 
-//     // Returns _v with the _i th component set to _f.
-//     // _i must be in range [0,3]
-//     pub union SimdFloat4Union {
-//         ret: SimdFloat4,
-//         af: [f32; 4],
-//     }
-//
-//     #[inline]
-//     pub fn set_i(_v: SimdFloat4, _f: SimdFloat4, _ith: usize) -> SimdFloat4 {
-//         unsafe {
-//             let mut u = SimdFloat4Union {
-//                 ret: _v,
-//             };
-//
-//             u.af[_ith] = _mm_cvtss_f32(_f);
-//             return SimdFloat4::new(u.ret;
-//         }
-//     }
-//
-//     // Stores the 4 components of _v to the four first floats of _f.
-//     // _f must be aligned to 16 bytes.
-//     // _f[0] = _v.x
-//     // _f[1] = _v.y
-//     // _f[2] = _v.z
-//     // _f[3] = _v.w
-//     #[inline]
-//     pub fn store_ptr(_v: SimdFloat4, _f: &mut [f32; 4]) {
-//         unsafe {
-//             _mm_store_ps(_f.as_mut_ptr(), _v);
-//         }
-//     }
-//
-//     // Stores the x component of _v to the first float of _f.
-//     // _f must be aligned to 16 bytes.
-//     // _f[0] = _v.x
-//     #[inline]
-//     pub fn store1ptr(_v: SimdFloat4, _f: &mut [f32; 4]) {
-//         unsafe {
-//             _mm_store_ss(_f.as_mut_ptr(), _v);
-//         }
-//     }
-//
-//     // Stores x and y components of _v to the two first floats of _f.
-//     // _f must be aligned to 16 bytes.
-//     // _f[0] = _v.x
-//     // _f[1] = _v.y
-//     #[inline]
-//     pub fn store2ptr(_v: SimdFloat4, _f: &mut [f32; 4]) {
-//         todo!()
-//     }
-//
-//     // Stores x, y and z components of _v to the three first floats of _f.
-//     // _f must be aligned to 16 bytes.
-//     // _f[0] = _v.x
-//     // _f[1] = _v.y
-//     // _f[2] = _v.z
-//     #[inline]
-//     pub fn store3ptr(_v: SimdFloat4, _f: &mut [f32; 4]) {
-//         todo!()
-//     }
-//
-//     // Stores the 4 components of _v to the four first floats of _f.
-//     // _f must be aligned to 4 bytes.
-//     // _f[0] = _v.x
-//     // _f[1] = _v.y
-//     // _f[2] = _v.z
-//     // _f[3] = _v.w
-//     #[inline]
-//     pub fn store_ptr_u(_v: SimdFloat4, _f: &mut [f32; 4]) {
-//         unsafe {
-//             _mm_storeu_ps(_f.as_mut_ptr(), _v);
-//         }
-//     }
-//
-//     // Stores the x component of _v to the first float of _f.
-//     // _f must be aligned to 4 bytes.
-//     // _f[0] = _v.x
-//     #[inline]
-//     pub fn store1ptr_u(_v: SimdFloat4, _f: &mut [f32; 4]) {
-//         unsafe {
-//             _mm_store_ss(_f.as_mut_ptr(), _v);
-//         }
-//     }
-//
-//     // Stores x and y components of _v to the two first floats of _f.
-//     // _f must be aligned to 4 bytes.
-//     // _f[0] = _v.x
-//     // _f[1] = _v.y
-//     #[inline]
-//     pub fn store2ptr_u(_v: SimdFloat4, _f: &mut [f32; 4]) {
-//         unsafe {
-//             _mm_store_ss(_f.as_mut_ptr().add(0), _v);
-//             _mm_store_ss(_f.as_mut_ptr().add(1), ozz_sse_splat_f!(_v, 1));
-//         }
-//     }
-//
-//     // Stores x, y and z components of _v to the three first floats of _f.
-//     // _f must be aligned to 4 bytes.
-//     // _f[0] = _v.x
-//     // _f[1] = _v.y
-//     // _f[2] = _v.z
-//     #[inline]
-//     pub fn store3ptr_u(_v: SimdFloat4, _f: &mut [f32; 4]) {
-//         unsafe {
-//             _mm_store_ss(_f.as_mut_ptr().add(0), _v);
-//             _mm_store_ss(_f.as_mut_ptr().add(1), ozz_sse_splat_f!(_v, 1));
-//             _mm_store_ss(_f.as_mut_ptr().add(2), _mm_movehl_ps(_v, _v));
-//         }
-//     }
-//
-//     // Replicates x of _a to all the components of the returned vector.
-//     #[inline]
-//     pub fn splat_x(_v: SimdFloat4) -> SimdFloat4 {
-//         unsafe {
-//             return SimdFloat4::new(ozz_sse_splat_f!(_v, 0);
-//         }
-//     }
-//
-//     // Replicates y of _a to all the components of the returned vector.
-//     #[inline]
-//     pub fn splat_y(_v: SimdFloat4) -> SimdFloat4 {
-//         unsafe {
-//             return SimdFloat4::new(ozz_sse_splat_f!(_v, 1);
-//         }
-//     }
-//
-//     // Replicates z of _a to all the components of the returned vector.
-//     #[inline]
-//     pub fn splat_z(_v: SimdFloat4) -> SimdFloat4 {
-//         unsafe {
-//             return SimdFloat4::new(ozz_sse_splat_f!(_v, 2);
-//         }
-//     }
-//
-//     // Replicates w of _a to all the components of the returned vector.
-//     #[inline]
-//     pub fn splat_w(_v: SimdFloat4) -> SimdFloat4 {
-//         unsafe {
-//             return SimdFloat4::new(ozz_sse_splat_f!(_v, 3);
-//         }
-//     }
-//
-//     // swizzle X, y, z and w components based on compile time arguments _X, _Y, _Z
-//     // and _W. Arguments can vary from 0 (X), to 3 (w).
-//     #[inline]
-//     pub fn swizzle0123(_v: SimdFloat4) -> SimdFloat4 {
-//         return SimdFloat4::new(_v;
-//     }
-//
-//     #[inline]
-//     pub fn swizzle3332(_v: SimdFloat4) -> SimdFloat4 {
-//         unsafe {
-//             return SimdFloat4::new(ozz_shuffle_ps1!(_v, _mm_shuffle!(3, 3, 3, 2));
-//         }
-//     }
-//
-//     #[inline]
-//     pub fn swizzle3330(_v: SimdFloat4) -> SimdFloat4 {
-//         unsafe {
-//             return SimdFloat4::new(ozz_shuffle_ps1!(_v, _mm_shuffle!(3, 3, 3, 0));
-//         }
-//     }
-//
-//     #[inline]
-//     pub fn swizzle0122(_v: SimdFloat4) -> SimdFloat4 {
-//         unsafe {
-//             return SimdFloat4::new(ozz_shuffle_ps1!(_v, _mm_shuffle!(0, 1, 2, 2));
-//         }
-//     }
-//
-//     #[inline]
-//     pub fn swizzle0120(_v: SimdFloat4) -> SimdFloat4 {
-//         unsafe {
-//             return SimdFloat4::new(ozz_shuffle_ps1!(_v, _mm_shuffle!(0, 1, 2, 0));
-//         }
-//     }
-//
-//     #[inline]
-//     pub fn swizzle1201(_v: SimdFloat4) -> SimdFloat4 {
-//         unsafe {
-//             return SimdFloat4::new(ozz_shuffle_ps1!(_v, _mm_shuffle!(1, 2, 0, 1));
-//         }
-//     }
-//
-//     #[inline]
-//     pub fn swizzle2011(_v: SimdFloat4) -> SimdFloat4 {
-//         unsafe {
-//             return SimdFloat4::new(ozz_shuffle_ps1!(_v, _mm_shuffle!(2, 0, 1, 1));
-//         }
-//     }
-//
-//     #[inline]
-//     pub fn swizzle2013(_v: SimdFloat4) -> SimdFloat4 {
-//         unsafe {
-//             return SimdFloat4::new(ozz_shuffle_ps1!(_v, _mm_shuffle!(2, 0, 1, 3));
-//         }
-//     }
-//
-//     #[inline]
-//     pub fn swizzle1203(_v: SimdFloat4) -> SimdFloat4 {
-//         unsafe {
-//             return SimdFloat4::new(ozz_shuffle_ps1!(_v, _mm_shuffle!(1, 2, 0, 3));
-//         }
-//     }
-//
-//     #[inline]
-//     pub fn swizzle0101(_v: SimdFloat4) -> SimdFloat4 {
-//         unsafe {
-//             return SimdFloat4::new(_mm_movelh_ps(_v, _v);
-//         }
-//     }
-//
-//     #[inline]
-//     pub fn swizzle2323(_v: SimdFloat4) -> SimdFloat4 {
-//         unsafe {
-//             return SimdFloat4::new(_mm_movehl_ps(_v, _v);
-//         }
-//     }
-//
-//     #[inline]
-//     pub fn swizzle0011(_v: SimdFloat4) -> SimdFloat4 {
-//         unsafe {
-//             return SimdFloat4::new(_mm_unpacklo_ps(_v, _v);
-//         }
-//     }
-//
-//     #[inline]
-//     pub fn swizzle2233(_v: SimdFloat4) -> SimdFloat4 {
-//         unsafe {
-//             return SimdFloat4::new(_mm_unpackhi_ps(_v, _v);
-//         }
-//     }
-//
+    // Returns _v with the _i th component set to _f.
+    // _i must be in range [0,3]
+    #[inline]
+    pub fn set_i(&mut self, _f: SimdFloat4, _ith: usize) {
+        unsafe {
+            let mut u = SimdFloat4Union {
+                ret: self.data,
+            };
+
+            u.af[_ith] = _mm_cvtss_f32(_f.data);
+            self.data = u.ret;
+        }
+    }
+
+    // Stores the 4 components of _v to the four first floats of _f.
+    // _f must be aligned to 16 bytes.
+    // _f[0] = _v.x
+    // _f[1] = _v.y
+    // _f[2] = _v.z
+    // _f[3] = _v.w
+    #[inline]
+    pub fn store_ptr(&self, _f: &mut [f32; 4]) {
+        unsafe {
+            _mm_store_ps(_f.as_mut_ptr(), self.data);
+        }
+    }
+
+    // Stores the x component of _v to the first float of _f.
+    // _f must be aligned to 16 bytes.
+    // _f[0] = _v.x
+    #[inline]
+    pub fn store1ptr(&self, _f: &mut [f32; 4]) {
+        unsafe {
+            _mm_store_ss(_f.as_mut_ptr(), self.data);
+        }
+    }
+
+    // Stores x and y components of _v to the two first floats of _f.
+    // _f must be aligned to 16 bytes.
+    // _f[0] = _v.x
+    // _f[1] = _v.y
+    #[inline]
+    pub fn store2ptr(&self, _f: &mut [f32; 4]) {
+        todo!()
+    }
+
+    // Stores x, y and z components of _v to the three first floats of _f.
+    // _f must be aligned to 16 bytes.
+    // _f[0] = _v.x
+    // _f[1] = _v.y
+    // _f[2] = _v.z
+    #[inline]
+    pub fn store3ptr(&self, _f: &mut [f32; 4]) {
+        todo!()
+    }
+
+    // Stores the 4 components of _v to the four first floats of _f.
+    // _f must be aligned to 4 bytes.
+    // _f[0] = _v.x
+    // _f[1] = _v.y
+    // _f[2] = _v.z
+    // _f[3] = _v.w
+    #[inline]
+    pub fn store_ptr_u(&self, _f: &mut [f32; 4]) {
+        unsafe {
+            _mm_storeu_ps(_f.as_mut_ptr(), self.data);
+        }
+    }
+
+    // Stores the x component of _v to the first float of _f.
+    // _f must be aligned to 4 bytes.
+    // _f[0] = _v.x
+    #[inline]
+    pub fn store1ptr_u(&self, _f: &mut [f32; 4]) {
+        unsafe {
+            _mm_store_ss(_f.as_mut_ptr(), self.data);
+        }
+    }
+
+    // Stores x and y components of _v to the two first floats of _f.
+    // _f must be aligned to 4 bytes.
+    // _f[0] = _v.x
+    // _f[1] = _v.y
+    #[inline]
+    pub fn store2ptr_u(&self, _f: &mut [f32; 4]) {
+        unsafe {
+            _mm_store_ss(_f.as_mut_ptr().add(0), self.data);
+            _mm_store_ss(_f.as_mut_ptr().add(1), ozz_sse_splat_f!(self.data, 1));
+        }
+    }
+
+    // Stores x, y and z components of _v to the three first floats of _f.
+    // _f must be aligned to 4 bytes.
+    // _f[0] = _v.x
+    // _f[1] = _v.y
+    // _f[2] = _v.z
+    #[inline]
+    pub fn store3ptr_u(&self, _f: &mut [f32; 4]) {
+        unsafe {
+            _mm_store_ss(_f.as_mut_ptr().add(0), self.data);
+            _mm_store_ss(_f.as_mut_ptr().add(1), ozz_sse_splat_f!(self.data, 1));
+            _mm_store_ss(_f.as_mut_ptr().add(2), _mm_movehl_ps(self.data, self.data));
+        }
+    }
+
+    // Replicates x of _a to all the components of the returned vector.
+    #[inline]
+    pub fn splat_x(&self) -> SimdFloat4 {
+        unsafe {
+            return SimdFloat4::new(ozz_sse_splat_f!(self.data, 0));
+        }
+    }
+
+    // Replicates y of _a to all the components of the returned vector.
+    #[inline]
+    pub fn splat_y(&self) -> SimdFloat4 {
+        unsafe {
+            return SimdFloat4::new(ozz_sse_splat_f!(self.data, 1));
+        }
+    }
+
+    // Replicates z of _a to all the components of the returned vector.
+    #[inline]
+    pub fn splat_z(&self) -> SimdFloat4 {
+        unsafe {
+            return SimdFloat4::new(ozz_sse_splat_f!(self.data, 2));
+        }
+    }
+
+    // Replicates w of _a to all the components of the returned vector.
+    #[inline]
+    pub fn splat_w(&self) -> SimdFloat4 {
+        unsafe {
+            return SimdFloat4::new(ozz_sse_splat_f!(self.data, 3));
+        }
+    }
+
+    // swizzle X, y, z and w components based on compile time arguments _X, _Y, _Z
+    // and _W. Arguments can vary from 0 (X), to 3 (w).
+    #[inline]
+    pub fn swizzle0123(&self) -> SimdFloat4 {
+        return SimdFloat4::new(self.data);
+    }
+
+    #[inline]
+    pub fn swizzle3332(&self) -> SimdFloat4 {
+        unsafe {
+            return SimdFloat4::new(ozz_shuffle_ps1!(self.data, _mm_shuffle!(3, 3, 3, 2)));
+        }
+    }
+
+    #[inline]
+    pub fn swizzle3330(&self) -> SimdFloat4 {
+        unsafe {
+            return SimdFloat4::new(ozz_shuffle_ps1!(self.data, _mm_shuffle!(3, 3, 3, 0)));
+        }
+    }
+
+    #[inline]
+    pub fn swizzle0122(&self) -> SimdFloat4 {
+        unsafe {
+            return SimdFloat4::new(ozz_shuffle_ps1!(self.data, _mm_shuffle!(0, 1, 2, 2)));
+        }
+    }
+
+    #[inline]
+    pub fn swizzle0120(&self) -> SimdFloat4 {
+        unsafe {
+            return SimdFloat4::new(ozz_shuffle_ps1!(self.data, _mm_shuffle!(0, 1, 2, 0)));
+        }
+    }
+
+    #[inline]
+    pub fn swizzle1201(&self) -> SimdFloat4 {
+        unsafe {
+            return SimdFloat4::new(ozz_shuffle_ps1!(self.data, _mm_shuffle!(1, 2, 0, 1)));
+        }
+    }
+
+    #[inline]
+    pub fn swizzle2011(&self) -> SimdFloat4 {
+        unsafe {
+            return SimdFloat4::new(ozz_shuffle_ps1!(self.data, _mm_shuffle!(2, 0, 1, 1)));
+        }
+    }
+
+    #[inline]
+    pub fn swizzle2013(&self) -> SimdFloat4 {
+        unsafe {
+            return SimdFloat4::new(ozz_shuffle_ps1!(self.data, _mm_shuffle!(2, 0, 1, 3)));
+        }
+    }
+
+    #[inline]
+    pub fn swizzle1203(&self) -> SimdFloat4 {
+        unsafe {
+            return SimdFloat4::new(ozz_shuffle_ps1!(self.data, _mm_shuffle!(1, 2, 0, 3)));
+        }
+    }
+
+    #[inline]
+    pub fn swizzle0101(&self) -> SimdFloat4 {
+        unsafe {
+            return SimdFloat4::new(_mm_movelh_ps(self.data, self.data));
+        }
+    }
+
+    #[inline]
+    pub fn swizzle2323(&self) -> SimdFloat4 {
+        unsafe {
+            return SimdFloat4::new(_mm_movehl_ps(self.data, self.data));
+        }
+    }
+
+    #[inline]
+    pub fn swizzle0011(&self) -> SimdFloat4 {
+        unsafe {
+            return SimdFloat4::new(_mm_unpacklo_ps(self.data, self.data));
+        }
+    }
+
+    #[inline]
+    pub fn swizzle2233(&self) -> SimdFloat4 {
+        unsafe {
+            return SimdFloat4::new(_mm_unpackhi_ps(self.data, self.data));
+        }
+    }
+
 //     // Transposes the x components of the 4 SimdFloat4 of _in into the 1
 //     // SimdFloat4 of _out.
 //     #[inline]
