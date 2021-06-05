@@ -7,7 +7,7 @@
  */
 
 use std::arch::x86_64::*;
-use std::ops::{Mul, Add, Sub};
+use std::ops::{Mul, Add, Sub, Div};
 
 macro_rules! _mm_shuffle {
         ($z:expr, $y:expr, $x:expr, $w:expr) => {
@@ -1701,6 +1701,46 @@ impl SimdFloat4 {
     }
 }
 
+impl Add for SimdFloat4 {
+    type Output = SimdFloat4;
+
+    fn add(self, rhs: Self) -> Self::Output {
+        unsafe {
+            return SimdFloat4::new(_mm_add_ps(self.data, rhs.data));
+        }
+    }
+}
+
+impl Sub for SimdFloat4 {
+    type Output = SimdFloat4;
+
+    fn sub(self, rhs: Self) -> Self::Output {
+        unsafe {
+            return SimdFloat4::new(_mm_sub_ps(self.data, rhs.data));
+        }
+    }
+}
+
+impl Div for SimdFloat4 {
+    type Output = SimdFloat4;
+
+    fn div(self, rhs: Self) -> Self::Output {
+        unsafe {
+            return SimdFloat4::new(_mm_div_ps(self.data, rhs.data));
+        }
+    }
+}
+
+impl Mul for SimdFloat4 {
+    type Output = SimdFloat4;
+
+    fn mul(self, rhs: Self) -> Self::Output {
+        unsafe {
+            return SimdFloat4::new(_mm_mul_ps(self.data, rhs.data));
+        }
+    }
+}
+
 // //--------------------------------------------------------------------------------------------------
 // Vector of four integer values.
 #[derive(Copy, Clone)]
@@ -2646,6 +2686,36 @@ impl SimdInt4 {
         unsafe {
             let lt = _mm_cmpgt_epi32(_b.data, self.data);
             return SimdInt4::new(_mm_xor_si128(lt, _mm_cmpeq_epi32(self.data, self.data)));
+        }
+    }
+}
+
+impl Add for SimdInt4 {
+    type Output = SimdInt4;
+
+    fn add(self, rhs: Self) -> Self::Output {
+        unsafe {
+            return SimdInt4::new(_mm_add_epi32(self.data, rhs.data));
+        }
+    }
+}
+
+impl Sub for SimdInt4 {
+    type Output = SimdInt4;
+
+    fn sub(self, rhs: Self) -> Self::Output {
+        unsafe {
+            return SimdInt4::new(_mm_sub_epi32(self.data, rhs.data));
+        }
+    }
+}
+
+impl Mul for SimdInt4 {
+    type Output = SimdInt4;
+
+    fn mul(self, rhs: Self) -> Self::Output {
+        unsafe {
+            return SimdInt4::new(_mm_mul_epi32(self.data, rhs.data));
         }
     }
 }
