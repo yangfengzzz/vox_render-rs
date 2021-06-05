@@ -3045,8 +3045,8 @@ impl Float4x4 {
     }
 
     // Tests if each 3 column of upper 3x3 matrix of _m is a normal matrix.
-// Returns the result in the x, y and z component of the returned vector. w is
-// set to 0.
+    // Returns the result in the x, y and z component of the returned vector. w is
+    // set to 0.
     #[inline]
     pub fn is_normalized(&self) -> SimdInt4 {
         unsafe {
@@ -3200,291 +3200,296 @@ impl Float4x4 {
             res = ozz_sse_select_f!(cond2, res3, res);
 
             let result = SimdFloat4::new(res);
-            debug_assert!( result.is_normalized_est4().are_all_true1());
+            debug_assert!(result.is_normalized_est4().are_all_true1());
             return result;
         }
     }
 
-// // Decompose a general 3D transformation matrix _m into its scalar, rotational
-// // and translational components.
-// // Returns false if it was not possible to decompose the matrix. This would be
-// // because more than 1 of the 3 first column of _m are scaled to 0.
-// #[inline]
-// pub fn to_affine(_m: &Float4x4, _translation: &mut SimdFloat4, _quaternion: &mut SimdFloat4, _scale: &mut SimdFloat4) -> bool {
-//     unsafe {
-//         let zero = _mm_setzero_ps();
-//         let one = simd_float4::one();
-//         let fff0 = simd_int4::mask_fff0();
-//         let max = _mm_set_ps1(crate::math_constant::K_ORTHOGONALISATION_TOLERANCE_SQ);
-//         let min = _mm_set_ps1(-crate::math_constant::K_ORTHOGONALISATION_TOLERANCE_SQ);
-//
-//         // Extracts translation.
-//         *_translation = ozz_sse_select_f!(fff0, _m.cols[3], one);
-//
-//         // Extracts scale.
-//         let m_tmp0 = _mm_unpacklo_ps(_m.cols[0], _m.cols[2]);
-//         let m_tmp1 = _mm_unpacklo_ps(_m.cols[1], _m.cols[3]);
-//         let m_tmp2 = _mm_unpackhi_ps(_m.cols[0], _m.cols[2]);
-//         let m_tmp3 = _mm_unpackhi_ps(_m.cols[1], _m.cols[3]);
-//         let m_row0 = _mm_unpacklo_ps(m_tmp0, m_tmp1);
-//         let m_row1 = _mm_unpackhi_ps(m_tmp0, m_tmp1);
-//         let m_row2 = _mm_unpacklo_ps(m_tmp2, m_tmp3);
-//
-//         let dot = ozz_madd!(
-//             m_row0, m_row0, ozz_madd!(m_row1, m_row1, _mm_mul_ps(m_row2, m_row2)));
-//         let abs_scale = _mm_sqrt_ps(dot);
-//
-//         let zero_axis =
-//             _mm_and_ps(_mm_cmplt_ps(dot, max), _mm_cmpgt_ps(dot, min));
-//
-//         // Builds an orthonormal matrix in order to support quaternion extraction.
-//         let mut orthonormal = Float4x4::identity();
-//         let mask = _mm_movemask_ps(zero_axis);
-//         if mask & 1 != 0 {
-//             if mask & 6 != 0 {
-//                 return SimdFloat4::new(false;
-//             }
-//             orthonormal.cols[1] = _mm_div_ps(_m.cols[1], ozz_sse_splat_f!(abs_scale, 1));
-//             orthonormal.cols[0] = simd_float4::normalize3(simd_float4::cross3(orthonormal.cols[1], _m.cols[2]));
-//             orthonormal.cols[2] =
-//                 simd_float4::normalize3(simd_float4::cross3(orthonormal.cols[0], orthonormal.cols[1]));
-//         } else if mask & 4 != 0 {
-//             if mask & 3 != 0 {
-//                 return SimdFloat4::new(false;
-//             }
-//             orthonormal.cols[0] = _mm_div_ps(_m.cols[0], ozz_sse_splat_f!(abs_scale, 0));
-//             orthonormal.cols[2] = simd_float4::normalize3(simd_float4::cross3(orthonormal.cols[0], _m.cols[1]));
-//             orthonormal.cols[1] =
-//                 simd_float4::normalize3(simd_float4::cross3(orthonormal.cols[2], orthonormal.cols[0]));
-//         } else {  // Favor z axis in the default case
-//             if mask & 5 != 0 {
-//                 return SimdFloat4::new(false;
-//             }
-//             orthonormal.cols[2] = _mm_div_ps(_m.cols[2], ozz_sse_splat_f!(abs_scale, 2));
-//             orthonormal.cols[1] = simd_float4::normalize3(simd_float4::cross3(orthonormal.cols[2], _m.cols[0]));
-//             orthonormal.cols[0] =
-//                 simd_float4::normalize3(simd_float4::cross3(orthonormal.cols[1], orthonormal.cols[2]));
-//         }
-//         orthonormal.cols[3] = simd_float4::w_axis();
-//
-//         // Get back scale signs in case of reflexions
-//         let o_tmp0 =
-//             _mm_unpacklo_ps(orthonormal.cols[0], orthonormal.cols[2]);
-//         let o_tmp1 =
-//             _mm_unpacklo_ps(orthonormal.cols[1], orthonormal.cols[3]);
-//         let o_tmp2 =
-//             _mm_unpackhi_ps(orthonormal.cols[0], orthonormal.cols[2]);
-//         let o_tmp3 =
-//             _mm_unpackhi_ps(orthonormal.cols[1], orthonormal.cols[3]);
-//         let o_row0 = _mm_unpacklo_ps(o_tmp0, o_tmp1);
-//         let o_row1 = _mm_unpackhi_ps(o_tmp0, o_tmp1);
-//         let o_row2 = _mm_unpacklo_ps(o_tmp2, o_tmp3);
-//
-//         let scale_dot = ozz_madd!(
-//             o_row0, m_row0, ozz_madd!(o_row1, m_row1, _mm_mul_ps(o_row2, m_row2)));
-//
-//         let cond = _mm_castps_si128(_mm_cmpgt_ps(scale_dot, zero));
-//         let cfalse = _mm_sub_ps(zero, abs_scale);
-//         let scale = ozz_sse_select_f!(cond, abs_scale, cfalse);
-//         *_scale = ozz_sse_select_f!(fff0, scale, one);
-//
-//         // Extracts quaternion.
-//         *_quaternion = to_quaternion(&orthonormal);
-//         return true;
-//     }
-// }
-//
-// // Computes the transformation of a Float4x4 matrix and a point _p.
-// // This is equivalent to multiplying a matrix by a SimdFloat4 with a w component
-// // of 1.
-// #[inline]
-// pub fn transform_point(_m: &Float4x4, _v: SimdFloat4) -> SimdFloat4 {
-//     unsafe {
-//         let xxxx = _mm_mul_ps(ozz_sse_splat_f!(_v, 0), _m.cols[0]);
-//         let a23 = ozz_madd!(ozz_sse_splat_f!(_v, 2), _m.cols[2], _m.cols[3]);
-//         let a01 = ozz_madd!(ozz_sse_splat_f!(_v, 1), _m.cols[1], xxxx);
-//         return SimdFloat4::new(_mm_add_ps(a01, a23));
-//     }
-// }
-//
-// // Computes the transformation of a Float4x4 matrix and a vector _v.
-// // This is equivalent to multiplying a matrix by a SimdFloat4 with a w component
-// // of 0.
-// #[inline]
-// pub fn transform_vector(_m: &Float4x4, _v: SimdFloat4) -> SimdFloat4 {
-//     unsafe {
-//         let xxxx = _mm_mul_ps(_m.cols[0], ozz_sse_splat_f!(_v, 0));
-//         let zzzz = _mm_mul_ps(_m.cols[1], ozz_sse_splat_f!(_v, 1));
-//         let a21 = ozz_madd!(_m.cols[2], ozz_sse_splat_f!(_v, 2), xxxx);
-//         return SimdFloat4::new(_mm_add_ps(zzzz, a21));
-//     }
-// }
-//
-// // Computes the multiplication of matrix Float4x4 and vector _v.
-// impl Mul<SimdFloat4> for Float4x4 {
-//     type Output = SimdFloat4;
-//     #[inline]
-//     fn mul(self, rhs: SimdFloat4) -> Self::Output {
-//         unsafe {
-//             let xxxx = _mm_mul_ps(ozz_sse_splat_f!(rhs, 0), self.cols[0]);
-//             let zzzz = _mm_mul_ps(ozz_sse_splat_f!(rhs, 2), self.cols[2]);
-//             let a01 = ozz_madd!(ozz_sse_splat_f!(rhs, 1), self.cols[1], xxxx);
-//             let a23 = ozz_madd!(ozz_sse_splat_f!(rhs, 3), self.cols[3], zzzz);
-//             return SimdFloat4::new(_mm_add_ps(a01, a23));
-//         }
-//     }
-// }
-//
-// // Computes the multiplication of two matrices _a and _b.
-// impl Mul for Float4x4 {
-//     type Output = Float4x4;
-//     #[inline]
-//     fn mul(self, rhs: Self) -> Self::Output {
-//         unsafe {
-//             let mut ret = Float4x4::identity();
-//             {
-//                 let xxxx = _mm_mul_ps(ozz_sse_splat_f!(rhs.cols[0], 0), self.cols[0]);
-//                 let zzzz = _mm_mul_ps(ozz_sse_splat_f!(rhs.cols[0], 2), self.cols[2]);
-//                 let a01 =
-//                     ozz_madd!(ozz_sse_splat_f!(rhs.cols[0], 1), self.cols[1], xxxx);
-//                 let a23 =
-//                     ozz_madd!(ozz_sse_splat_f!(rhs.cols[0], 3), self.cols[3], zzzz);
-//                 ret.cols[0] = _mm_add_ps(a01, a23);
-//             }
-//             {
-//                 let xxxx = _mm_mul_ps(ozz_sse_splat_f!(rhs.cols[1], 0), self.cols[0]);
-//                 let zzzz = _mm_mul_ps(ozz_sse_splat_f!(rhs.cols[1], 2), self.cols[2]);
-//                 let a01 =
-//                     ozz_madd!(ozz_sse_splat_f!(rhs.cols[1], 1), self.cols[1], xxxx);
-//                 let a23 =
-//                     ozz_madd!(ozz_sse_splat_f!(rhs.cols[1], 3), self.cols[3], zzzz);
-//                 ret.cols[1] = _mm_add_ps(a01, a23);
-//             }
-//             {
-//                 let xxxx = _mm_mul_ps(ozz_sse_splat_f!(rhs.cols[2], 0), self.cols[0]);
-//                 let zzzz = _mm_mul_ps(ozz_sse_splat_f!(rhs.cols[2], 2), self.cols[2]);
-//                 let a01 =
-//                     ozz_madd!(ozz_sse_splat_f!(rhs.cols[2], 1), self.cols[1], xxxx);
-//                 let a23 =
-//                     ozz_madd!(ozz_sse_splat_f!(rhs.cols[2], 3), self.cols[3], zzzz);
-//                 ret.cols[2] = _mm_add_ps(a01, a23);
-//             }
-//             {
-//                 let xxxx = _mm_mul_ps(ozz_sse_splat_f!(rhs.cols[3], 0), self.cols[0]);
-//                 let zzzz = _mm_mul_ps(ozz_sse_splat_f!(rhs.cols[3], 2), self.cols[2]);
-//                 let a01 =
-//                     ozz_madd!(ozz_sse_splat_f!(rhs.cols[3], 1), self.cols[1], xxxx);
-//                 let a23 =
-//                     ozz_madd!(ozz_sse_splat_f!(rhs.cols[3], 3), self.cols[3], zzzz);
-//                 ret.cols[3] = _mm_add_ps(a01, a23);
-//             }
-//             return ret;
-//         }
-//     }
-// }
-//
-// // Computes the per element addition of two matrices _a and _b.
-// impl Add for Float4x4 {
-//     type Output = Float4x4;
-//     #[inline]
-//     fn add(self, rhs: Self) -> Self::Output {
-//         unsafe {
-//             return Float4x4 {
-//                 cols:
-//                 [_mm_add_ps(self.cols[0], rhs.cols[0]), _mm_add_ps(self.cols[1], rhs.cols[1]),
-//                     _mm_add_ps(self.cols[2], rhs.cols[2]), _mm_add_ps(self.cols[3], rhs.cols[3])]
-//             };
-//         }
-//     }
-// }
-//
-// // Computes the per element subtraction of two matrices _a and _b.
-// impl Sub for Float4x4 {
-//     type Output = Float4x4;
-//     #[inline]
-//     fn sub(self, rhs: Self) -> Self::Output {
-//         unsafe {
-//             return Float4x4 {
-//                 cols:
-//                 [_mm_sub_ps(self.cols[0], rhs.cols[0]), _mm_sub_ps(self.cols[1], rhs.cols[1]),
-//                     _mm_sub_ps(self.cols[2], rhs.cols[2]), _mm_sub_ps(self.cols[3], rhs.cols[3])]
-//             };
-//         }
-//     }
-// }
-//
-// // Converts from a float to a half.
-// #[inline]
-// pub fn float_to_half(_f: f32) -> u16 {
-//     unsafe {
-//         let h = _mm_cvtsi128_si32(float_to_half_simd(_mm_set1_ps(_f)));
-//         return h as u16;
-//     }
-// }
-//
-// // Converts from a half to a float.
-// #[inline]
-// pub fn half_to_float(_h: u16) -> f32 {
-//     unsafe {
-//         return _mm_cvtss_f32(half_to_float_simd(_mm_set1_epi32(_h as i32)));
-//     }
-// }
-//
-// // Converts from a float to a half.
-// #[inline]
-// #[allow(overflowing_literals)]
-// pub fn float_to_half_simd(_f: SimdFloat4) -> SimdInt4 {
-//     unsafe {
-//         let mask_sign = _mm_set1_epi32(0x80000000);
-//         let mask_round = _mm_set1_epi32(!0xfff);
-//         let f32infty = _mm_set1_epi32(255 << 23);
-//         let magic = _mm_castsi128_ps(_mm_set1_epi32(15 << 23));
-//         let nanbit = _mm_set1_epi32(0x200);
-//         let infty_as_fp16 = _mm_set1_epi32(0x7c00);
-//         let clamp = _mm_castsi128_ps(_mm_set1_epi32((31 << 23) - 0x1000));
-//
-//         let msign = _mm_castsi128_ps(mask_sign);
-//         let justsign = _mm_and_ps(msign, _f);
-//         let absf = _mm_xor_ps(_f, justsign);
-//         let mround = _mm_castsi128_ps(mask_round);
-//         let absf_int = _mm_castps_si128(absf);
-//         let b_isnan = _mm_cmpgt_epi32(absf_int, f32infty);
-//         let b_isnormal = _mm_cmpgt_epi32(f32infty, _mm_castps_si128(absf));
-//         let inf_or_nan =
-//             _mm_or_si128(_mm_and_si128(b_isnan, nanbit), infty_as_fp16);
-//         let fnosticky = _mm_and_ps(absf, mround);
-//         let scaled = _mm_mul_ps(fnosticky, magic);
-//         // Logically, we want PMINSD on "biased", but this should gen better code
-//         let clamped = _mm_min_ps(scaled, clamp);
-//         let biased =
-//             _mm_sub_epi32(_mm_castps_si128(clamped), _mm_castps_si128(mround));
-//         let shifted = _mm_srli_epi32(biased, 13);
-//         let normal = _mm_and_si128(shifted, b_isnormal);
-//         let not_normal = _mm_andnot_si128(b_isnormal, inf_or_nan);
-//         let joined = _mm_or_si128(normal, not_normal);
-//
-//         let sign_shift = _mm_srli_epi32(_mm_castps_si128(justsign), 16);
-//         return SimdInt4::new(_mm_or_si128(joined, sign_shift));
-//     }
-// }
-//
-// // Converts from a half to a float.
-// #[inline]
-// pub fn half_to_float_simd(_h: SimdInt4) -> SimdFloat4 {
-//     unsafe {
-//         let mask_nosign = _mm_set1_epi32(0x7fff);
-//         let magic = _mm_castsi128_ps(_mm_set1_epi32((254 - 15) << 23));
-//         let was_infnan = _mm_set1_epi32(0x7bff);
-//         let exp_infnan = _mm_castsi128_ps(_mm_set1_epi32(255 << 23));
-//
-//         let expmant = _mm_and_si128(mask_nosign, _h);
-//         let shifted = _mm_slli_epi32(expmant, 13);
-//         let scaled = _mm_mul_ps(_mm_castsi128_ps(shifted), magic);
-//         let b_wasinfnan = _mm_cmpgt_epi32(expmant, was_infnan);
-//         let sign = _mm_slli_epi32(_mm_xor_si128(_h, expmant), 16);
-//         let infnanexp =
-//             _mm_and_ps(_mm_castsi128_ps(b_wasinfnan), exp_infnan);
-//         let sign_inf = _mm_or_ps(_mm_castsi128_ps(sign), infnanexp);
-//         return SimdFloat4::new(_mm_or_ps(scaled, sign_inf));
-//     }
+    // Decompose a general 3D transformation matrix _m into its scalar, rotational
+    // and translational components.
+    // Returns false if it was not possible to decompose the matrix. This would be
+    // because more than 1 of the 3 first column of _m are scaled to 0.
+    #[inline]
+    pub fn to_affine(&self, _translation: &mut SimdFloat4, _quaternion: &mut SimdFloat4, _scale: &mut SimdFloat4) -> bool {
+        unsafe {
+            let zero = _mm_setzero_ps();
+            let one = SimdFloat4::one();
+            let fff0 = SimdInt4::mask_fff0();
+            let max = _mm_set_ps1(crate::math_constant::K_ORTHOGONALISATION_TOLERANCE_SQ);
+            let min = _mm_set_ps1(-crate::math_constant::K_ORTHOGONALISATION_TOLERANCE_SQ);
+
+            // Extracts translation.
+            *_translation = SimdFloat4::new(ozz_sse_select_f!(fff0.data, self.cols[3].data, one.data));
+
+            // Extracts scale.
+            let m_tmp0 = _mm_unpacklo_ps(self.cols[0].data, self.cols[2].data);
+            let m_tmp1 = _mm_unpacklo_ps(self.cols[1].data, self.cols[3].data);
+            let m_tmp2 = _mm_unpackhi_ps(self.cols[0].data, self.cols[2].data);
+            let m_tmp3 = _mm_unpackhi_ps(self.cols[1].data, self.cols[3].data);
+            let m_row0 = _mm_unpacklo_ps(m_tmp0, m_tmp1);
+            let m_row1 = _mm_unpackhi_ps(m_tmp0, m_tmp1);
+            let m_row2 = _mm_unpacklo_ps(m_tmp2, m_tmp3);
+
+            let dot = ozz_madd!(
+            m_row0, m_row0, ozz_madd!(m_row1, m_row1, _mm_mul_ps(m_row2, m_row2)));
+            let abs_scale = _mm_sqrt_ps(dot);
+
+            let zero_axis =
+                _mm_and_ps(_mm_cmplt_ps(dot, max), _mm_cmpgt_ps(dot, min));
+
+            // Builds an orthonormal matrix in order to support quaternion extraction.
+            let mut orthonormal = Float4x4::identity();
+            let mask = _mm_movemask_ps(zero_axis);
+            if mask & 1 != 0 {
+                if mask & 6 != 0 {
+                    return false;
+                }
+                orthonormal.cols[1] = SimdFloat4::new(_mm_div_ps(self.cols[1].data, ozz_sse_splat_f!(abs_scale, 1)));
+                orthonormal.cols[0] = SimdFloat4::normalize3(&SimdFloat4::cross3(&orthonormal.cols[1], self.cols[2]));
+                orthonormal.cols[2] =
+                    SimdFloat4::normalize3(&SimdFloat4::cross3(&orthonormal.cols[0], orthonormal.cols[1]));
+            } else if mask & 4 != 0 {
+                if mask & 3 != 0 {
+                    return false;
+                }
+                orthonormal.cols[0] = SimdFloat4::new(_mm_div_ps(self.cols[0].data, ozz_sse_splat_f!(abs_scale, 0)));
+                orthonormal.cols[2] = SimdFloat4::normalize3(&SimdFloat4::cross3(&orthonormal.cols[0], self.cols[1]));
+                orthonormal.cols[1] =
+                    SimdFloat4::normalize3(&SimdFloat4::cross3(&orthonormal.cols[2], orthonormal.cols[0]));
+            } else {  // Favor z axis in the default case
+                if mask & 5 != 0 {
+                    return false;
+                }
+                orthonormal.cols[2] = SimdFloat4::new(_mm_div_ps(self.cols[2].data, ozz_sse_splat_f!(abs_scale, 2)));
+                orthonormal.cols[1] = SimdFloat4::normalize3(&SimdFloat4::cross3(&orthonormal.cols[2], self.cols[0]));
+                orthonormal.cols[0] =
+                    SimdFloat4::normalize3(&SimdFloat4::cross3(&orthonormal.cols[1], orthonormal.cols[2]));
+            }
+            orthonormal.cols[3] = SimdFloat4::w_axis();
+
+            // Get back scale signs in case of reflexions
+            let o_tmp0 =
+                _mm_unpacklo_ps(orthonormal.cols[0].data, orthonormal.cols[2].data);
+            let o_tmp1 =
+                _mm_unpacklo_ps(orthonormal.cols[1].data, orthonormal.cols[3].data);
+            let o_tmp2 =
+                _mm_unpackhi_ps(orthonormal.cols[0].data, orthonormal.cols[2].data);
+            let o_tmp3 =
+                _mm_unpackhi_ps(orthonormal.cols[1].data, orthonormal.cols[3].data);
+            let o_row0 = _mm_unpacklo_ps(o_tmp0, o_tmp1);
+            let o_row1 = _mm_unpackhi_ps(o_tmp0, o_tmp1);
+            let o_row2 = _mm_unpacklo_ps(o_tmp2, o_tmp3);
+
+            let scale_dot = ozz_madd!(
+            o_row0, m_row0, ozz_madd!(o_row1, m_row1, _mm_mul_ps(o_row2, m_row2)));
+
+            let cond = _mm_castps_si128(_mm_cmpgt_ps(scale_dot, zero));
+            let cfalse = _mm_sub_ps(zero, abs_scale);
+            let scale = ozz_sse_select_f!(cond, abs_scale, cfalse);
+            *_scale = SimdFloat4::new(ozz_sse_select_f!(fff0.data, scale, one.data));
+
+            // Extracts quaternion.
+            *_quaternion = orthonormal.to_quaternion();
+            return true;
+        }
+    }
+
+    // Computes the transformation of a Float4x4 matrix and a point _p.
+    // This is equivalent to multiplying a matrix by a SimdFloat4 with a w component
+    // of 1.
+    #[inline]
+    pub fn transform_point(&self, _v: SimdFloat4) -> SimdFloat4 {
+        unsafe {
+            let xxxx = _mm_mul_ps(ozz_sse_splat_f!(_v.data, 0), self.cols[0].data);
+            let a23 = ozz_madd!(ozz_sse_splat_f!(_v.data, 2), self.cols[2].data, self.cols[3].data);
+            let a01 = ozz_madd!(ozz_sse_splat_f!(_v.data, 1), self.cols[1].data, xxxx);
+            return SimdFloat4::new(_mm_add_ps(a01, a23));
+        }
+    }
+
+    // Computes the transformation of a Float4x4 matrix and a vector _v.
+    // This is equivalent to multiplying a matrix by a SimdFloat4 with a w component
+    // of 0.
+    #[inline]
+    pub fn transform_vector(&self, _v: SimdFloat4) -> SimdFloat4 {
+        unsafe {
+            let xxxx = _mm_mul_ps(self.cols[0].data, ozz_sse_splat_f!(_v.data, 0));
+            let zzzz = _mm_mul_ps(self.cols[1].data, ozz_sse_splat_f!(_v.data, 1));
+            let a21 = ozz_madd!(self.cols[2].data, ozz_sse_splat_f!(_v.data, 2), xxxx);
+            return SimdFloat4::new(_mm_add_ps(zzzz, a21));
+        }
+    }
+}
+
+// Computes the multiplication of matrix Float4x4 and vector _v.
+impl Mul<SimdFloat4> for Float4x4 {
+    type Output = SimdFloat4;
+    #[inline]
+    fn mul(self, rhs: SimdFloat4) -> Self::Output {
+        unsafe {
+            let xxxx = _mm_mul_ps(ozz_sse_splat_f!(rhs.data, 0), self.cols[0].data);
+            let zzzz = _mm_mul_ps(ozz_sse_splat_f!(rhs.data, 2), self.cols[2].data);
+            let a01 = ozz_madd!(ozz_sse_splat_f!(rhs.data, 1), self.cols[1].data, xxxx);
+            let a23 = ozz_madd!(ozz_sse_splat_f!(rhs.data, 3), self.cols[3].data, zzzz);
+            return SimdFloat4::new(_mm_add_ps(a01, a23));
+        }
+    }
+}
+
+// Computes the multiplication of two matrices _a and _b.
+impl Mul for Float4x4 {
+    type Output = Float4x4;
+    #[inline]
+    fn mul(self, rhs: Self) -> Self::Output {
+        unsafe {
+            let mut ret = Float4x4::identity();
+            {
+                let xxxx = _mm_mul_ps(ozz_sse_splat_f!(rhs.cols[0].data, 0), self.cols[0].data);
+                let zzzz = _mm_mul_ps(ozz_sse_splat_f!(rhs.cols[0].data, 2), self.cols[2].data);
+                let a01 =
+                    ozz_madd!(ozz_sse_splat_f!(rhs.cols[0].data, 1), self.cols[1].data, xxxx);
+                let a23 =
+                    ozz_madd!(ozz_sse_splat_f!(rhs.cols[0].data, 3), self.cols[3].data, zzzz);
+                ret.cols[0] = SimdFloat4::new(_mm_add_ps(a01, a23));
+            }
+            {
+                let xxxx = _mm_mul_ps(ozz_sse_splat_f!(rhs.cols[1].data, 0), self.cols[0].data);
+                let zzzz = _mm_mul_ps(ozz_sse_splat_f!(rhs.cols[1].data, 2), self.cols[2].data);
+                let a01 =
+                    ozz_madd!(ozz_sse_splat_f!(rhs.cols[1].data, 1), self.cols[1].data, xxxx);
+                let a23 =
+                    ozz_madd!(ozz_sse_splat_f!(rhs.cols[1].data, 3), self.cols[3].data, zzzz);
+                ret.cols[1] = SimdFloat4::new(_mm_add_ps(a01, a23));
+            }
+            {
+                let xxxx = _mm_mul_ps(ozz_sse_splat_f!(rhs.cols[2].data, 0), self.cols[0].data);
+                let zzzz = _mm_mul_ps(ozz_sse_splat_f!(rhs.cols[2].data, 2), self.cols[2].data);
+                let a01 =
+                    ozz_madd!(ozz_sse_splat_f!(rhs.cols[2].data, 1), self.cols[1].data, xxxx);
+                let a23 =
+                    ozz_madd!(ozz_sse_splat_f!(rhs.cols[2].data, 3), self.cols[3].data, zzzz);
+                ret.cols[2] = SimdFloat4::new(_mm_add_ps(a01, a23));
+            }
+            {
+                let xxxx = _mm_mul_ps(ozz_sse_splat_f!(rhs.cols[3].data, 0), self.cols[0].data);
+                let zzzz = _mm_mul_ps(ozz_sse_splat_f!(rhs.cols[3].data, 2), self.cols[2].data);
+                let a01 =
+                    ozz_madd!(ozz_sse_splat_f!(rhs.cols[3].data, 1), self.cols[1].data, xxxx);
+                let a23 =
+                    ozz_madd!(ozz_sse_splat_f!(rhs.cols[3].data, 3), self.cols[3].data, zzzz);
+                ret.cols[3] = SimdFloat4::new(_mm_add_ps(a01, a23));
+            }
+            return ret;
+        }
+    }
+}
+
+// Computes the per element addition of two matrices _a and _b.
+impl Add for Float4x4 {
+    type Output = Float4x4;
+    #[inline]
+    fn add(self, rhs: Self) -> Self::Output {
+        unsafe {
+            return Float4x4 {
+                cols:
+                [SimdFloat4::new(_mm_add_ps(self.cols[0].data, rhs.cols[0].data)),
+                    SimdFloat4::new(_mm_add_ps(self.cols[1].data, rhs.cols[1].data)),
+                    SimdFloat4::new(_mm_add_ps(self.cols[2].data, rhs.cols[2].data)),
+                    SimdFloat4::new(_mm_add_ps(self.cols[3].data, rhs.cols[3].data))]
+            };
+        }
+    }
+}
+
+// Computes the per element subtraction of two matrices _a and _b.
+impl Sub for Float4x4 {
+    type Output = Float4x4;
+    #[inline]
+    fn sub(self, rhs: Self) -> Self::Output {
+        unsafe {
+            return Float4x4 {
+                cols:
+                [SimdFloat4::new(_mm_sub_ps(self.cols[0].data, rhs.cols[0].data)),
+                    SimdFloat4::new(_mm_sub_ps(self.cols[1].data, rhs.cols[1].data)),
+                    SimdFloat4::new(_mm_sub_ps(self.cols[2].data, rhs.cols[2].data)),
+                    SimdFloat4::new(_mm_sub_ps(self.cols[3].data, rhs.cols[3].data))]
+            };
+        }
+    }
+}
+
+// Converts from a float to a half.
+#[inline]
+pub fn float_to_half(_f: f32) -> u16 {
+    unsafe {
+        let h = _mm_cvtsi128_si32(float_to_half_simd(_mm_set1_ps(_f)));
+        return h as u16;
+    }
+}
+
+// Converts from a half to a float.
+#[inline]
+pub fn half_to_float(_h: u16) -> f32 {
+    unsafe {
+        return _mm_cvtss_f32(half_to_float_simd(_mm_set1_epi32(_h as i32)));
+    }
+}
+
+// Converts from a float to a half.
+#[inline]
+#[allow(overflowing_literals)]
+pub fn float_to_half_simd(_f: __m128) -> __m128i {
+    unsafe {
+        let mask_sign = _mm_set1_epi32(0x80000000);
+        let mask_round = _mm_set1_epi32(!0xfff);
+        let f32infty = _mm_set1_epi32(255 << 23);
+        let magic = _mm_castsi128_ps(_mm_set1_epi32(15 << 23));
+        let nanbit = _mm_set1_epi32(0x200);
+        let infty_as_fp16 = _mm_set1_epi32(0x7c00);
+        let clamp = _mm_castsi128_ps(_mm_set1_epi32((31 << 23) - 0x1000));
+
+        let msign = _mm_castsi128_ps(mask_sign);
+        let justsign = _mm_and_ps(msign, _f);
+        let absf = _mm_xor_ps(_f, justsign);
+        let mround = _mm_castsi128_ps(mask_round);
+        let absf_int = _mm_castps_si128(absf);
+        let b_isnan = _mm_cmpgt_epi32(absf_int, f32infty);
+        let b_isnormal = _mm_cmpgt_epi32(f32infty, _mm_castps_si128(absf));
+        let inf_or_nan =
+            _mm_or_si128(_mm_and_si128(b_isnan, nanbit), infty_as_fp16);
+        let fnosticky = _mm_and_ps(absf, mround);
+        let scaled = _mm_mul_ps(fnosticky, magic);
+        // Logically, we want PMINSD on "biased", but this should gen better code
+        let clamped = _mm_min_ps(scaled, clamp);
+        let biased =
+            _mm_sub_epi32(_mm_castps_si128(clamped), _mm_castps_si128(mround));
+        let shifted = _mm_srli_epi32(biased, 13);
+        let normal = _mm_and_si128(shifted, b_isnormal);
+        let not_normal = _mm_andnot_si128(b_isnormal, inf_or_nan);
+        let joined = _mm_or_si128(normal, not_normal);
+
+        let sign_shift = _mm_srli_epi32(_mm_castps_si128(justsign), 16);
+        return _mm_or_si128(joined, sign_shift);
+    }
+}
+
+// Converts from a half to a float.
+#[inline]
+pub fn half_to_float_simd(_h: __m128i) -> __m128 {
+    unsafe {
+        let mask_nosign = _mm_set1_epi32(0x7fff);
+        let magic = _mm_castsi128_ps(_mm_set1_epi32((254 - 15) << 23));
+        let was_infnan = _mm_set1_epi32(0x7bff);
+        let exp_infnan = _mm_castsi128_ps(_mm_set1_epi32(255 << 23));
+
+        let expmant = _mm_and_si128(mask_nosign, _h);
+        let shifted = _mm_slli_epi32(expmant, 13);
+        let scaled = _mm_mul_ps(_mm_castsi128_ps(shifted), magic);
+        let b_wasinfnan = _mm_cmpgt_epi32(expmant, was_infnan);
+        let sign = _mm_slli_epi32(_mm_xor_si128(_h, expmant), 16);
+        let infnanexp =
+            _mm_and_ps(_mm_castsi128_ps(b_wasinfnan), exp_infnan);
+        let sign_inf = _mm_or_ps(_mm_castsi128_ps(sign), infnanexp);
+        return _mm_or_ps(scaled, sign_inf);
+    }
 }
