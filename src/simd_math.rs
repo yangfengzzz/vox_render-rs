@@ -1706,6 +1706,11 @@ pub struct SimdInt4 {
     pub data: __m128i,
 }
 
+pub union SimdInt4Union {
+    ret: __m128i,
+    af: [i32; 4],
+}
+
 impl SimdInt4 {
     #[inline]
     pub fn new(data: __m128i) -> SimdInt4 {
@@ -1928,9 +1933,9 @@ impl SimdInt4 {
     pub fn load_bool(_x: bool, _y: bool, _z: bool, _w: bool) -> SimdInt4 {
         unsafe {
             return SimdInt4::new(_mm_sub_epi32(_mm_setzero_si128(), _mm_set_epi32(i32::from(_w),
-                                                                                    i32::from(_z),
-                                                                                    i32::from(_y),
-                                                                                    i32::from(_x))));
+                                                                                  i32::from(_z),
+                                                                                  i32::from(_y),
+                                                                                  i32::from(_x))));
         }
     }
 
@@ -2105,304 +2110,299 @@ impl SimdInt4 {
     }
 
     //----------------------------------------------------------------------------------------------
-//     // Returns the x component of _v as an integer.
-//     #[inline]
-//     pub fn get_x(_v: SimdInt4) -> i32 {
-//         unsafe {
-//             return SimdFloat4::new(_mm_cvtsi128_si32(_v);
-//         }
-//     }
-//
-//     // Returns the y component of _v as a integer.
-//     #[inline]
-//     pub fn get_y(_v: SimdInt4) -> i32 {
-//         unsafe {
-//             return SimdFloat4::new(_mm_cvtsi128_si32(ozz_sse_splat_i!(_v, 1));
-//         }
-//     }
-//
-//     // Returns the z component of _v as a integer.
-//     #[inline]
-//     pub fn get_z(_v: SimdInt4) -> i32 {
-//         unsafe {
-//             return SimdFloat4::new(_mm_cvtsi128_si32(_mm_unpackhi_epi32(_v, _v));
-//         }
-//     }
-//
-//     // Returns the w component of _v as a integer.
-//     #[inline]
-//     pub fn get_w(_v: SimdInt4) -> i32 {
-//         unsafe {
-//             return SimdFloat4::new(_mm_cvtsi128_si32(ozz_sse_splat_i!(_v, 3));
-//         }
-//     }
-//
-//     // Returns _v with the x component set to x component of _i.
-//     #[inline]
-//     pub fn set_x(_v: SimdInt4, _i: SimdInt4) -> SimdInt4 {
-//         unsafe {
-//             return SimdFloat4::new(_mm_castps_si128(
-//                 _mm_move_ss(_mm_castsi128_ps(_v), _mm_castsi128_ps(_i)));
-//         }
-//     }
-//
-//     // Returns _v with the y component set to x component of _i.
-//     #[inline]
-//     pub fn set_y(_v: SimdInt4, _i: SimdInt4) -> SimdInt4 {
-//         unsafe {
-//             let xfnn = _mm_castsi128_ps(_mm_unpacklo_epi32(_v, _i));
-//             return SimdFloat4::new(_mm_castps_si128(
-//                 _mm_shuffle_ps(xfnn, _mm_castsi128_ps(_v), _mm_shuffle!(3, 2, 1, 0)));
-//         }
-//     }
-//
-//     // Returns _v with the z component set to x component of _i.
-//     #[inline]
-//     pub fn set_z(_v: SimdInt4, _i: SimdInt4) -> SimdInt4 {
-//         unsafe {
-//             let ffww = _mm_shuffle_ps(_mm_castsi128_ps(_i), _mm_castsi128_ps(_v),
-//                                       _mm_shuffle!(3, 3, 0, 0));
-//             return SimdFloat4::new(_mm_castps_si128(
-//                 _mm_shuffle_ps(_mm_castsi128_ps(_v), ffww, _mm_shuffle!(2, 0, 1, 0)));
-//         }
-//     }
-//
-//     // Returns _v with the w component set to x component of _i.
-//     #[inline]
-//     pub fn set_w(_v: SimdInt4, _i: SimdInt4) -> SimdInt4 {
-//         unsafe {
-//             let ffzz = _mm_shuffle_ps(_mm_castsi128_ps(_i), _mm_castsi128_ps(_v),
-//                                       _mm_shuffle!(2, 2, 0, 0));
-//             return SimdFloat4::new(_mm_castps_si128(
-//                 _mm_shuffle_ps(_mm_castsi128_ps(_v), ffzz, _mm_shuffle!(0, 2, 1, 0)));
-//         }
-//     }
-//
-//     // Returns _v with the _ith component set to _i.
-//     // _i must be in range [0,3]
-//     pub union SimdInt4Union {
-//         ret: SimdInt4,
-//         af: [i32; 4],
-//     }
-//
-//     #[inline]
-//     pub fn set_i(_v: SimdInt4, _i: SimdInt4, _ith: usize) -> SimdInt4 {
-//         unsafe {
-//             let mut u = SimdInt4Union {
-//                 ret: _v,
-//             };
-//
-//             u.af[_ith] = get_x(_i);
-//             return SimdFloat4::new(u.ret;
-//         }
-//     }
-//
-//     // Stores the 4 components of _v to the four first integers of _i.
-//     // _i must be aligned to 16 bytes.
-//     // _i[0] = _v.x
-//     // _i[1] = _v.y
-//     // _i[2] = _v.z
-//     // _i[3] = _v.w
-//     #[inline]
-//     pub fn store_ptr(_v: SimdInt4, _i: &mut [i32; 4]) {
-//         todo!()
-//     }
-//
-//     // Stores the x component of _v to the first integers of _i.
-//     // _i must be aligned to 16 bytes.
-//     // _i[0] = _v.x
-//     #[inline]
-//     pub fn store1ptr(_v: SimdInt4, _i: &mut [i32; 4]) {
-//         unsafe {
-//             _i[0] = _mm_cvtsi128_si32(_v);
-//         }
-//     }
-//
-//     // Stores x and y components of _v to the two first integers of _i.
-//     // _i must be aligned to 16 bytes.
-//     // _i[0] = _v.x
-//     // _i[1] = _v.y
-//     #[inline]
-//     pub fn store2ptr(_v: SimdInt4, _i: &mut [i32; 4]) {
-//         unsafe {
-//             _i[0] = _mm_cvtsi128_si32(_v);
-//             _i[1] = _mm_cvtsi128_si32(ozz_sse_splat_i!(_v, 1));
-//         }
-//     }
-//
-//     // Stores x, y and z components of _v to the three first integers of _i.
-//     // _i must be aligned to 16 bytes.
-//     // _i[0] = _v.x
-//     // _i[1] = _v.y
-//     // _i[2] = _v.z
-//     #[inline]
-//     pub fn store3ptr(_v: SimdInt4, _i: &mut [i32; 4]) {
-//         unsafe {
-//             _i[0] = _mm_cvtsi128_si32(_v);
-//             _i[1] = _mm_cvtsi128_si32(ozz_sse_splat_i!(_v, 1));
-//             _i[2] = _mm_cvtsi128_si32(_mm_unpackhi_epi32(_v, _v));
-//         }
-//     }
-//
-//     // Stores the 4 components of _v to the four first integers of _i.
-//     // _i must be aligned to 4 bytes.
-//     // _i[0] = _v.x
-//     // _i[1] = _v.y
-//     // _i[2] = _v.z
-//     // _i[3] = _v.w
-//     #[inline]
-//     pub fn store_ptr_u(_v: SimdInt4, _i: &mut [i32; 4]) {
-//         todo!()
-//     }
-//
-//     // Stores the x component of _v to the first float of _i.
-//     // _i must be aligned to 4 bytes.
-//     // _i[0] = _v.x
-//     #[inline]
-//     pub fn store1ptr_u(_v: SimdInt4, _i: &mut [i32; 4]) {
-//         unsafe {
-//             _i[0] = _mm_cvtsi128_si32(_v);
-//         }
-//     }
-//
-//     // Stores x and y components of _v to the two first integers of _i.
-//     // _i must be aligned to 4 bytes.
-//     // _i[0] = _v.x
-//     // _i[1] = _v.y
-//     #[inline]
-//     pub fn store2ptr_u(_v: SimdInt4, _i: &mut [i32; 4]) {
-//         unsafe {
-//             _i[0] = _mm_cvtsi128_si32(_v);
-//             _i[1] = _mm_cvtsi128_si32(ozz_sse_splat_i!(_v, 1));
-//         }
-//     }
-//
-//     // Stores x, y and z components of _v to the three first integers of _i.
-//     // _i must be aligned to 4 bytes.
-//     // _i[0] = _v.x
-//     // _i[1] = _v.y
-//     // _i[2] = _v.z
-//     #[inline]
-//     pub fn store3ptr_u(_v: SimdInt4, _i: &mut [i32; 4]) {
-//         unsafe {
-//             _i[0] = _mm_cvtsi128_si32(_v);
-//             _i[1] = _mm_cvtsi128_si32(ozz_sse_splat_i!(_v, 1));
-//             _i[2] = _mm_cvtsi128_si32(_mm_unpackhi_epi32(_v, _v));
-//         }
-//     }
-//
-//     // Replicates x of _a to all the components of the returned vector.
-//     #[inline]
-//     pub fn splat_x(_v: SimdInt4) -> SimdInt4 {
-//         unsafe {
-//             return SimdFloat4::new(ozz_sse_splat_i!(_v, 0);
-//         }
-//     }
-//
-//     // Replicates y of _a to all the components of the returned vector.
-//     #[inline]
-//     pub fn splat_y(_v: SimdInt4) -> SimdInt4 {
-//         unsafe {
-//             return SimdFloat4::new(ozz_sse_splat_i!(_v, 1);
-//         }
-//     }
-//
-//     // Replicates z of _a to all the components of the returned vector.
-//     #[inline]
-//     pub fn splat_z(_v: SimdInt4) -> SimdInt4 {
-//         unsafe {
-//             return SimdFloat4::new(ozz_sse_splat_i!(_v, 2);
-//         }
-//     }
-//
-//     // Replicates w of _a to all the components of the returned vector.
-//     #[inline]
-//     pub fn splat_w(_v: SimdInt4) -> SimdInt4 {
-//         unsafe {
-//             return SimdFloat4::new(ozz_sse_splat_i!(_v, 3);
-//         }
-//     }
-//
-//     // Swizzle x, y, z and w components based on compile time arguments _X, _Y, _Z
-//     // and _W. Arguments can vary from 0 (x), to 3 (w).
-//     #[inline]
-//     pub fn swizzle0123(_v: SimdInt4) -> SimdInt4 {
-//         return SimdFloat4::new(_v;
-//     }
-//
-//     // Creates a 4-bit mask from the most significant bits of each component of _v.
-//     // i := sign(a3)<<3 | sign(a2)<<2 | sign(a1)<<1 | sign(a0)
-//     #[inline]
-//     pub fn move_mask(_v: SimdInt4) -> i32 {
-//         unsafe {
-//             return SimdFloat4::new(_mm_movemask_ps(_mm_castsi128_ps(_v));
-//         }
-//     }
-//
-//     // Returns true if all the components of _v are not 0.
-//     #[inline]
-//     pub fn are_all_true(_v: SimdInt4) -> bool {
-//         unsafe {
-//             return SimdFloat4::new(_mm_movemask_ps(_mm_castsi128_ps(_v)) == 0xf;
-//         }
-//     }
-//
-//     // Returns true if x, y and z components of _v are not 0.
-//     #[inline]
-//     pub fn are_all_true3(_v: SimdInt4) -> bool {
-//         unsafe {
-//             return SimdFloat4::new((_mm_movemask_ps(_mm_castsi128_ps(_v)) & 0x7) == 0x7;
-//         }
-//     }
-//
-//     // Returns true if x and y components of _v are not 0.
-//     #[inline]
-//     pub fn are_all_true2(_v: SimdInt4) -> bool {
-//         unsafe {
-//             return SimdFloat4::new((_mm_movemask_ps(_mm_castsi128_ps(_v)) & 0x3) == 0x3;
-//         }
-//     }
-//
-//     // Returns true if x component of _v is not 0.
-//     #[inline]
-//     pub fn are_all_true1(_v: SimdInt4) -> bool {
-//         unsafe {
-//             return SimdFloat4::new((_mm_movemask_ps(_mm_castsi128_ps(_v)) & 0x1) == 0x1;
-//         }
-//     }
-//
-//     // Returns true if all the components of _v are 0.
-//     #[inline]
-//     pub fn are_all_false(_v: SimdInt4) -> bool {
-//         unsafe {
-//             return SimdFloat4::new(_mm_movemask_ps(_mm_castsi128_ps(_v)) == 0;
-//         }
-//     }
-//
-//     // Returns true if x, y and z components of _v are 0.
-//     #[inline]
-//     pub fn are_all_false3(_v: SimdInt4) -> bool {
-//         unsafe {
-//             return SimdFloat4::new((_mm_movemask_ps(_mm_castsi128_ps(_v)) & 0x7) == 0;
-//         }
-//     }
-//
-//     // Returns true if x and y components of _v are 0.
-//     #[inline]
-//     pub fn are_all_false2(_v: SimdInt4) -> bool {
-//         unsafe {
-//             return SimdFloat4::new((_mm_movemask_ps(_mm_castsi128_ps(_v)) & 0x3) == 0;
-//         }
-//     }
-//
-//     // Returns true if x component of _v is 0.
-//     #[inline]
-//     pub fn are_all_false1(_v: SimdInt4) -> bool {
-//         unsafe {
-//             return SimdFloat4::new((_mm_movemask_ps(_mm_castsi128_ps(_v)) & 0x1) == 0;
-//         }
-//     }
-//
+    // Returns the x component of _v as an integer.
+    #[inline]
+    pub fn get_x(&self) -> i32 {
+        unsafe {
+            return _mm_cvtsi128_si32(self.data);
+        }
+    }
+
+    // Returns the y component of _v as a integer.
+    #[inline]
+    pub fn get_y(&self) -> i32 {
+        unsafe {
+            return _mm_cvtsi128_si32(ozz_sse_splat_i!(self.data, 1));
+        }
+    }
+
+    // Returns the z component of _v as a integer.
+    #[inline]
+    pub fn get_z(&self) -> i32 {
+        unsafe {
+            return _mm_cvtsi128_si32(_mm_unpackhi_epi32(self.data, self.data));
+        }
+    }
+
+    // Returns the w component of _v as a integer.
+    #[inline]
+    pub fn get_w(&self) -> i32 {
+        unsafe {
+            return _mm_cvtsi128_si32(ozz_sse_splat_i!(self.data, 3));
+        }
+    }
+
+    // Returns _v with the x component set to x component of _i.
+    #[inline]
+    pub fn set_x(&mut self, _i: SimdInt4) {
+        unsafe {
+            self.data = _mm_castps_si128(
+                _mm_move_ss(_mm_castsi128_ps(self.data), _mm_castsi128_ps(_i.data)));
+        }
+    }
+
+    // Returns _v with the y component set to x component of _i.
+    #[inline]
+    pub fn set_y(&mut self, _i: SimdInt4) {
+        unsafe {
+            let xfnn = _mm_castsi128_ps(_mm_unpacklo_epi32(self.data, _i.data));
+            self.data = _mm_castps_si128(
+                _mm_shuffle_ps(xfnn, _mm_castsi128_ps(self.data), _mm_shuffle!(3, 2, 1, 0)));
+        }
+    }
+
+    // Returns _v with the z component set to x component of _i.
+    #[inline]
+    pub fn set_z(&mut self, _i: SimdInt4) {
+        unsafe {
+            let ffww = _mm_shuffle_ps(_mm_castsi128_ps(_i.data), _mm_castsi128_ps(self.data),
+                                      _mm_shuffle!(3, 3, 0, 0));
+            self.data = _mm_castps_si128(
+                _mm_shuffle_ps(_mm_castsi128_ps(self.data), ffww, _mm_shuffle!(2, 0, 1, 0)));
+        }
+    }
+
+    // Returns _v with the w component set to x component of _i.
+    #[inline]
+    pub fn set_w(&mut self, _i: SimdInt4) {
+        unsafe {
+            let ffzz = _mm_shuffle_ps(_mm_castsi128_ps(_i.data), _mm_castsi128_ps(self.data),
+                                      _mm_shuffle!(2, 2, 0, 0));
+            self.data = _mm_castps_si128(
+                _mm_shuffle_ps(_mm_castsi128_ps(self.data), ffzz, _mm_shuffle!(0, 2, 1, 0)));
+        }
+    }
+
+    // Returns _v with the _ith component set to _i.
+    // _i must be in range [0,3]
+    #[inline]
+    pub fn set_i(&mut self, _i: SimdInt4, _ith: usize) {
+        unsafe {
+            let mut u = SimdInt4Union {
+                ret: self.data,
+            };
+
+            u.af[_ith] = _i.get_x();
+            self.data = u.ret;
+        }
+    }
+
+    // Stores the 4 components of _v to the four first integers of _i.
+    // _i must be aligned to 16 bytes.
+    // _i[0] = _v.x
+    // _i[1] = _v.y
+    // _i[2] = _v.z
+    // _i[3] = _v.w
+    #[inline]
+    pub fn store_ptr(&self, _i: &mut [i32; 4]) {
+        todo!()
+    }
+
+    // Stores the x component of _v to the first integers of _i.
+    // _i must be aligned to 16 bytes.
+    // _i[0] = _v.x
+    #[inline]
+    pub fn store1ptr(&self, _i: &mut [i32; 4]) {
+        unsafe {
+            _i[0] = _mm_cvtsi128_si32(self.data);
+        }
+    }
+
+    // Stores x and y components of _v to the two first integers of _i.
+    // _i must be aligned to 16 bytes.
+    // _i[0] = _v.x
+    // _i[1] = _v.y
+    #[inline]
+    pub fn store2ptr(&self, _i: &mut [i32; 4]) {
+        unsafe {
+            _i[0] = _mm_cvtsi128_si32(self.data);
+            _i[1] = _mm_cvtsi128_si32(ozz_sse_splat_i!(self.data, 1));
+        }
+    }
+
+    // Stores x, y and z components of _v to the three first integers of _i.
+    // _i must be aligned to 16 bytes.
+    // _i[0] = _v.x
+    // _i[1] = _v.y
+    // _i[2] = _v.z
+    #[inline]
+    pub fn store3ptr(&self, _i: &mut [i32; 4]) {
+        unsafe {
+            _i[0] = _mm_cvtsi128_si32(self.data);
+            _i[1] = _mm_cvtsi128_si32(ozz_sse_splat_i!(self.data, 1));
+            _i[2] = _mm_cvtsi128_si32(_mm_unpackhi_epi32(self.data, self.data));
+        }
+    }
+
+    // Stores the 4 components of _v to the four first integers of _i.
+    // _i must be aligned to 4 bytes.
+    // _i[0] = _v.x
+    // _i[1] = _v.y
+    // _i[2] = _v.z
+    // _i[3] = _v.w
+    #[inline]
+    pub fn store_ptr_u(&self, _i: &mut [i32; 4]) {
+        todo!()
+    }
+
+    // Stores the x component of _v to the first float of _i.
+    // _i must be aligned to 4 bytes.
+    // _i[0] = _v.x
+    #[inline]
+    pub fn store1ptr_u(&self, _i: &mut [i32; 4]) {
+        unsafe {
+            _i[0] = _mm_cvtsi128_si32(self.data);
+        }
+    }
+
+    // Stores x and y components of _v to the two first integers of _i.
+    // _i must be aligned to 4 bytes.
+    // _i[0] = _v.x
+    // _i[1] = _v.y
+    #[inline]
+    pub fn store2ptr_u(&self, _i: &mut [i32; 4]) {
+        unsafe {
+            _i[0] = _mm_cvtsi128_si32(self.data);
+            _i[1] = _mm_cvtsi128_si32(ozz_sse_splat_i!(self.data, 1));
+        }
+    }
+
+    // Stores x, y and z components of _v to the three first integers of _i.
+    // _i must be aligned to 4 bytes.
+    // _i[0] = _v.x
+    // _i[1] = _v.y
+    // _i[2] = _v.z
+    #[inline]
+    pub fn store3ptr_u(&self, _i: &mut [i32; 4]) {
+        unsafe {
+            _i[0] = _mm_cvtsi128_si32(self.data);
+            _i[1] = _mm_cvtsi128_si32(ozz_sse_splat_i!(self.data, 1));
+            _i[2] = _mm_cvtsi128_si32(_mm_unpackhi_epi32(self.data, self.data));
+        }
+    }
+
+    // Replicates x of _a to all the components of the returned vector.
+    #[inline]
+    pub fn splat_x(&self) -> SimdInt4 {
+        unsafe {
+            return SimdInt4::new(ozz_sse_splat_i!(self.data, 0));
+        }
+    }
+
+    // Replicates y of _a to all the components of the returned vector.
+    #[inline]
+    pub fn splat_y(&self) -> SimdInt4 {
+        unsafe {
+            return SimdInt4::new(ozz_sse_splat_i!(self.data, 1));
+        }
+    }
+
+    // Replicates z of _a to all the components of the returned vector.
+    #[inline]
+    pub fn splat_z(&self) -> SimdInt4 {
+        unsafe {
+            return SimdInt4::new(ozz_sse_splat_i!(self.data, 2));
+        }
+    }
+
+    // Replicates w of _a to all the components of the returned vector.
+    #[inline]
+    pub fn splat_w(&self) -> SimdInt4 {
+        unsafe {
+            return SimdInt4::new(ozz_sse_splat_i!(self.data, 3));
+        }
+    }
+
+    // Swizzle x, y, z and w components based on compile time arguments _X, _Y, _Z
+    // and _W. Arguments can vary from 0 (x), to 3 (w).
+    #[inline]
+    pub fn swizzle0123(&self) -> SimdInt4 {
+        return SimdInt4::new(self.data);
+    }
+
+    // Creates a 4-bit mask from the most significant bits of each component of _v.
+    // i := sign(a3)<<3 | sign(a2)<<2 | sign(a1)<<1 | sign(a0)
+    #[inline]
+    pub fn move_mask(&self) -> i32 {
+        unsafe {
+            return _mm_movemask_ps(_mm_castsi128_ps(self.data));
+        }
+    }
+
+    // Returns true if all the components of _v are not 0.
+    #[inline]
+    pub fn are_all_true(&self) -> bool {
+        unsafe {
+            return _mm_movemask_ps(_mm_castsi128_ps(self.data)) == 0xf;
+        }
+    }
+
+    // Returns true if x, y and z components of _v are not 0.
+    #[inline]
+    pub fn are_all_true3(&self) -> bool {
+        unsafe {
+            return (_mm_movemask_ps(_mm_castsi128_ps(self.data)) & 0x7) == 0x7;
+        }
+    }
+
+    // Returns true if x and y components of _v are not 0.
+    #[inline]
+    pub fn are_all_true2(&self) -> bool {
+        unsafe {
+            return (_mm_movemask_ps(_mm_castsi128_ps(self.data)) & 0x3) == 0x3;
+        }
+    }
+
+    // Returns true if x component of _v is not 0.
+    #[inline]
+    pub fn are_all_true1(&self) -> bool {
+        unsafe {
+            return (_mm_movemask_ps(_mm_castsi128_ps(self.data)) & 0x1) == 0x1;
+        }
+    }
+
+    // Returns true if all the components of _v are 0.
+    #[inline]
+    pub fn are_all_false(&self) -> bool {
+        unsafe {
+            return _mm_movemask_ps(_mm_castsi128_ps(self.data)) == 0;
+        }
+    }
+
+    // Returns true if x, y and z components of _v are 0.
+    #[inline]
+    pub fn are_all_false3(&self) -> bool {
+        unsafe {
+            return (_mm_movemask_ps(_mm_castsi128_ps(self.data)) & 0x7) == 0;
+        }
+    }
+
+    // Returns true if x and y components of _v are 0.
+    #[inline]
+    pub fn are_all_false2(&self) -> bool {
+        unsafe {
+            return (_mm_movemask_ps(_mm_castsi128_ps(self.data)) & 0x3) == 0;
+        }
+    }
+
+    // Returns true if x component of _v is 0.
+    #[inline]
+    pub fn are_all_false1(&self) -> bool {
+        unsafe {
+            return (_mm_movemask_ps(_mm_castsi128_ps(self.data)) & 0x1) == 0;
+        }
+    }
+
 //     // Computes the (horizontal) addition of x and y components of _v. The result is
 //     // stored in the x component of the returned value. y, z, w of the returned
 //     // vector are the same as their respective components in _v.
