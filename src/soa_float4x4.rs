@@ -6,8 +6,8 @@
  * // property of any third parties.
  */
 
+use crate::simd_math::*;
 use crate::soa_float::{SoaFloat4, SoaFloat3};
-use packed_simd_2::{f32x4, m32x4};
 use crate::soa_quaternion::*;
 use std::ops::{Mul, Add, Sub};
 
@@ -27,8 +27,8 @@ impl SoaFloat4x4 {
     // Returns the identity matrix.
     #[inline]
     pub fn identity() -> SoaFloat4x4 {
-        let zero = f32x4::new(0.0, 0.0, 0.0, 0.0);
-        let one = f32x4::new(1.0, 1.0, 1.0, 1.0);
+        let zero = SimdFloat4::load(0.0, 0.0, 0.0, 0.0);
+        let one = SimdFloat4::load(1.0, 1.0, 1.0, 1.0);
         return SoaFloat4x4 {
             cols: [SoaFloat4::load(one, zero, zero, zero),
                 SoaFloat4::load(zero, one, zero, zero),
@@ -41,8 +41,8 @@ impl SoaFloat4x4 {
     // _v.w is ignored.
     #[inline]
     pub fn scaling(_v: &SoaFloat4) -> SoaFloat4x4 {
-        let zero = f32x4::new(0.0, 0.0, 0.0, 0.0);
-        let one = f32x4::new(1.0, 1.0, 1.0, 1.0);
+        let zero = SimdFloat4::load(0.0, 0.0, 0.0, 0.0);
+        let one = SimdFloat4::load(1.0, 1.0, 1.0, 1.0);
         return SoaFloat4x4 {
             cols: [SoaFloat4::load(_v.x, zero, zero, zero),
                 SoaFloat4::load(zero, _v.y, zero, zero),
@@ -55,10 +55,10 @@ impl SoaFloat4x4 {
     // components of _v.
     #[inline]
     pub fn from_quaternion(_q: &SoaQuaternion) -> SoaFloat4x4 {
-        debug_assert!(is_normalized_est(_q).all());
+        debug_assert!(is_normalized_est(_q).are_all_true());
 
-        let zero = f32x4::new(0.0, 0.0, 0.0, 0.0);
-        let one = f32x4::new(1.0, 1.0, 1.0, 1.0);
+        let zero = SimdFloat4::load(0.0, 0.0, 0.0, 0.0);
+        let one = SimdFloat4::load(1.0, 1.0, 1.0, 1.0);
         let two = one + one;
 
         let xx = _q.x * _q.x;
@@ -85,10 +85,10 @@ impl SoaFloat4x4 {
     pub fn from_affine(_translation: &SoaFloat3,
                        _quaternion: &SoaQuaternion,
                        _scale: &SoaFloat3) -> SoaFloat4x4 {
-        debug_assert!(is_normalized_est(_quaternion).all());
+        debug_assert!(is_normalized_est(_quaternion).are_all_true());
 
-        let zero = f32x4::new(0.0, 0.0, 0.0, 0.0);
-        let one = f32x4::new(1.0, 1.0, 1.0, 1.0);
+        let zero = SimdFloat4::load(0.0, 0.0, 0.0, 0.0);
+        let one = SimdFloat4::load(1.0, 1.0, 1.0, 1.0);
         let two = one + one;
 
         let xx = _quaternion.x * _quaternion.x;
@@ -131,7 +131,7 @@ pub fn transpose(_m: &SoaFloat4x4) -> SoaFloat4x4 {
 // respective matrix is invertible. If _invertible is nullptr, then an assert is
 // triggered in case any of the 4 matrices isn't invertible.
 #[inline]
-pub fn invert(_m: &SoaFloat4x4, _invertible: &mut Option<m32x4>) -> SoaFloat4x4 {
+pub fn invert(_m: &SoaFloat4x4, _invertible: &mut Option<SimdInt4>) -> SoaFloat4x4 {
     let cols = &_m.cols;
     let a00 = cols[2].z * cols[3].w - cols[3].z * cols[2].w;
     let a01 = cols[2].y * cols[3].w - cols[3].y * cols[2].w;
@@ -175,12 +175,13 @@ pub fn invert(_m: &SoaFloat4x4, _invertible: &mut Option<m32x4>) -> SoaFloat4x4 
 
     let det =
         cols[0].x * b0x + cols[0].y * b1x + cols[0].z * b2x + cols[0].w * b3x;
-    let invertible = det.ne(f32x4::new(0.0, 0.0, 0.0, 0.0));
-    debug_assert!((_invertible.is_none() || invertible.all()) && "Matrix is not invertible".parse().unwrap());
+    let invertible = det.cmp_ne(SimdFloat4::load(0.0, 0.0, 0.0, 0.0));
+    debug_assert!((_invertible.is_none() || invertible.are_all_true()) && "Matrix is not invertible".parse().unwrap());
     if _invertible.is_some() {
         *_invertible = Some(invertible);
     }
-    let inv_det = invertible.select(det.recpre(), f32x4::new(0.0, 0.0, 0.0, 0.0));
+    let inv_det = SimdFloat4::select(invertible, det.rcp_est_nr(),
+                                     SimdFloat4::load(0.0, 0.0, 0.0, 0.0));
 
     return SoaFloat4x4 {
         cols:
