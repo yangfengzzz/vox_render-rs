@@ -40,11 +40,11 @@ pub struct Float3Key {
 pub struct QuaternionKey {
     pub ratio: f32,
     // The track this key frame belongs to.(13)
-    pub track: bit_vec::BitVec,
+    pub track: u16,
     // The largest component of the quaternion.(2)
-    pub largest: bit_vec::BitVec,
+    pub largest: u16,
     // The sign of the largest component. 1 for negative.(1)
-    pub sign: bit_vec::BitVec,
+    pub sign: u16,
     // The quantized value of the 3 smallest components.
     pub value: [i16; 3],
 }
