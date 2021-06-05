@@ -9,10 +9,6 @@
 use std::arch::x86_64::*;
 use std::ops::{Mul, Add, Sub};
 
-
-// Vector of four integer values.
-pub type SimdInt4 = __m128i;
-
 macro_rules! _mm_shuffle {
         ($z:expr, $y:expr, $x:expr, $w:expr) => {
             (($z << 6) | ($y << 4) | ($x << 2) | $w)
@@ -133,7 +129,6 @@ impl SimdFloat4 {
             data
         };
     }
-
 
     // Returns a SimdFloat4 vector with all components set to 0.
     #[inline]
@@ -317,7 +312,7 @@ impl SimdFloat4 {
     #[inline]
     pub fn from_int(_i: SimdInt4) -> SimdFloat4 {
         unsafe {
-            return SimdFloat4::new(_mm_cvtepi32_ps(_i));
+            return SimdFloat4::new(_mm_cvtepi32_ps(_i.data));
         }
     }
 
@@ -1023,65 +1018,65 @@ impl SimdFloat4 {
         }
     }
 
-//     // Returns the per element absolute value of _v.
-//     #[inline]
-//     pub fn abs(_v: SimdFloat4) -> SimdFloat4 {
-//         unsafe {
-//             let zero = _mm_setzero_si128();
-//             return SimdFloat4::new(_mm_and_ps(
-//                 _mm_castsi128_ps(_mm_srli_epi32(_mm_cmpeq_epi32(zero, zero), 1)), _v);
-//         }
-//     }
-//
-//     // Returns the sign bit of _v.
-//     #[inline]
-//     pub fn sign(_v: SimdFloat4) -> SimdInt4 {
-//         unsafe {
-//             return SimdFloat4::new(_mm_slli_epi32(_mm_srli_epi32(_mm_castps_si128(_v), 31), 31);
-//         }
-//     }
-//
-//     // Returns the per component minimum of _a and _b.
-//     #[inline]
-//     pub fn min(_a: SimdFloat4, _b: SimdFloat4) -> SimdFloat4 {
-//         unsafe {
-//             return SimdFloat4::new(_mm_min_ps(_a, _b);
-//         }
-//     }
-//
-//     // Returns the per component maximum of _a and _b.
-//     #[inline]
-//     pub fn max(_a: SimdFloat4, _b: SimdFloat4) -> SimdFloat4 {
-//         unsafe {
-//             return SimdFloat4::new(_mm_max_ps(_a, _b);
-//         }
-//     }
-//
-//     // Returns the per component minimum of _v and 0.
-//     #[inline]
-//     pub fn min0(_v: SimdFloat4) -> SimdFloat4 {
-//         unsafe {
-//             return SimdFloat4::new(_mm_min_ps(_mm_setzero_ps(), _v);
-//         }
-//     }
-//
-//     // Returns the per component maximum of _v and 0.
-//     #[inline]
-//     pub fn max0(_v: SimdFloat4) -> SimdFloat4 {
-//         unsafe {
-//             return SimdFloat4::new(_mm_max_ps(_mm_setzero_ps(), _v);
-//         }
-//     }
-//
-//     // Clamps each element of _x between _a and _b.
-//     // Result is unknown if _a is not less or equal to _b.
-//     #[inline]
-//     pub fn clamp(_a: SimdFloat4, _v: SimdFloat4, _b: SimdFloat4) -> SimdFloat4 {
-//         unsafe {
-//             return SimdFloat4::new(_mm_max_ps(_a, _mm_min_ps(_v, _b));
-//         }
-//     }
-//
+    // Returns the per element absolute value of _v.
+    #[inline]
+    pub fn abs(&self) -> SimdFloat4 {
+        unsafe {
+            let zero = _mm_setzero_si128();
+            return SimdFloat4::new(_mm_and_ps(
+                _mm_castsi128_ps(_mm_srli_epi32(_mm_cmpeq_epi32(zero, zero), 1)), self.data));
+        }
+    }
+
+    // Returns the sign bit of _v.
+    #[inline]
+    pub fn sign(&self) -> SimdInt4 {
+        unsafe {
+            return SimdInt4::new(_mm_slli_epi32(_mm_srli_epi32(_mm_castps_si128(self.data), 31), 31));
+        }
+    }
+
+    // Returns the per component minimum of _a and _b.
+    #[inline]
+    pub fn min(&self, _b: SimdFloat4) -> SimdFloat4 {
+        unsafe {
+            return SimdFloat4::new(_mm_min_ps(self.data, _b.data));
+        }
+    }
+
+    // Returns the per component maximum of _a and _b.
+    #[inline]
+    pub fn max(&self, _b: SimdFloat4) -> SimdFloat4 {
+        unsafe {
+            return SimdFloat4::new(_mm_max_ps(self.data, _b.data));
+        }
+    }
+
+    // Returns the per component minimum of _v and 0.
+    #[inline]
+    pub fn min0(&self) -> SimdFloat4 {
+        unsafe {
+            return SimdFloat4::new(_mm_min_ps(_mm_setzero_ps(), self.data));
+        }
+    }
+
+    // Returns the per component maximum of _v and 0.
+    #[inline]
+    pub fn max0(&self) -> SimdFloat4 {
+        unsafe {
+            return SimdFloat4::new(_mm_max_ps(_mm_setzero_ps(), self.data));
+        }
+    }
+
+    // Clamps each element of _x between _a and _b.
+    // Result is unknown if _a is not less or equal to _b.
+    #[inline]
+    pub fn clamp(&self, _a: SimdFloat4, _b: SimdFloat4) -> SimdFloat4 {
+        unsafe {
+            return SimdFloat4::new(_mm_max_ps(_a.data, _mm_min_ps(self.data, _b.data)));
+        }
+    }
+
 //     // Computes the length of the components x and y of _v, and stores it in the x
 //     // component of the returned vector. y, z, w of the returned vector are
 //     // undefined.
@@ -1707,10 +1702,19 @@ impl SimdFloat4 {
 
 
 // //--------------------------------------------------------------------------------------------------
-// pub mod simd_int4 {
-//     use std::arch::x86_64::*;
-//     use crate::simd_math::{SimdInt4, SimdFloat4};
-//
+// Vector of four integer values.
+pub struct SimdInt4 {
+    pub data: __m128i,
+}
+
+impl SimdInt4 {
+    #[inline]
+    pub fn new(data: __m128i) -> SimdInt4 {
+        return SimdInt4 {
+            data
+        };
+    }
+}
 //     // Returns a SimdInt4 vector with all components set to 0.
 //     #[inline]
 //     pub fn zero() -> SimdInt4 {
