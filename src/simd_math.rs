@@ -352,52 +352,52 @@ impl SimdFloat4 {
 
     // Returns _v with the x component set to x component of _f.
     #[inline]
-    pub fn set_x(&mut self, _f: SimdFloat4) {
+    pub fn set_x(&self, _f: SimdFloat4) -> SimdFloat4 {
         unsafe {
-            self.data = _mm_move_ss(self.data, _f.data);
+            return SimdFloat4::new(_mm_move_ss(self.data, _f.data));
         }
     }
 
     // Returns _v with the y component set to  x component of _f.
     #[inline]
-    pub fn set_y(&mut self, _f: SimdFloat4) {
+    pub fn set_y(&self, _f: SimdFloat4) -> SimdFloat4 {
         unsafe {
             let xfnn = _mm_unpacklo_ps(self.data, _f.data);
-            self.data = _mm_shuffle_ps(xfnn, self.data, _mm_shuffle!(3, 2, 1, 0));
+            return SimdFloat4::new(_mm_shuffle_ps(xfnn, self.data, _mm_shuffle!(3, 2, 1, 0)));
         }
     }
 
 
     // Returns _v with the z component set to  x component of _f.
     #[inline]
-    pub fn set_z(&mut self, _f: SimdFloat4) {
+    pub fn set_z(&self, _f: SimdFloat4) -> SimdFloat4 {
         unsafe {
             let ffww = _mm_shuffle_ps(_f.data, self.data, _mm_shuffle!(3, 3, 0, 0));
-            self.data = _mm_shuffle_ps(self.data, ffww, _mm_shuffle!(2, 0, 1, 0));
+            return SimdFloat4::new(_mm_shuffle_ps(self.data, ffww, _mm_shuffle!(2, 0, 1, 0)));
         }
     }
 
 
     // Returns _v with the w component set to  x component of _f.
     #[inline]
-    pub fn set_w(&mut self, _f: SimdFloat4) {
+    pub fn set_w(&self, _f: SimdFloat4) -> SimdFloat4 {
         unsafe {
             let ffzz = _mm_shuffle_ps(_f.data, self.data, _mm_shuffle!(2, 2, 0, 0));
-            self.data = _mm_shuffle_ps(self.data, ffzz, _mm_shuffle!(0, 2, 1, 0));
+            return SimdFloat4::new(_mm_shuffle_ps(self.data, ffzz, _mm_shuffle!(0, 2, 1, 0)));
         }
     }
 
     // Returns _v with the _i th component set to _f.
     // _i must be in range [0,3]
     #[inline]
-    pub fn set_i(&mut self, _f: SimdFloat4, _ith: usize) {
+    pub fn set_i(&self, _f: SimdFloat4, _ith: usize) -> SimdFloat4 {
         unsafe {
             let mut u = SimdFloat4Union {
                 ret: self.data,
             };
 
             u.af[_ith] = _mm_cvtss_f32(_f.data);
-            self.data = u.ret;
+            return SimdFloat4::new(u.ret);
         }
     }
 
@@ -2196,56 +2196,56 @@ impl SimdInt4 {
 
     // Returns _v with the x component set to x component of _i.
     #[inline]
-    pub fn set_x(&mut self, _i: SimdInt4) {
+    pub fn set_x(&self, _i: SimdInt4) -> SimdInt4 {
         unsafe {
-            self.data = _mm_castps_si128(
-                _mm_move_ss(_mm_castsi128_ps(self.data), _mm_castsi128_ps(_i.data)));
+            return SimdInt4::new(_mm_castps_si128(
+                _mm_move_ss(_mm_castsi128_ps(self.data), _mm_castsi128_ps(_i.data))));
         }
     }
 
     // Returns _v with the y component set to x component of _i.
     #[inline]
-    pub fn set_y(&mut self, _i: SimdInt4) {
+    pub fn set_y(&self, _i: SimdInt4) -> SimdInt4 {
         unsafe {
             let xfnn = _mm_castsi128_ps(_mm_unpacklo_epi32(self.data, _i.data));
-            self.data = _mm_castps_si128(
-                _mm_shuffle_ps(xfnn, _mm_castsi128_ps(self.data), _mm_shuffle!(3, 2, 1, 0)));
+            return SimdInt4::new(_mm_castps_si128(
+                _mm_shuffle_ps(xfnn, _mm_castsi128_ps(self.data), _mm_shuffle!(3, 2, 1, 0))));
         }
     }
 
     // Returns _v with the z component set to x component of _i.
     #[inline]
-    pub fn set_z(&mut self, _i: SimdInt4) {
+    pub fn set_z(&self, _i: SimdInt4) -> SimdInt4 {
         unsafe {
             let ffww = _mm_shuffle_ps(_mm_castsi128_ps(_i.data), _mm_castsi128_ps(self.data),
                                       _mm_shuffle!(3, 3, 0, 0));
-            self.data = _mm_castps_si128(
-                _mm_shuffle_ps(_mm_castsi128_ps(self.data), ffww, _mm_shuffle!(2, 0, 1, 0)));
+            return SimdInt4::new(_mm_castps_si128(
+                _mm_shuffle_ps(_mm_castsi128_ps(self.data), ffww, _mm_shuffle!(2, 0, 1, 0))));
         }
     }
 
     // Returns _v with the w component set to x component of _i.
     #[inline]
-    pub fn set_w(&mut self, _i: SimdInt4) {
+    pub fn set_w(&self, _i: SimdInt4) -> SimdInt4 {
         unsafe {
             let ffzz = _mm_shuffle_ps(_mm_castsi128_ps(_i.data), _mm_castsi128_ps(self.data),
                                       _mm_shuffle!(2, 2, 0, 0));
-            self.data = _mm_castps_si128(
-                _mm_shuffle_ps(_mm_castsi128_ps(self.data), ffzz, _mm_shuffle!(0, 2, 1, 0)));
+            return SimdInt4::new(_mm_castps_si128(
+                _mm_shuffle_ps(_mm_castsi128_ps(self.data), ffzz, _mm_shuffle!(0, 2, 1, 0))));
         }
     }
 
     // Returns _v with the _ith component set to _i.
     // _i must be in range [0,3]
     #[inline]
-    pub fn set_i(&mut self, _i: SimdInt4, _ith: usize) {
+    pub fn set_i(&self, _i: SimdInt4, _ith: usize) -> SimdInt4 {
         unsafe {
             let mut u = SimdInt4Union {
                 ret: self.data,
             };
 
             u.af[_ith] = _i.get_x();
-            self.data = u.ret;
+            return SimdInt4::new(u.ret);
         }
     }
 

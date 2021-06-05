@@ -30,9 +30,7 @@ impl SimdQuaternion {
         let half_sin = (half_angle).sin_x();
         let half_cos = (half_angle).cos_x();
 
-        let mut result = _axis * half_sin.splat_x();
-        result.set_w(half_cos);
-        return SimdQuaternion { xyzw: result };
+        return SimdQuaternion { xyzw: _axis * half_sin.splat_x().set_w(half_cos) };
     }
 
     // Returns a normalized quaternion initialized from an axis and angle cosine
@@ -52,14 +50,11 @@ impl SimdQuaternion {
 
         let half_cos2 = (one + _cos) * half;
         let half_sin2 = one - half_cos2;
-        let mut half_sincos2 = SimdFloat4::new(half_cos2.data);
-        half_sincos2.set_y(SimdFloat4::new(half_sin2.data));
+        let half_sincos2 = half_cos2.set_y(half_sin2);
         let half_sincos = SimdFloat4::sqrt(&half_sincos2);
         let half_sin = SimdFloat4::splat_y(&half_sincos);
 
-        let mut result = _axis * half_sin;
-        result.set_w(half_sincos);
-        return SimdQuaternion { xyzw: result };
+        return SimdQuaternion { xyzw: (_axis * half_sin).set_w(half_sincos) };
     }
 
     // Returns the quaternion that will rotate vector _from into vector _to,
@@ -89,9 +84,7 @@ impl SimdQuaternion {
             }
         } else {
             // This is the general code path.
-            let mut result = _from.cross3(_to);
-            result.set_w(real_part);
-            quat.xyzw = result;
+            quat.xyzw = _from.cross3(_to).set_w(real_part);
         }
         return quat.normalize();
     }
@@ -123,9 +116,7 @@ impl SimdQuaternion {
             quat
         } else {
             // This is the general code path.
-            let mut result = _from.cross3(_to);
-            result.set_w(real_part);
-            let quat = SimdQuaternion { xyzw: result };
+            let quat = SimdQuaternion { xyzw: _from.cross3(_to).set_w(real_part) };
             quat.normalize()
         };
     }
@@ -224,21 +215,17 @@ impl SimdQuaternion {
     // Assumes quaternion _q is normalized.
     #[inline]
     pub fn to_axis_angle(&self) -> SimdFloat4 {
-        unsafe {
-            debug_assert!(self.xyzw.is_normalized_est4().are_all_true1() && "self is not normalized.".parse().unwrap());
-            let x_axis = SimdFloat4::x_axis();
-            let clamped_w = SimdFloat4::clamp(&-x_axis, self.xyzw.splat_w(), x_axis);
-            let half_angle = clamped_w.acos_x();
+        debug_assert!(self.xyzw.is_normalized_est4().are_all_true1() && "self is not normalized.".parse().unwrap());
+        let x_axis = SimdFloat4::x_axis();
+        let clamped_w = SimdFloat4::clamp(&-x_axis, self.xyzw.splat_w(), x_axis);
+        let half_angle = clamped_w.acos_x();
 
-            // Assuming quaternion is normalized then s always positive.
-            let s = SimdFloat4::nmadd(&clamped_w, clamped_w, x_axis).sqrt_x().splat_x();
-            // If s is close to zero then direction of axis is not important.
-            let low = SimdFloat4::cmp_lt(&s, SimdFloat4::load1(1e-3));
+        // Assuming quaternion is normalized then s always positive.
+        let s = SimdFloat4::nmadd(&clamped_w, clamped_w, x_axis).sqrt_x().splat_x();
+        // If s is close to zero then direction of axis is not important.
+        let low = SimdFloat4::cmp_lt(&s, SimdFloat4::load1(1e-3));
 
-            let mut result = self.xyzw * s.rcp_est_nr();
-            result.set_w(half_angle + half_angle);
-            return SimdFloat4::select(low, x_axis, result);
-        }
+        return SimdFloat4::select(low, x_axis, (self.xyzw * s.rcp_est_nr()).set_w(half_angle + half_angle));
     }
 
     // Computes the transformation of a Quaternion and a vector _v.
