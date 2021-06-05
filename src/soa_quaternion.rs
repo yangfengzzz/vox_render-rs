@@ -7,34 +7,34 @@
  */
 
 use crate::math_constant::*;
-use packed_simd_2::{f32x4, m32x4};
-use std::ops::{Add, Neg, Mul, BitAnd};
+use crate::simd_math::*;
 use crate::soa_float::SoaFloat4;
+use std::ops::{Add, Neg, Mul};
 
 pub struct SoaQuaternion {
-    pub x: f32x4,
-    pub y: f32x4,
-    pub z: f32x4,
-    pub w: f32x4,
+    pub x: SimdFloat4,
+    pub y: SimdFloat4,
+    pub z: SimdFloat4,
+    pub w: SimdFloat4,
 }
 
 impl SoaQuaternion {
     // Loads a quaternion from 4 SimdFloat4 values.
     #[inline]
-    pub fn load(_x: f32x4, _y: f32x4,
-                _z: f32x4, _w: f32x4) -> SoaQuaternion {
+    pub fn load(_x: SimdFloat4, _y: SimdFloat4,
+                _z: SimdFloat4, _w: SimdFloat4) -> SoaQuaternion {
         return SoaQuaternion { x: _x, y: _y, z: _z, w: _w };
     }
 
     // Returns the identity SoaQuaternion.
     #[inline]
     pub fn identity() -> SoaQuaternion {
-        let zero = f32x4::new(0.0, 0.0, 0.0, 0.0);
+        let zero = SimdFloat4::load(0.0, 0.0, 0.0, 0.0);
         return SoaQuaternion {
             x: zero,
             y: zero,
             z: zero,
-            w: f32x4::new(1.0, 1.0, 1.0, 1.0),
+            w: SimdFloat4::load(1.0, 1.0, 1.0, 1.0),
         };
     }
 }
@@ -57,7 +57,7 @@ impl Neg for SoaQuaternion {
 
 // Returns the 4D dot product of quaternion _a and _b.
 #[inline]
-pub fn dot(_a: &SoaQuaternion, _b: &SoaQuaternion) -> f32x4 {
+pub fn dot(_a: &SoaQuaternion, _b: &SoaQuaternion) -> SimdFloat4 {
     return _a.x * _b.x + _a.y * _b.y + _a.z * _b.z + _a.w * _b.w;
 }
 
@@ -65,7 +65,7 @@ pub fn dot(_a: &SoaQuaternion, _b: &SoaQuaternion) -> f32x4 {
 #[inline]
 pub fn normalize(_q: &SoaQuaternion) -> SoaQuaternion {
     let len2 = _q.x * _q.x + _q.y * _q.y + _q.z * _q.z + _q.w * _q.w;
-    let inv_len = f32x4::new(1.0, 1.0, 1.0, 1.0) / (len2).sqrt();
+    let inv_len = SimdFloat4::load(1.0, 1.0, 1.0, 1.0) / (len2).sqrt();
     return SoaQuaternion {
         x: _q.x * inv_len,
         y: _q.y * inv_len,
@@ -80,7 +80,7 @@ pub fn normalize_est(_q: &SoaQuaternion) -> SoaQuaternion {
     let len2 = _q.x * _q.x + _q.y * _q.y + _q.z * _q.z + _q.w * _q.w;
     // Uses RSqrtEstNR (with one more Newton-Raphson step) as quaternions loose
     // much precision due to normalization.
-    let inv_len = len2.rsqrte();
+    let inv_len = len2.rsqrt_est_nr();
     return SoaQuaternion {
         x: _q.x * inv_len,
         y: _q.y * inv_len,
@@ -91,30 +91,30 @@ pub fn normalize_est(_q: &SoaQuaternion) -> SoaQuaternion {
 
 // Test if each quaternion of _q is normalized.
 #[inline]
-pub fn is_normalized(_q: &SoaQuaternion) -> m32x4 {
+pub fn is_normalized(_q: &SoaQuaternion) -> SimdInt4 {
     let len2 = _q.x * _q.x + _q.y * _q.y + _q.z * _q.z + _q.w * _q.w;
-    return (len2 - f32x4::new(1.0, 1.0, 1.0, 1.0)).abs().lt(f32x4::new(K_NORMALIZATION_TOLERANCE_SQ,
-                                                                       K_NORMALIZATION_TOLERANCE_SQ,
-                                                                       K_NORMALIZATION_TOLERANCE_SQ,
-                                                                       K_NORMALIZATION_TOLERANCE_SQ));
+    return (len2 - SimdFloat4::load(1.0, 1.0, 1.0, 1.0)).abs().cmp_lt(SimdFloat4::load(K_NORMALIZATION_TOLERANCE_SQ,
+                                                                                       K_NORMALIZATION_TOLERANCE_SQ,
+                                                                                       K_NORMALIZATION_TOLERANCE_SQ,
+                                                                                       K_NORMALIZATION_TOLERANCE_SQ));
 }
 
 
 // Test if each quaternion of _q is normalized. using estimated tolerance.
 #[inline]
-pub fn is_normalized_est(_q: &SoaQuaternion) -> m32x4 {
+pub fn is_normalized_est(_q: &SoaQuaternion) -> SimdInt4 {
     let len2 = _q.x * _q.x + _q.y * _q.y + _q.z * _q.z + _q.w * _q.w;
-    return (len2 - f32x4::new(1.0, 1.0, 1.0, 1.0)).abs().lt(f32x4::new(K_NORMALIZATION_TOLERANCE_EST_SQ,
-                                                                       K_NORMALIZATION_TOLERANCE_EST_SQ,
-                                                                       K_NORMALIZATION_TOLERANCE_EST_SQ,
-                                                                       K_NORMALIZATION_TOLERANCE_EST_SQ));
+    return (len2 - SimdFloat4::load(1.0, 1.0, 1.0, 1.0)).abs().cmp_lt(SimdFloat4::load(K_NORMALIZATION_TOLERANCE_EST_SQ,
+                                                                                       K_NORMALIZATION_TOLERANCE_EST_SQ,
+                                                                                       K_NORMALIZATION_TOLERANCE_EST_SQ,
+                                                                                       K_NORMALIZATION_TOLERANCE_EST_SQ));
 }
 
 // Returns the linear interpolation of SoaQuaternion _a and _b with coefficient
 // _f.
 #[inline]
 pub fn lerp(_a: &SoaQuaternion, _b: &SoaQuaternion,
-            _f: f32x4) -> SoaQuaternion {
+            _f: SimdFloat4) -> SoaQuaternion {
     return SoaQuaternion {
         x: (_b.x - _a.x) * _f + _a.x,
         y: (_b.y - _a.y) * _f + _a.y,
@@ -126,11 +126,11 @@ pub fn lerp(_a: &SoaQuaternion, _b: &SoaQuaternion,
 // Returns the linear interpolation of SoaQuaternion _a and _b with coefficient
 // _f.
 #[inline]
-pub fn nlerp(_a: &SoaQuaternion, _b: &SoaQuaternion, _f: f32x4) -> SoaQuaternion {
+pub fn nlerp(_a: &SoaQuaternion, _b: &SoaQuaternion, _f: SimdFloat4) -> SoaQuaternion {
     let lerp = SoaFloat4::load((_b.x - _a.x) * _f + _a.x, (_b.y - _a.y) * _f + _a.y,
                                (_b.z - _a.z) * _f + _a.z, (_b.w - _a.w) * _f + _a.w);
     let len2 = lerp.x * lerp.x + lerp.y * lerp.y + lerp.z * lerp.z + lerp.w * lerp.w;
-    let inv_len = f32x4::new(1.0, 1.0, 1.0, 1.0) / (len2).sqrt();
+    let inv_len = SimdFloat4::load(1.0, 1.0, 1.0, 1.0) / (len2).sqrt();
     return SoaQuaternion {
         x: lerp.x * inv_len,
         y: lerp.y * inv_len,
@@ -142,13 +142,13 @@ pub fn nlerp(_a: &SoaQuaternion, _b: &SoaQuaternion, _f: f32x4) -> SoaQuaternion
 // Returns the estimated linear interpolation of SoaQuaternion _a and _b with
 // coefficient _f.
 #[inline]
-pub fn nlerp_est(_a: &SoaQuaternion, _b: &SoaQuaternion, _f: f32x4) -> SoaQuaternion {
+pub fn nlerp_est(_a: &SoaQuaternion, _b: &SoaQuaternion, _f: SimdFloat4) -> SoaQuaternion {
     let lerp = SoaFloat4::load((_b.x - _a.x) * _f + _a.x, (_b.y - _a.y) * _f + _a.y,
                                (_b.z - _a.z) * _f + _a.z, (_b.w - _a.w) * _f + _a.w);
     let len2 = lerp.x * lerp.x + lerp.y * lerp.y + lerp.z * lerp.z + lerp.w * lerp.w;
     // Uses RSqrtEstNR (with one more Newton-Raphson step) as quaternions loose
     // much precision due to normalization.
-    let inv_len = len2.rsqrte();
+    let inv_len = len2.rsqrt_est_nr();
     return SoaQuaternion {
         x: lerp.x * inv_len,
         y: lerp.y * inv_len,
@@ -185,10 +185,10 @@ impl Add for &SoaQuaternion {
     }
 }
 
-impl Mul<f32x4> for SoaQuaternion {
+impl Mul<SimdFloat4> for SoaQuaternion {
     type Output = SoaQuaternion;
     #[inline]
-    fn mul(self, rhs: f32x4) -> Self::Output {
+    fn mul(self, rhs: SimdFloat4) -> Self::Output {
         return SoaQuaternion {
             x: self.x * rhs,
             y: self.y * rhs,
@@ -226,11 +226,11 @@ impl Mul for &SoaQuaternion {
 
 impl SoaQuaternion {
     #[inline]
-    pub fn eq(&self, other: &Self) -> m32x4 {
-        let x = self.x.eq(other.x);
-        let y = self.y.eq(other.y);
-        let z = self.z.eq(other.z);
-        let w = self.w.eq(other.w);
-        return x.bitand(y).bitand(z).bitand(w);
+    pub fn eq(&self, other: &Self) -> SimdInt4 {
+        let x = self.x.cmp_eq(other.x);
+        let y = self.y.cmp_eq(other.y);
+        let z = self.z.cmp_eq(other.z);
+        let w = self.w.cmp_eq(other.w);
+        return x.and(y).and(z).and(w);
     }
 }
