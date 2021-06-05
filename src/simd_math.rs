@@ -1722,389 +1722,389 @@ impl SimdInt4 {
         }
     }
 
-//     // Returns a SimdInt4 vector with all components set to 1.
-//     #[inline]
-//     pub fn one() -> SimdInt4 {
-//         unsafe {
-//             let zero = _mm_setzero_si128();
-//             return SimdFloat4::new(_mm_sub_epi32(zero, _mm_cmpeq_epi32(zero, zero));
-//         }
-//     }
-//
-//     // Returns a SimdInt4 vector with the x component set to 1 and all the others
-//     // to 0.
-//     #[inline]
-//     pub fn x_axis() -> SimdInt4 {
-//         unsafe {
-//             let zero = _mm_setzero_si128();
-//             return SimdFloat4::new(_mm_srli_si128(_mm_sub_epi32(zero, _mm_cmpeq_epi32(zero, zero)), 12);
-//         }
-//     }
-//
-//     // Returns a SimdInt4 vector with the y component set to 1 and all the others
-//     // to 0.
-//     #[inline]
-//     pub fn y_axis() -> SimdInt4 {
-//         unsafe {
-//             let zero = _mm_setzero_si128();
-//             return SimdFloat4::new(_mm_slli_si128(
-//                 _mm_srli_si128(_mm_sub_epi32(zero, _mm_cmpeq_epi32(zero, zero)), 12), 4);
-//         }
-//     }
-//
-//     // Returns a SimdInt4 vector with the z component set to 1 and all the others
-//     // to 0.
-//     #[inline]
-//     pub fn z_axis() -> SimdInt4 {
-//         unsafe {
-//             let zero = _mm_setzero_si128();
-//             return SimdFloat4::new(_mm_slli_si128(
-//                 _mm_srli_si128(_mm_sub_epi32(zero, _mm_cmpeq_epi32(zero, zero)), 12), 8);
-//         }
-//     }
-//
-//     // Returns a SimdInt4 vector with the w component set to 1 and all the others
-//     // to 0.
-//     #[inline]
-//     pub fn w_axis() -> SimdInt4 {
-//         unsafe {
-//             let zero = _mm_setzero_si128();
-//             return SimdFloat4::new(_mm_slli_si128(_mm_sub_epi32(zero, _mm_cmpeq_epi32(zero, zero)), 12);
-//         }
-//     }
-//
-//     // Returns a SimdInt4 vector with all components set to true (0xffffffff).
-//     #[inline]
-//     pub fn all_true() -> SimdInt4 {
-//         unsafe {
-//             let zero = _mm_setzero_si128();
-//             return SimdFloat4::new(_mm_cmpeq_epi32(zero, zero);
-//         }
-//     }
-//
-//     // Returns a SimdInt4 vector with all components set to false (0).
-//     #[inline]
-//     pub fn all_false() -> SimdInt4 {
-//         unsafe {
-//             return SimdFloat4::new(_mm_setzero_si128();
-//         }
-//     }
-//
-//     // Returns a SimdInt4 vector with sign bits set to 1.
-//     #[inline]
-//     pub fn mask_sign() -> SimdInt4 {
-//         unsafe {
-//             let zero = _mm_setzero_si128();
-//             return SimdFloat4::new(_mm_slli_epi32(_mm_cmpeq_epi32(zero, zero), 31);
-//         }
-//     }
-//
-//     // Returns a SimdInt4 vector with all bits set to 1 except sign.
-//     #[inline]
-//     pub fn mask_not_sign() -> SimdInt4 {
-//         unsafe {
-//             let zero = _mm_setzero_si128();
-//             return SimdFloat4::new(_mm_srli_epi32(_mm_cmpeq_epi32(zero, zero), 1);
-//         }
-//     }
-//
-//     // Returns a SimdInt4 vector with sign bits of x, y and z components set to 1.
-//     #[inline]
-//     pub fn mask_sign_xyz() -> SimdInt4 {
-//         unsafe {
-//             let zero = _mm_setzero_si128();
-//             return SimdFloat4::new(_mm_srli_si128(_mm_slli_epi32(_mm_cmpeq_epi32(zero, zero), 31), 4);
-//         }
-//     }
-//
-//     // Returns a SimdInt4 vector with sign bits of w component set to 1.
-//     #[inline]
-//     pub fn mask_sign_w() -> SimdInt4 {
-//         unsafe {
-//             let zero = _mm_setzero_si128();
-//             return SimdFloat4::new(_mm_slli_si128(_mm_slli_epi32(_mm_cmpeq_epi32(zero, zero), 31), 12);
-//         }
-//     }
-//
-//     // Returns a SimdInt4 vector with all bits set to 1.
-//     #[inline]
-//     pub fn mask_ffff() -> SimdInt4 {
-//         unsafe {
-//             let zero = _mm_setzero_si128();
-//             return SimdFloat4::new(_mm_cmpeq_epi32(zero, zero);
-//         }
-//     }
-//
-//     // Returns a SimdInt4 vector with all bits set to 0.
-//     #[inline]
-//     pub fn mask_0000() -> SimdInt4 {
-//         unsafe {
-//             return SimdFloat4::new(_mm_setzero_si128();
-//         }
-//     }
-//
-//     // Returns a SimdInt4 vector with all the bits of the x, y, z components set to
-//     // 1, while z is set to 0.
-//     #[inline]
-//     pub fn mask_fff0() -> SimdInt4 {
-//         unsafe {
-//             let zero = _mm_setzero_si128();
-//             return SimdFloat4::new(_mm_srli_si128(_mm_cmpeq_epi32(zero, zero), 4);
-//         }
-//     }
-//
-//     // Returns a SimdInt4 vector with all the bits of the x component set to 1,
-//     // while the others are set to 0.
-//     pub fn mask_f000() -> SimdInt4 {
-//         unsafe {
-//             let zero = _mm_setzero_si128();
-//             return SimdFloat4::new(_mm_srli_si128(_mm_cmpeq_epi32(zero, zero), 12);
-//         }
-//     }
-//
-//     // Returns a SimdInt4 vector with all the bits of the y component set to 1,
-//     // while the others are set to 0.
-//     #[inline]
-//     pub fn mask_0f00() -> SimdInt4 {
-//         unsafe {
-//             let zero = _mm_setzero_si128();
-//             return SimdFloat4::new(_mm_srli_si128(_mm_slli_si128(_mm_cmpeq_epi32(zero, zero), 12), 8);
-//         }
-//     }
-//
-//     // Returns a SimdInt4 vector with all the bits of the z component set to 1,
-//     // while the others are set to 0.
-//     #[inline]
-//     pub fn mask_00f0() -> SimdInt4 {
-//         unsafe {
-//             let zero = _mm_setzero_si128();
-//             return SimdFloat4::new(_mm_srli_si128(_mm_slli_si128(_mm_cmpeq_epi32(zero, zero), 12), 4);
-//         }
-//     }
-//
-//     // Returns a SimdInt4 vector with all the bits of the w component set to 1,
-//     // while the others are set to 0.
-//     #[inline]
-//     pub fn mask_000f() -> SimdInt4 {
-//         unsafe {
-//             let zero = _mm_setzero_si128();
-//             return SimdFloat4::new(_mm_slli_si128(_mm_cmpeq_epi32(zero, zero), 12);
-//         }
-//     }
-//
-//     // Loads _x, _y, _z, _w to the returned vector.
-//     // r.x = _x
-//     // r.y = _y
-//     // r.z = _z
-//     // r.w = _w
-//     #[inline]
-//     pub fn load_i32(_x: i32, _y: i32, _z: i32, _w: i32) -> SimdInt4 {
-//         unsafe {
-//             return SimdFloat4::new(_mm_set_epi32(_w, _z, _y, _x);
-//         }
-//     }
-//
-//     #[inline]
-//     pub fn load_x_i32(_x: i32) -> SimdInt4 {
-//         unsafe {
-//             return SimdFloat4::new(_mm_set_epi32(0, 0, 0, _x);
-//         }
-//     }
-//
-//     #[inline]
-//     pub fn load1_i32(_x: i32) -> SimdInt4 {
-//         unsafe {
-//             return SimdFloat4::new(_mm_set1_epi32(_x);
-//         }
-//     }
-//
-//     // Loads _x, _y, _z, _w to the returned vector using the following conversion
-//     // rule.
-//     // r.x = _x ? 0xffffffff:0
-//     // r.y = _y ? 0xffffffff:0
-//     // r.z = _z ? 0xffffffff:0
-//     // r.w = _w ? 0xffffffff:0
-//     #[inline]
-//     pub fn load_bool(_x: bool, _y: bool, _z: bool, _w: bool) -> SimdInt4 {
-//         unsafe {
-//             return SimdFloat4::new(_mm_sub_epi32(_mm_setzero_si128(), _mm_set_epi32(i32::from(_w),
-//                                                                                     i32::from(_z),
-//                                                                                     i32::from(_y),
-//                                                                                     i32::from(_x)));
-//         }
-//     }
-//
-//     // Loads _x to the x component of the returned vector using the following
-//     // conversion rule, and sets y, z and w to 0.
-//     // r.x = _x ? 0xffffffff:0
-//     // r.y = 0
-//     // r.z = 0
-//     // r.w = 0
-//     #[inline]
-//     pub fn load_x_bool(_x: bool) -> SimdInt4 {
-//         unsafe {
-//             return SimdFloat4::new(_mm_sub_epi32(_mm_setzero_si128(), _mm_set_epi32(0, 0, 0, i32::from(_x)));
-//         }
-//     }
-//
-//     // Loads _x to the all the components of the returned vector using the following
-//     // conversion rule.
-//     // r.x = _x ? 0xffffffff:0
-//     // r.y = _x ? 0xffffffff:0
-//     // r.z = _x ? 0xffffffff:0
-//     // r.w = _x ? 0xffffffff:0
-//     #[inline]
-//     pub fn load1_bool(_x: bool) -> SimdInt4 {
-//         unsafe {
-//             return SimdFloat4::new(_mm_sub_epi32(_mm_setzero_si128(), _mm_set1_epi32(i32::from(_x)));
-//         }
-//     }
-//
-//     // Loads the 4 values of _f to the returned vector.
-//     // _i must be aligned to 16 bytes.
-//     // r.x = _i[0]
-//     // r.y = _i[1]
-//     // r.z = _i[2]
-//     // r.w = _i[3]
-//     #[inline]
-//     pub fn load_ptr(_i: [i32; 4]) -> SimdInt4 {
-//         todo!()
-//     }
-//
-//     // Loads _i[0] to the x component of the returned vector, and sets y, z and w
-//     // to 0.
-//     // _i must be aligned to 16 bytes.
-//     // r.x = _i[0]
-//     // r.y = 0
-//     // r.z = 0
-//     // r.w = 0
-//     #[inline]
-//     pub fn load_xptr(_i: [i32; 4]) -> SimdInt4 {
-//         unsafe {
-//             return SimdFloat4::new(_mm_cvtsi32_si128(_i[0]);
-//         }
-//     }
-//
-//     // Loads _i[0] to all the components of the returned vector.
-//     // _i must be aligned to 16 bytes.
-//     // r.x = _i[0]
-//     // r.y = _i[0]
-//     // r.z = _i[0]
-//     // r.w = _i[0]
-//     #[inline]
-//     pub fn load1ptr(_i: [i32; 4]) -> SimdInt4 {
-//         todo!()
-//     }
-//
-//     // Loads the 2 first value of _i to the x and y components of the returned
-//     // vector. The remaining components are set to 0.
-//     // _f must be aligned to 4 bytes.
-//     // r.x = _i[0]
-//     // r.y = _i[1]
-//     // r.z = 0
-//     // r.w = 0
-//     #[inline]
-//     pub fn load2ptr(_i: [i32; 4]) -> SimdInt4 {
-//         todo!()
-//     }
-//
-//     // Loads the 3 first value of _i to the x, y and z components of the returned
-//     // vector. The remaining components are set to 0.
-//     // _f must be aligned to 16 bytes.
-//     // r.x = _i[0]
-//     // r.y = _i[1]
-//     // r.z = _i[2]
-//     // r.w = 0
-//     #[inline]
-//     pub fn load3ptr(_i: [i32; 4]) -> SimdInt4 {
-//         unsafe {
-//             return SimdFloat4::new(_mm_set_epi32(0, _i[2], _i[1], _i[0]);
-//         }
-//     }
-//
-//     // Loads the 4 values of _f to the returned vector.
-//     // _i must be aligned to 16 bytes.
-//     // r.x = _i[0]
-//     // r.y = _i[1]
-//     // r.z = _i[2]
-//     // r.w = _i[3]
-//     #[inline]
-//     pub fn load_ptr_u(_i: [i32; 4]) -> SimdInt4 {
-//         todo!()
-//     }
-//
-//     // Loads _i[0] to the x component of the returned vector, and sets y, z and w
-//     // to 0.
-//     // _f must be aligned to 4 bytes.
-//     // r.x = _i[0]
-//     // r.y = 0
-//     // r.z = 0
-//     // r.w = 0
-//     #[inline]
-//     pub fn load_xptr_u(_i: [i32; 4]) -> SimdInt4 {
-//         unsafe {
-//             return SimdFloat4::new(_mm_cvtsi32_si128(_i[0]);
-//         }
-//     }
-//
-//     // Loads the 4 values of _i to the returned vector.
-//     // _i must be aligned to 4 bytes.
-//     // r.x = _i[0]
-//     // r.y = _i[0]
-//     // r.z = _i[0]
-//     // r.w = _i[0]
-//     #[inline]
-//     pub fn load1ptr_u(_i: [i32; 4]) -> SimdInt4 {
-//         unsafe {
-//             return SimdFloat4::new(_mm_set1_epi32(_i[0]);
-//         }
-//     }
-//
-//     // Loads the 2 first value of _i to the x and y components of the returned
-//     // vector. The remaining components are set to 0.
-//     // _f must be aligned to 4 bytes.
-//     // r.x = _i[0]
-//     // r.y = _i[1]
-//     // r.z = 0
-//     // r.w = 0
-//     #[inline]
-//     pub fn load2ptr_u(_i: [i32; 4]) -> SimdInt4 {
-//         unsafe {
-//             return SimdFloat4::new(_mm_set_epi32(0, 0, _i[1], _i[0]);
-//         }
-//     }
-//
-//     // Loads the 3 first value of _i to the x, y and z components of the returned
-//     // vector. The remaining components are set to 0.
-//     // _f must be aligned to 4 bytes.
-//     // r.x = _i[0]
-//     // r.y = _i[1]
-//     // r.z = _i[2]
-//     // r.w = 0
-//     #[inline]
-//     pub fn load3ptr_u(_i: [i32; 4]) -> SimdInt4 {
-//         unsafe {
-//             return SimdFloat4::new(_mm_set_epi32(0, _i[2], _i[1], _i[0]);
-//         }
-//     }
-//
-//     // Convert from float to integer by rounding the nearest value.
-//     #[inline]
-//     pub fn from_float_round(_f: SimdFloat4) -> SimdInt4 {
-//         unsafe {
-//             return SimdFloat4::new(_mm_cvtps_epi32(_f);
-//         }
-//     }
-//
-//     // Convert from float to integer by truncating.
-//     #[inline]
-//     pub fn from_float_trunc(_f: SimdFloat4) -> SimdInt4 {
-//         unsafe {
-//             return SimdFloat4::new(_mm_cvttps_epi32(_f);
-//         }
-//     }
-//
-//     //----------------------------------------------------------------------------------------------
+    // Returns a SimdInt4 vector with all components set to 1.
+    #[inline]
+    pub fn one() -> SimdInt4 {
+        unsafe {
+            let zero = _mm_setzero_si128();
+            return SimdInt4::new(_mm_sub_epi32(zero, _mm_cmpeq_epi32(zero, zero)));
+        }
+    }
+
+    // Returns a SimdInt4 vector with the x component set to 1 and all the others
+    // to 0.
+    #[inline]
+    pub fn x_axis() -> SimdInt4 {
+        unsafe {
+            let zero = _mm_setzero_si128();
+            return SimdInt4::new(_mm_srli_si128(_mm_sub_epi32(zero, _mm_cmpeq_epi32(zero, zero)), 12));
+        }
+    }
+
+    // Returns a SimdInt4 vector with the y component set to 1 and all the others
+    // to 0.
+    #[inline]
+    pub fn y_axis() -> SimdInt4 {
+        unsafe {
+            let zero = _mm_setzero_si128();
+            return SimdInt4::new(_mm_slli_si128(
+                _mm_srli_si128(_mm_sub_epi32(zero, _mm_cmpeq_epi32(zero, zero)), 12), 4));
+        }
+    }
+
+    // Returns a SimdInt4 vector with the z component set to 1 and all the others
+    // to 0.
+    #[inline]
+    pub fn z_axis() -> SimdInt4 {
+        unsafe {
+            let zero = _mm_setzero_si128();
+            return SimdInt4::new(_mm_slli_si128(
+                _mm_srli_si128(_mm_sub_epi32(zero, _mm_cmpeq_epi32(zero, zero)), 12), 8));
+        }
+    }
+
+    // Returns a SimdInt4 vector with the w component set to 1 and all the others
+    // to 0.
+    #[inline]
+    pub fn w_axis() -> SimdInt4 {
+        unsafe {
+            let zero = _mm_setzero_si128();
+            return SimdInt4::new(_mm_slli_si128(_mm_sub_epi32(zero, _mm_cmpeq_epi32(zero, zero)), 12));
+        }
+    }
+
+    // Returns a SimdInt4 vector with all components set to true (0xffffffff).
+    #[inline]
+    pub fn all_true() -> SimdInt4 {
+        unsafe {
+            let zero = _mm_setzero_si128();
+            return SimdInt4::new(_mm_cmpeq_epi32(zero, zero));
+        }
+    }
+
+    // Returns a SimdInt4 vector with all components set to false (0).
+    #[inline]
+    pub fn all_false() -> SimdInt4 {
+        unsafe {
+            return SimdInt4::new(_mm_setzero_si128());
+        }
+    }
+
+    // Returns a SimdInt4 vector with sign bits set to 1.
+    #[inline]
+    pub fn mask_sign() -> SimdInt4 {
+        unsafe {
+            let zero = _mm_setzero_si128();
+            return SimdInt4::new(_mm_slli_epi32(_mm_cmpeq_epi32(zero, zero), 31));
+        }
+    }
+
+    // Returns a SimdInt4 vector with all bits set to 1 except sign.
+    #[inline]
+    pub fn mask_not_sign() -> SimdInt4 {
+        unsafe {
+            let zero = _mm_setzero_si128();
+            return SimdInt4::new(_mm_srli_epi32(_mm_cmpeq_epi32(zero, zero), 1));
+        }
+    }
+
+    // Returns a SimdInt4 vector with sign bits of x, y and z components set to 1.
+    #[inline]
+    pub fn mask_sign_xyz() -> SimdInt4 {
+        unsafe {
+            let zero = _mm_setzero_si128();
+            return SimdInt4::new(_mm_srli_si128(_mm_slli_epi32(_mm_cmpeq_epi32(zero, zero), 31), 4));
+        }
+    }
+
+    // Returns a SimdInt4 vector with sign bits of w component set to 1.
+    #[inline]
+    pub fn mask_sign_w() -> SimdInt4 {
+        unsafe {
+            let zero = _mm_setzero_si128();
+            return SimdInt4::new(_mm_slli_si128(_mm_slli_epi32(_mm_cmpeq_epi32(zero, zero), 31), 12));
+        }
+    }
+
+    // Returns a SimdInt4 vector with all bits set to 1.
+    #[inline]
+    pub fn mask_ffff() -> SimdInt4 {
+        unsafe {
+            let zero = _mm_setzero_si128();
+            return SimdInt4::new(_mm_cmpeq_epi32(zero, zero));
+        }
+    }
+
+    // Returns a SimdInt4 vector with all bits set to 0.
+    #[inline]
+    pub fn mask_0000() -> SimdInt4 {
+        unsafe {
+            return SimdInt4::new(_mm_setzero_si128());
+        }
+    }
+
+    // Returns a SimdInt4 vector with all the bits of the x, y, z components set to
+    // 1, while z is set to 0.
+    #[inline]
+    pub fn mask_fff0() -> SimdInt4 {
+        unsafe {
+            let zero = _mm_setzero_si128();
+            return SimdInt4::new(_mm_srli_si128(_mm_cmpeq_epi32(zero, zero), 4));
+        }
+    }
+
+    // Returns a SimdInt4 vector with all the bits of the x component set to 1,
+    // while the others are set to 0.
+    pub fn mask_f000() -> SimdInt4 {
+        unsafe {
+            let zero = _mm_setzero_si128();
+            return SimdInt4::new(_mm_srli_si128(_mm_cmpeq_epi32(zero, zero), 12));
+        }
+    }
+
+    // Returns a SimdInt4 vector with all the bits of the y component set to 1,
+    // while the others are set to 0.
+    #[inline]
+    pub fn mask_0f00() -> SimdInt4 {
+        unsafe {
+            let zero = _mm_setzero_si128();
+            return SimdInt4::new(_mm_srli_si128(_mm_slli_si128(_mm_cmpeq_epi32(zero, zero), 12), 8));
+        }
+    }
+
+    // Returns a SimdInt4 vector with all the bits of the z component set to 1,
+    // while the others are set to 0.
+    #[inline]
+    pub fn mask_00f0() -> SimdInt4 {
+        unsafe {
+            let zero = _mm_setzero_si128();
+            return SimdInt4::new(_mm_srli_si128(_mm_slli_si128(_mm_cmpeq_epi32(zero, zero), 12), 4));
+        }
+    }
+
+    // Returns a SimdInt4 vector with all the bits of the w component set to 1,
+    // while the others are set to 0.
+    #[inline]
+    pub fn mask_000f() -> SimdInt4 {
+        unsafe {
+            let zero = _mm_setzero_si128();
+            return SimdInt4::new(_mm_slli_si128(_mm_cmpeq_epi32(zero, zero), 12));
+        }
+    }
+
+    // Loads _x, _y, _z, _w to the returned vector.
+    // r.x = _x
+    // r.y = _y
+    // r.z = _z
+    // r.w = _w
+    #[inline]
+    pub fn load_i32(_x: i32, _y: i32, _z: i32, _w: i32) -> SimdInt4 {
+        unsafe {
+            return SimdInt4::new(_mm_set_epi32(_w, _z, _y, _x));
+        }
+    }
+
+    #[inline]
+    pub fn load_x_i32(_x: i32) -> SimdInt4 {
+        unsafe {
+            return SimdInt4::new(_mm_set_epi32(0, 0, 0, _x));
+        }
+    }
+
+    #[inline]
+    pub fn load1_i32(_x: i32) -> SimdInt4 {
+        unsafe {
+            return SimdInt4::new(_mm_set1_epi32(_x));
+        }
+    }
+
+    // Loads _x, _y, _z, _w to the returned vector using the following conversion
+    // rule.
+    // r.x = _x ? 0xffffffff:0
+    // r.y = _y ? 0xffffffff:0
+    // r.z = _z ? 0xffffffff:0
+    // r.w = _w ? 0xffffffff:0
+    #[inline]
+    pub fn load_bool(_x: bool, _y: bool, _z: bool, _w: bool) -> SimdInt4 {
+        unsafe {
+            return SimdInt4::new(_mm_sub_epi32(_mm_setzero_si128(), _mm_set_epi32(i32::from(_w),
+                                                                                    i32::from(_z),
+                                                                                    i32::from(_y),
+                                                                                    i32::from(_x))));
+        }
+    }
+
+    // Loads _x to the x component of the returned vector using the following
+    // conversion rule, and sets y, z and w to 0.
+    // r.x = _x ? 0xffffffff:0
+    // r.y = 0
+    // r.z = 0
+    // r.w = 0
+    #[inline]
+    pub fn load_x_bool(_x: bool) -> SimdInt4 {
+        unsafe {
+            return SimdInt4::new(_mm_sub_epi32(_mm_setzero_si128(), _mm_set_epi32(0, 0, 0, i32::from(_x))));
+        }
+    }
+
+    // Loads _x to the all the components of the returned vector using the following
+    // conversion rule.
+    // r.x = _x ? 0xffffffff:0
+    // r.y = _x ? 0xffffffff:0
+    // r.z = _x ? 0xffffffff:0
+    // r.w = _x ? 0xffffffff:0
+    #[inline]
+    pub fn load1_bool(_x: bool) -> SimdInt4 {
+        unsafe {
+            return SimdInt4::new(_mm_sub_epi32(_mm_setzero_si128(), _mm_set1_epi32(i32::from(_x))));
+        }
+    }
+
+    // Loads the 4 values of _f to the returned vector.
+    // _i must be aligned to 16 bytes.
+    // r.x = _i[0]
+    // r.y = _i[1]
+    // r.z = _i[2]
+    // r.w = _i[3]
+    #[inline]
+    pub fn load_ptr(_i: [i32; 4]) -> SimdInt4 {
+        todo!()
+    }
+
+    // Loads _i[0] to the x component of the returned vector, and sets y, z and w
+    // to 0.
+    // _i must be aligned to 16 bytes.
+    // r.x = _i[0]
+    // r.y = 0
+    // r.z = 0
+    // r.w = 0
+    #[inline]
+    pub fn load_xptr(_i: [i32; 4]) -> SimdInt4 {
+        unsafe {
+            return SimdInt4::new(_mm_cvtsi32_si128(_i[0]));
+        }
+    }
+
+    // Loads _i[0] to all the components of the returned vector.
+    // _i must be aligned to 16 bytes.
+    // r.x = _i[0]
+    // r.y = _i[0]
+    // r.z = _i[0]
+    // r.w = _i[0]
+    #[inline]
+    pub fn load1ptr(_i: [i32; 4]) -> SimdInt4 {
+        todo!()
+    }
+
+    // Loads the 2 first value of _i to the x and y components of the returned
+    // vector. The remaining components are set to 0.
+    // _f must be aligned to 4 bytes.
+    // r.x = _i[0]
+    // r.y = _i[1]
+    // r.z = 0
+    // r.w = 0
+    #[inline]
+    pub fn load2ptr(_i: [i32; 4]) -> SimdInt4 {
+        todo!()
+    }
+
+    // Loads the 3 first value of _i to the x, y and z components of the returned
+    // vector. The remaining components are set to 0.
+    // _f must be aligned to 16 bytes.
+    // r.x = _i[0]
+    // r.y = _i[1]
+    // r.z = _i[2]
+    // r.w = 0
+    #[inline]
+    pub fn load3ptr(_i: [i32; 4]) -> SimdInt4 {
+        unsafe {
+            return SimdInt4::new(_mm_set_epi32(0, _i[2], _i[1], _i[0]));
+        }
+    }
+
+    // Loads the 4 values of _f to the returned vector.
+    // _i must be aligned to 16 bytes.
+    // r.x = _i[0]
+    // r.y = _i[1]
+    // r.z = _i[2]
+    // r.w = _i[3]
+    #[inline]
+    pub fn load_ptr_u(_i: [i32; 4]) -> SimdInt4 {
+        todo!()
+    }
+
+    // Loads _i[0] to the x component of the returned vector, and sets y, z and w
+    // to 0.
+    // _f must be aligned to 4 bytes.
+    // r.x = _i[0]
+    // r.y = 0
+    // r.z = 0
+    // r.w = 0
+    #[inline]
+    pub fn load_xptr_u(_i: [i32; 4]) -> SimdInt4 {
+        unsafe {
+            return SimdInt4::new(_mm_cvtsi32_si128(_i[0]));
+        }
+    }
+
+    // Loads the 4 values of _i to the returned vector.
+    // _i must be aligned to 4 bytes.
+    // r.x = _i[0]
+    // r.y = _i[0]
+    // r.z = _i[0]
+    // r.w = _i[0]
+    #[inline]
+    pub fn load1ptr_u(_i: [i32; 4]) -> SimdInt4 {
+        unsafe {
+            return SimdInt4::new(_mm_set1_epi32(_i[0]));
+        }
+    }
+
+    // Loads the 2 first value of _i to the x and y components of the returned
+    // vector. The remaining components are set to 0.
+    // _f must be aligned to 4 bytes.
+    // r.x = _i[0]
+    // r.y = _i[1]
+    // r.z = 0
+    // r.w = 0
+    #[inline]
+    pub fn load2ptr_u(_i: [i32; 4]) -> SimdInt4 {
+        unsafe {
+            return SimdInt4::new(_mm_set_epi32(0, 0, _i[1], _i[0]));
+        }
+    }
+
+    // Loads the 3 first value of _i to the x, y and z components of the returned
+    // vector. The remaining components are set to 0.
+    // _f must be aligned to 4 bytes.
+    // r.x = _i[0]
+    // r.y = _i[1]
+    // r.z = _i[2]
+    // r.w = 0
+    #[inline]
+    pub fn load3ptr_u(_i: [i32; 4]) -> SimdInt4 {
+        unsafe {
+            return SimdInt4::new(_mm_set_epi32(0, _i[2], _i[1], _i[0]));
+        }
+    }
+
+    // Convert from float to integer by rounding the nearest value.
+    #[inline]
+    pub fn from_float_round(_f: SimdFloat4) -> SimdInt4 {
+        unsafe {
+            return SimdInt4::new(_mm_cvtps_epi32(_f.data));
+        }
+    }
+
+    // Convert from float to integer by truncating.
+    #[inline]
+    pub fn from_float_trunc(_f: SimdFloat4) -> SimdInt4 {
+        unsafe {
+            return SimdInt4::new(_mm_cvttps_epi32(_f.data));
+        }
+    }
+
+    //----------------------------------------------------------------------------------------------
 //     // Returns the x component of _v as an integer.
 //     #[inline]
 //     pub fn get_x(_v: SimdInt4) -> i32 {
