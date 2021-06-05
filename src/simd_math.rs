@@ -2403,249 +2403,249 @@ impl SimdInt4 {
         }
     }
 
-//     // Computes the (horizontal) addition of x and y components of _v. The result is
-//     // stored in the x component of the returned value. y, z, w of the returned
-//     // vector are the same as their respective components in _v.
-//     // r.x = _a.x + _a.y
-//     // r.y = _a.y
-//     // r.z = _a.z
-//     // r.w = _a.w
-//     #[inline]
-//     pub fn hadd2(_v: SimdInt4) -> SimdInt4 {
-//         unsafe {
-//             let hadd = _mm_add_epi32(_v, ozz_sse_splat_i!(_v, 1));
-//             return SimdFloat4::new(_mm_castps_si128(
-//                 _mm_move_ss(_mm_castsi128_ps(_v), _mm_castsi128_ps(hadd)));
-//         }
-//     }
-//
-//     // Computes the (horizontal) addition of x, y and z components of _v. The result
-//     // is stored in the x component of the returned value. y, z, w of the returned
-//     // vector are the same as their respective components in _v.
-//     // r.x = _a.x + _a.y + _a.z
-//     // r.y = _a.y
-//     // r.z = _a.z
-//     // r.w = _a.w
-//     #[inline]
-//     pub fn hadd3(_v: SimdInt4) -> SimdInt4 {
-//         unsafe {
-//             let hadd = _mm_add_epi32(_mm_add_epi32(_v, ozz_sse_splat_i!(_v, 1)),
-//                                      _mm_unpackhi_epi32(_v, _v));
-//             return SimdFloat4::new(_mm_castps_si128(
-//                 _mm_move_ss(_mm_castsi128_ps(_v), _mm_castsi128_ps(hadd)));
-//         }
-//     }
-//
-//     // Computes the (horizontal) addition of x and y components of _v. The result is
-//     // stored in the x component of the returned value. y, z, w of the returned
-//     // vector are the same as their respective components in _v.
-//     // r.x = _a.x + _a.y + _a.z + _a.w
-//     // r.y = _a.y
-//     // r.z = _a.z
-//     // r.w = _a.w
-//     #[inline]
-//     pub fn hadd4(_v: SimdInt4) -> SimdInt4 {
-//         unsafe {
-//             let v = _mm_castsi128_ps(_v);
-//             let haddxyzw =
-//                 _mm_add_epi32(_v, _mm_castps_si128(_mm_movehl_ps(v, v)));
-//             return SimdFloat4::new(_mm_castps_si128(_mm_move_ss(
-//                 v,
-//                 _mm_castsi128_ps(_mm_add_epi32(haddxyzw, ozz_sse_splat_i!(haddxyzw, 1)))));
-//         }
-//     }
-//
-//     // Returns the per element absolute value of _v.
-//     #[inline]
-//     pub fn abs(_v: SimdInt4) -> SimdInt4 {
-//         unsafe {
-//             return SimdFloat4::new(_mm_abs_epi32(_v);
-//         }
-//     }
-//
-//     // Returns the sign bit of _v.
-//     #[inline]
-//     pub fn sign(_v: SimdInt4) -> SimdInt4 {
-//         unsafe {
-//             return SimdFloat4::new(_mm_slli_epi32(_mm_srli_epi32(_v, 31), 31);
-//         }
-//     }
-//
-//     // Returns the per component minimum of _a and _b.
-//     #[inline]
-//     pub fn min(_a: SimdInt4, _b: SimdInt4) -> SimdInt4 {
-//         unsafe {
-//             return SimdFloat4::new(_mm_min_epi32(_a, _b);
-//         }
-//     }
-//
-//     // Returns the per component maximum of _a and _b.
-//     #[inline]
-//     pub fn max(_a: SimdInt4, _b: SimdInt4) -> SimdInt4 {
-//         unsafe {
-//             return SimdFloat4::new(_mm_max_epi32(_a, _b);
-//         }
-//     }
-//
-//     // Returns the per component minimum of _v and 0.
-//     #[inline]
-//     pub fn min0(_v: SimdInt4) -> SimdInt4 {
-//         unsafe {
-//             let zero = _mm_setzero_si128();
-//             return SimdFloat4::new(_mm_min_epi32(zero, _v);
-//         }
-//     }
-//
-//     // Returns the per component maximum of _v and 0.
-//     #[inline]
-//     pub fn max0(_v: SimdInt4) -> SimdInt4 {
-//         unsafe {
-//             let zero = _mm_setzero_si128();
-//             return SimdFloat4::new(_mm_max_epi32(zero, _v);
-//         }
-//     }
-//
-//     // Clamps each element of _x between _a and _b.
-//     // Result is unknown if _a is not less or equal to _b.
-//     #[inline]
-//     pub fn clamp(_a: SimdInt4, _v: SimdInt4, _b: SimdInt4) -> SimdInt4 {
-//         unsafe {
-//             return SimdFloat4::new(_mm_min_epi32(_mm_max_epi32(_a, _v), _b);
-//         }
-//     }
-//
-//     // Returns boolean selection of vectors _true and _false according to consition
-//     // _b. All bits a each component of _b must have the same value (O or
-//     // 0xffffffff) to ensure portability.
-//     #[inline]
-//     pub fn select(_b: SimdInt4, _true: SimdInt4, _false: SimdInt4) -> SimdInt4 {
-//         unsafe {
-//             return SimdFloat4::new(ozz_sse_select_i!(_b, _true, _false);
-//         }
-//     }
-//
-//     // Returns per element binary and operation of _a and _b.
-//     // _v[0...127] = _a[0...127] & _b[0...127]
-//     #[inline]
-//     pub fn and(_a: SimdInt4, _b: SimdInt4) -> SimdInt4 {
-//         unsafe {
-//             return SimdFloat4::new(_mm_and_si128(_a, _b);
-//         }
-//     }
-//
-//     // Returns per element binary and operation of _a and ~_b.
-//     // _v[0...127] = _a[0...127] & ~_b[0...127]
-//     #[inline]
-//     pub fn and_not(_a: SimdInt4, _b: SimdInt4) -> SimdInt4 {
-//         unsafe {
-//             return SimdFloat4::new(_mm_andnot_si128(_b, _a);
-//         }
-//     }
-//
-//     // Returns per element binary or operation of _a and _b.
-//     // _v[0...127] = _a[0...127] | _b[0...127]
-//     #[inline]
-//     pub fn or(_a: SimdInt4, _b: SimdInt4) -> SimdInt4 {
-//         unsafe {
-//             return SimdFloat4::new(_mm_or_si128(_a, _b);
-//         }
-//     }
-//
-//     // Returns per element binary logical xor operation of _a and _b.
-//     // _v[0...127] = _a[0...127] ^ _b[0...127]
-//     #[inline]
-//     pub fn xor(_a: SimdInt4, _b: SimdInt4) -> SimdInt4 {
-//         unsafe {
-//             return SimdFloat4::new(_mm_xor_si128(_a, _b);
-//         }
-//     }
-//
-//     // Returns per element binary complement of _v.
-//     // _v[0...127] = ~_b[0...127]
-//     #[inline]
-//     pub fn not(_v: SimdInt4) -> SimdInt4 {
-//         unsafe {
-//             return SimdFloat4::new(_mm_xor_si128(_v, _mm_cmpeq_epi32(_v, _v));
-//         }
-//     }
-//
-//     // Shifts the 4 signed or unsigned 32-bit integers in a left by count _bits
-//     // while shifting in zeros.
-//     #[inline]
-//     pub fn shift_l<const BITS: i32>(_v: SimdInt4) -> SimdInt4 {
-//         unsafe {
-//             return SimdFloat4::new(_mm_slli_epi32(_v, BITS);
-//         }
-//     }
-//
-//     // Shifts the 4 signed 32-bit integers in a right by count bits while shifting
-//     // in the sign bit.
-//     #[inline]
-//     pub fn shift_r<const BITS: i32>(_v: SimdInt4) -> SimdInt4 {
-//         unsafe {
-//             return SimdFloat4::new(_mm_srai_epi32(_v, BITS);
-//         }
-//     }
-//
-//     // Shifts the 4 signed or unsigned 32-bit integers in a right by count bits
-//     // while shifting in zeros.
-//     #[inline]
-//     pub fn shift_ru<const BITS: i32>(_v: SimdInt4) -> SimdInt4 {
-//         unsafe {
-//             return SimdFloat4::new(_mm_srli_epi32(_v, BITS);
-//         }
-//     }
-//
-//     // Per element "equal" comparison of _a and _b.
-//     #[inline]
-//     pub fn cmp_eq(_a: SimdInt4, _b: SimdInt4) -> SimdInt4 {
-//         unsafe {
-//             return SimdFloat4::new(_mm_cmpeq_epi32(_a, _b);
-//         }
-//     }
-//
-//     // Per element "not equal" comparison of _a and _b.
-//     #[inline]
-//     pub fn cmp_ne(_a: SimdInt4, _b: SimdInt4) -> SimdInt4 {
-//         unsafe {
-//             let eq = _mm_cmpeq_epi32(_a, _b);
-//             return SimdFloat4::new(_mm_xor_si128(eq, _mm_cmpeq_epi32(_a, _a));
-//         }
-//     }
-//
-//     // Per element "less than" comparison of _a and _b.
-//     #[inline]
-//     pub fn cmp_lt(_a: SimdInt4, _b: SimdInt4) -> SimdInt4 {
-//         unsafe {
-//             return SimdFloat4::new(_mm_cmpgt_epi32(_b, _a);
-//         }
-//     }
-//
-//     // Per element "less than or equal" comparison of _a and _b.
-//     #[inline]
-//     pub fn cmp_le(_a: SimdInt4, _b: SimdInt4) -> SimdInt4 {
-//         unsafe {
-//             let gt = _mm_cmpgt_epi32(_a, _b);
-//             return SimdFloat4::new(_mm_xor_si128(gt, _mm_cmpeq_epi32(_a, _a));
-//         }
-//     }
-//
-//     // Per element "greater than" comparison of _a and _b.
-//     #[inline]
-//     pub fn cmp_gt(_a: SimdInt4, _b: SimdInt4) -> SimdInt4 {
-//         unsafe {
-//             return SimdFloat4::new(_mm_cmpgt_epi32(_a, _b);
-//         }
-//     }
-//
-//     // Per element "greater than or equal" comparison of _a and _b.
-//     #[inline]
-//     pub fn cmp_ge(_a: SimdInt4, _b: SimdInt4) -> SimdInt4 {
-//         unsafe {
-//             let lt = _mm_cmpgt_epi32(_b, _a);
-//             return SimdFloat4::new(_mm_xor_si128(lt, _mm_cmpeq_epi32(_a, _a));
-//         }
-//     }
+    // Computes the (horizontal) addition of x and y components of _v. The result is
+    // stored in the x component of the returned value. y, z, w of the returned
+    // vector are the same as their respective components in _v.
+    // r.x = _a.x + _a.y
+    // r.y = _a.y
+    // r.z = _a.z
+    // r.w = _a.w
+    #[inline]
+    pub fn hadd2(&self) -> SimdInt4 {
+        unsafe {
+            let hadd = _mm_add_epi32(self.data, ozz_sse_splat_i!(self.data, 1));
+            return SimdInt4::new(_mm_castps_si128(
+                _mm_move_ss(_mm_castsi128_ps(self.data), _mm_castsi128_ps(hadd))));
+        }
+    }
+
+    // Computes the (horizontal) addition of x, y and z components of _v. The result
+    // is stored in the x component of the returned value. y, z, w of the returned
+    // vector are the same as their respective components in _v.
+    // r.x = _a.x + _a.y + _a.z
+    // r.y = _a.y
+    // r.z = _a.z
+    // r.w = _a.w
+    #[inline]
+    pub fn hadd3(&self) -> SimdInt4 {
+        unsafe {
+            let hadd = _mm_add_epi32(_mm_add_epi32(self.data, ozz_sse_splat_i!(self.data, 1)),
+                                     _mm_unpackhi_epi32(self.data, self.data));
+            return SimdInt4::new(_mm_castps_si128(
+                _mm_move_ss(_mm_castsi128_ps(self.data), _mm_castsi128_ps(hadd))));
+        }
+    }
+
+    // Computes the (horizontal) addition of x and y components of _v. The result is
+    // stored in the x component of the returned value. y, z, w of the returned
+    // vector are the same as their respective components in _v.
+    // r.x = _a.x + _a.y + _a.z + _a.w
+    // r.y = _a.y
+    // r.z = _a.z
+    // r.w = _a.w
+    #[inline]
+    pub fn hadd4(&self) -> SimdInt4 {
+        unsafe {
+            let v = _mm_castsi128_ps(self.data);
+            let haddxyzw =
+                _mm_add_epi32(self.data, _mm_castps_si128(_mm_movehl_ps(v, v)));
+            return SimdInt4::new(_mm_castps_si128(_mm_move_ss(
+                v,
+                _mm_castsi128_ps(_mm_add_epi32(haddxyzw, ozz_sse_splat_i!(haddxyzw, 1))))));
+        }
+    }
+
+    // Returns the per element absolute value of _v.
+    #[inline]
+    pub fn abs(&self) -> SimdInt4 {
+        unsafe {
+            return SimdInt4::new(_mm_abs_epi32(self.data));
+        }
+    }
+
+    // Returns the sign bit of _v.
+    #[inline]
+    pub fn sign(&self) -> SimdInt4 {
+        unsafe {
+            return SimdInt4::new(_mm_slli_epi32(_mm_srli_epi32(self.data, 31), 31));
+        }
+    }
+
+    // Returns the per component minimum of _a and _b.
+    #[inline]
+    pub fn min(&self, _b: SimdInt4) -> SimdInt4 {
+        unsafe {
+            return SimdInt4::new(_mm_min_epi32(self.data, _b.data));
+        }
+    }
+
+    // Returns the per component maximum of _a and _b.
+    #[inline]
+    pub fn max(&self, _b: SimdInt4) -> SimdInt4 {
+        unsafe {
+            return SimdInt4::new(_mm_max_epi32(self.data, _b.data));
+        }
+    }
+
+    // Returns the per component minimum of _v and 0.
+    #[inline]
+    pub fn min0(&self) -> SimdInt4 {
+        unsafe {
+            let zero = _mm_setzero_si128();
+            return SimdInt4::new(_mm_min_epi32(zero, self.data));
+        }
+    }
+
+    // Returns the per component maximum of _v and 0.
+    #[inline]
+    pub fn max0(&self) -> SimdInt4 {
+        unsafe {
+            let zero = _mm_setzero_si128();
+            return SimdInt4::new(_mm_max_epi32(zero, self.data));
+        }
+    }
+
+    // Clamps each element of _x between _a and _b.
+    // Result is unknown if _a is not less or equal to _b.
+    #[inline]
+    pub fn clamp(&self, _a: SimdInt4, _b: SimdInt4) -> SimdInt4 {
+        unsafe {
+            return SimdInt4::new(_mm_min_epi32(_mm_max_epi32(_a.data, self.data), _b.data));
+        }
+    }
+
+    // Returns boolean selection of vectors _true and _false according to consition
+    // _b. All bits a each component of _b must have the same value (O or
+    // 0xffffffff) to ensure portability.
+    #[inline]
+    pub fn select(_b: SimdInt4, _true: SimdInt4, _false: SimdInt4) -> SimdInt4 {
+        unsafe {
+            return SimdInt4::new(ozz_sse_select_i!(_b.data, _true.data, _false.data));
+        }
+    }
+
+    // Returns per element binary and operation of _a and _b.
+    // _v[0...127] = _a[0...127] & _b[0...127]
+    #[inline]
+    pub fn and(&self, _b: SimdInt4) -> SimdInt4 {
+        unsafe {
+            return SimdInt4::new(_mm_and_si128(self.data, _b.data));
+        }
+    }
+
+    // Returns per element binary and operation of _a and ~_b.
+    // _v[0...127] = _a[0...127] & ~_b[0...127]
+    #[inline]
+    pub fn and_not(&self, _b: SimdInt4) -> SimdInt4 {
+        unsafe {
+            return SimdInt4::new(_mm_andnot_si128(_b.data, self.data));
+        }
+    }
+
+    // Returns per element binary or operation of _a and _b.
+    // _v[0...127] = _a[0...127] | _b[0...127]
+    #[inline]
+    pub fn or(&self, _b: SimdInt4) -> SimdInt4 {
+        unsafe {
+            return SimdInt4::new(_mm_or_si128(self.data, _b.data));
+        }
+    }
+
+    // Returns per element binary logical xor operation of _a and _b.
+    // _v[0...127] = _a[0...127] ^ _b[0...127]
+    #[inline]
+    pub fn xor(&self, _b: SimdInt4) -> SimdInt4 {
+        unsafe {
+            return SimdInt4::new(_mm_xor_si128(self.data, _b.data));
+        }
+    }
+
+    // Returns per element binary complement of _v.
+    // _v[0...127] = ~_b[0...127]
+    #[inline]
+    pub fn not(&self) -> SimdInt4 {
+        unsafe {
+            return SimdInt4::new(_mm_xor_si128(self.data, _mm_cmpeq_epi32(self.data, self.data)));
+        }
+    }
+
+    // Shifts the 4 signed or unsigned 32-bit integers in a left by count _bits
+    // while shifting in zeros.
+    #[inline]
+    pub fn shift_l<const BITS: i32>(&self) -> SimdInt4 {
+        unsafe {
+            return SimdInt4::new(_mm_slli_epi32(self.data, BITS));
+        }
+    }
+
+    // Shifts the 4 signed 32-bit integers in a right by count bits while shifting
+    // in the sign bit.
+    #[inline]
+    pub fn shift_r<const BITS: i32>(&self) -> SimdInt4 {
+        unsafe {
+            return SimdInt4::new(_mm_srai_epi32(self.data, BITS));
+        }
+    }
+
+    // Shifts the 4 signed or unsigned 32-bit integers in a right by count bits
+    // while shifting in zeros.
+    #[inline]
+    pub fn shift_ru<const BITS: i32>(&self) -> SimdInt4 {
+        unsafe {
+            return SimdInt4::new(_mm_srli_epi32(self.data, BITS));
+        }
+    }
+
+    // Per element "equal" comparison of _a and _b.
+    #[inline]
+    pub fn cmp_eq(&self, _b: SimdInt4) -> SimdInt4 {
+        unsafe {
+            return SimdInt4::new(_mm_cmpeq_epi32(self.data, _b.data));
+        }
+    }
+
+    // Per element "not equal" comparison of _a and _b.
+    #[inline]
+    pub fn cmp_ne(&self, _b: SimdInt4) -> SimdInt4 {
+        unsafe {
+            let eq = _mm_cmpeq_epi32(self.data, _b.data);
+            return SimdInt4::new(_mm_xor_si128(eq, _mm_cmpeq_epi32(self.data, self.data)));
+        }
+    }
+
+    // Per element "less than" comparison of _a and _b.
+    #[inline]
+    pub fn cmp_lt(&self, _b: SimdInt4) -> SimdInt4 {
+        unsafe {
+            return SimdInt4::new(_mm_cmpgt_epi32(_b.data, self.data));
+        }
+    }
+
+    // Per element "less than or equal" comparison of _a and _b.
+    #[inline]
+    pub fn cmp_le(&self, _b: SimdInt4) -> SimdInt4 {
+        unsafe {
+            let gt = _mm_cmpgt_epi32(self.data, _b.data);
+            return SimdInt4::new(_mm_xor_si128(gt, _mm_cmpeq_epi32(self.data, self.data)));
+        }
+    }
+
+    // Per element "greater than" comparison of _a and _b.
+    #[inline]
+    pub fn cmp_gt(&self, _b: SimdInt4) -> SimdInt4 {
+        unsafe {
+            return SimdInt4::new(_mm_cmpgt_epi32(self.data, _b.data));
+        }
+    }
+
+    // Per element "greater than or equal" comparison of _a and _b.
+    #[inline]
+    pub fn cmp_ge(&self, _b: SimdInt4) -> SimdInt4 {
+        unsafe {
+            let lt = _mm_cmpgt_epi32(_b.data, self.data);
+            return SimdInt4::new(_mm_xor_si128(lt, _mm_cmpeq_epi32(self.data, self.data)));
+        }
+    }
 }
 
 //--------------------------------------------------------------------------------------------------
