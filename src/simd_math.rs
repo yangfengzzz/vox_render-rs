@@ -1454,252 +1454,251 @@ impl SimdFloat4 {
             return SimdFloat4::new(ozz_sse_select_f!(cond, _safe.data, cfalse));
         }
     }
-//
-//     // Computes the per element linear interpolation of _a and _b, where _alpha is
-//     // not bound to range [0,1].
-//     #[inline]
-//     pub fn lerp(_a: SimdFloat4, _b: SimdFloat4, _alpha: SimdFloat4) -> SimdFloat4 {
-//         unsafe {
-//             return SimdFloat4::new(ozz_madd!(_alpha, _mm_sub_ps(_b, _a), _a);
-//         }
-//     }
-//
-//     // Computes the per element cosine of _v.
-//     #[inline]
-//     pub fn cos(_v: SimdFloat4) -> SimdFloat4 {
-//         unsafe {
-//             return SimdFloat4::new(_mm_set_ps(f32::cos(get_w(_v)), f32::cos(get_z(_v)), f32::cos(get_y(_v)),
-//                                               f32::cos(get_x(_v)));
-//         }
-//     }
-//
-//     // Computes the cosine of the x component of _v and stores it in the x
-//     // component of the returned vector. y, z and w of the returned vector are the
-//     // same as their respective components in _v.
-//     #[inline]
-//     pub fn cos_x(_v: SimdFloat4) -> SimdFloat4 {
-//         unsafe {
-//             return SimdFloat4::new(_mm_move_ss(_v, _mm_set_ps1(f32::cos(get_x(_v))));
-//         }
-//     }
-//
-//     // Computes the per element arccosine of _v.
-//     #[inline]
-//     pub fn acos(_v: SimdFloat4) -> SimdFloat4 {
-//         unsafe {
-//             return SimdFloat4::new(_mm_set_ps(f32::acos(get_w(_v)), f32::acos(get_z(_v)),
-//                                               f32::acos(get_y(_v)), f32::acos(get_x(_v)));
-//         }
-//     }
-//
-//     // Computes the arccosine of the x component of _v and stores it in the x
-//     // component of the returned vector. y, z and w of the returned vector are the
-//     // same as their respective components in _v.
-//     #[inline]
-//     pub fn acos_x(_v: SimdFloat4) -> SimdFloat4 {
-//         unsafe {
-//             return SimdFloat4::new(_mm_move_ss(_v, _mm_set_ps1(f32::acos(get_x(_v))));
-//         }
-//     }
-//
-//     // Computes the per element sines of _v.
-//     #[inline]
-//     pub fn sin(_v: SimdFloat4) -> SimdFloat4 {
-//         unsafe {
-//             return SimdFloat4::new(_mm_set_ps(f32::sin(get_w(_v)), f32::sin(get_z(_v)), f32::sin(get_y(_v)),
-//                                               f32::sin(get_x(_v)));
-//         }
-//     }
-//
-//     // Computes the sines of the x component of _v and stores it in the x
-//     // component of the returned vector. y, z and w of the returned vector are the
-//     // same as their respective components in _v.
-//     #[inline]
-//     pub fn sin_x(_v: SimdFloat4) -> SimdFloat4 {
-//         unsafe {
-//             return SimdFloat4::new(_mm_move_ss(_v, _mm_set_ps1(f32::sin(get_x(_v))));
-//         }
-//     }
-//
-//     // Computes the per element arcsine of _v.
-//     #[inline]
-//     pub fn asin(_v: SimdFloat4) -> SimdFloat4 {
-//         unsafe {
-//             return SimdFloat4::new(_mm_set_ps(f32::asin(get_w(_v)), f32::asin(get_z(_v)),
-//                                               f32::asin(get_y(_v)), f32::asin(get_x(_v)));
-//         }
-//     }
-//
-//     // Computes the arcsine of the x component of _v and stores it in the x
-//     // component of the returned vector. y, z and w of the returned vector are the
-//     // same as their respective components in _v.
-//     #[inline]
-//     pub fn asin_x(_v: SimdFloat4) -> SimdFloat4 {
-//         unsafe {
-//             return SimdFloat4::new(_mm_move_ss(_v, _mm_set_ps1(f32::asin(get_x(_v))));
-//         }
-//     }
-//
-//     // Computes the per element tangent of _v.
-//     #[inline]
-//     pub fn tan(_v: SimdFloat4) -> SimdFloat4 {
-//         unsafe {
-//             return SimdFloat4::new(_mm_set_ps(f32::tan(get_w(_v)), f32::tan(get_z(_v)), f32::tan(get_y(_v)),
-//                                               f32::tan(get_x(_v)));
-//         }
-//     }
-//
-//     // Computes the tangent of the x component of _v and stores it in the x
-//     // component of the returned vector. y, z and w of the returned vector are the
-//     // same as their respective components in _v.
-//     #[inline]
-//     pub fn tan_x(_v: SimdFloat4) -> SimdFloat4 {
-//         unsafe {
-//             return SimdFloat4::new(_mm_move_ss(_v, _mm_set_ps1(f32::tan(get_x(_v))));
-//         }
-//     }
-//
-//     // Computes the per element arctangent of _v.
-//     #[inline]
-//     pub fn atan(_v: SimdFloat4) -> SimdFloat4 {
-//         unsafe {
-//             return SimdFloat4::new(_mm_set_ps(f32::atan(get_w(_v)), f32::atan(get_z(_v)),
-//                                               f32::atan(get_y(_v)), f32::atan(get_x(_v)));
-//         }
-//     }
-//
-//     // Computes the arctangent of the x component of _v and stores it in the x
-//     // component of the returned vector. y, z and w of the returned vector are the
-//     // same as their respective components in _v.
-//     #[inline]
-//     pub fn atan_x(_v: SimdFloat4) -> SimdFloat4 {
-//         unsafe {
-//             return SimdFloat4::new(_mm_move_ss(_v, _mm_set_ps1(f32::atan(get_x(_v))));
-//         }
-//     }
-//
-//     // Returns boolean selection of vectors _true and _false according to condition
-//     // _b. All bits a each component of _b must have the same value (O or
-//     // 0xffffffff) to ensure portability.
-//     #[inline]
-//     pub fn select(_b: SimdInt4, _true: SimdFloat4, _false: SimdFloat4) -> SimdFloat4 {
-//         unsafe {
-//             return SimdFloat4::new(ozz_sse_select_f!(_b, _true, _false);
-//         }
-//     }
-//
-//     // Per element "equal" comparison of _a and _b.
-//     #[inline]
-//     pub fn cmp_eq(_a: SimdFloat4, _b: SimdFloat4) -> SimdInt4 {
-//         unsafe {
-//             return SimdFloat4::new(_mm_castps_si128(_mm_cmpeq_ps(_a, _b));
-//         }
-//     }
-//
-//     // Per element "not equal" comparison of _a and _b.
-//     #[inline]
-//     pub fn cmp_ne(_a: SimdFloat4, _b: SimdFloat4) -> SimdInt4 {
-//         unsafe {
-//             return SimdFloat4::new(_mm_castps_si128(_mm_cmpneq_ps(_a, _b));
-//         }
-//     }
-//
-//     // Per element "less than" comparison of _a and _b.
-//     #[inline]
-//     pub fn cmp_lt(_a: SimdFloat4, _b: SimdFloat4) -> SimdInt4 {
-//         unsafe {
-//             return SimdFloat4::new(_mm_castps_si128(_mm_cmplt_ps(_a, _b));
-//         }
-//     }
-//
-//     // Per element "less than or equal" comparison of _a and _b.
-//     #[inline]
-//     pub fn cmp_le(_a: SimdFloat4, _b: SimdFloat4) -> SimdInt4 {
-//         unsafe {
-//             return SimdFloat4::new(_mm_castps_si128(_mm_cmple_ps(_a, _b));
-//         }
-//     }
-//
-//     // Per element "greater than" comparison of _a and _b.
-//     #[inline]
-//     pub fn cmp_gt(_a: SimdFloat4, _b: SimdFloat4) -> SimdInt4 {
-//         unsafe {
-//             return SimdFloat4::new(_mm_castps_si128(_mm_cmpgt_ps(_a, _b));
-//         }
-//     }
-//
-//     // Per element "greater than or equal" comparison of _a and _b.
-//     #[inline]
-//     pub fn cmp_ge(_a: SimdFloat4, _b: SimdFloat4) -> SimdInt4 {
-//         unsafe {
-//             return SimdFloat4::new(_mm_castps_si128(_mm_cmpge_ps(_a, _b));
-//         }
-//     }
-//
-//     // Returns per element binary and operation of _a and _b.
-//     // _v[0...127] = _a[0...127] & _b[0...127]
-//     #[inline]
-//     pub fn and_ff(_a: SimdFloat4, _b: SimdFloat4) -> SimdFloat4 {
-//         unsafe {
-//             return SimdFloat4::new(_mm_and_ps(_a, _b);
-//         }
-//     }
-//
-//     // Returns per element binary or operation of _a and _b.
-//     // _v[0...127] = _a[0...127] | _b[0...127]
-//     #[inline]
-//     pub fn or_ff(_a: SimdFloat4, _b: SimdFloat4) -> SimdFloat4 {
-//         unsafe {
-//             return SimdFloat4::new(_mm_or_ps(_a, _b);
-//         }
-//     }
-//
-//     // Returns per element binary logical xor operation of _a and _b.
-//     // _v[0...127] = _a[0...127] ^ _b[0...127]
-//     #[inline]
-//     pub fn xor_ff(_a: SimdFloat4, _b: SimdFloat4) -> SimdFloat4 {
-//         unsafe {
-//             return SimdFloat4::new(_mm_xor_ps(_a, _b);
-//         }
-//     }
-//
-//     // Returns per element binary and operation of _a and _b.
-//     // _v[0...127] = _a[0...127] & _b[0...127]
-//     #[inline]
-//     pub fn and_fi(_a: SimdFloat4, _b: SimdInt4) -> SimdFloat4 {
-//         unsafe {
-//             return SimdFloat4::new(_mm_and_ps(_a, _mm_castsi128_ps(_b));
-//         }
-//     }
-//
-//     // Returns per element binary and operation of _a and ~_b.
-//     // _v[0...127] = _a[0...127] & ~_b[0...127]
-//     #[inline]
-//     pub fn and_not(_a: SimdFloat4, _b: SimdInt4) -> SimdFloat4 {
-//         unsafe {
-//             return SimdFloat4::new(_mm_andnot_ps(_mm_castsi128_ps(_b), _a);
-//         }
-//     }
-//
-//     // Returns per element binary or operation of _a and _b.
-//     // _v[0...127] = _a[0...127] | _b[0...127]
-//     #[inline]
-//     pub fn or_fi(_a: SimdFloat4, _b: SimdInt4) -> SimdFloat4 {
-//         unsafe {
-//             return SimdFloat4::new(_mm_or_ps(_a, _mm_castsi128_ps(_b));
-//         }
-//     }
-//
-//     // Returns per element binary logical xor operation of _a and _b.
-//     // _v[0...127] = _a[0...127] ^ _b[0...127]
-//     #[inline]
-//     pub fn xor_fi(_a: SimdFloat4, _b: SimdInt4) -> SimdFloat4 {
-//         unsafe {
-//             return SimdFloat4::new(_mm_xor_ps(_a, _mm_castsi128_ps(_b));
-//         }
-//     }
-}
 
+    // Computes the per element linear interpolation of _a and _b, where _alpha is
+    // not bound to range [0,1].
+    #[inline]
+    pub fn lerp(&self, _b: SimdFloat4, _alpha: SimdFloat4) -> SimdFloat4 {
+        unsafe {
+            return SimdFloat4::new(ozz_madd!(_alpha.data, _mm_sub_ps(_b.data, self.data), self.data));
+        }
+    }
+
+    // Computes the per element cosine of _v.
+    #[inline]
+    pub fn cos(&self) -> SimdFloat4 {
+        unsafe {
+            return SimdFloat4::new(_mm_set_ps(f32::cos(self.get_w()), f32::cos(self.get_z()),
+                                              f32::cos(self.get_y()), f32::cos(self.get_x())));
+        }
+    }
+
+    // Computes the cosine of the x component of _v and stores it in the x
+    // component of the returned vector. y, z and w of the returned vector are the
+    // same as their respective components in _v.
+    #[inline]
+    pub fn cos_x(&self) -> SimdFloat4 {
+        unsafe {
+            return SimdFloat4::new(_mm_move_ss(self.data, _mm_set_ps1(f32::cos(self.get_x()))));
+        }
+    }
+
+    // Computes the per element arccosine of _v.
+    #[inline]
+    pub fn acos(&self) -> SimdFloat4 {
+        unsafe {
+            return SimdFloat4::new(_mm_set_ps(f32::acos(self.get_w()), f32::acos(self.get_z()),
+                                              f32::acos(self.get_y()), f32::acos(self.get_x())));
+        }
+    }
+
+    // Computes the arccosine of the x component of _v and stores it in the x
+    // component of the returned vector. y, z and w of the returned vector are the
+    // same as their respective components in _v.
+    #[inline]
+    pub fn acos_x(&self) -> SimdFloat4 {
+        unsafe {
+            return SimdFloat4::new(_mm_move_ss(self.data, _mm_set_ps1(f32::acos(self.get_x()))));
+        }
+    }
+
+    // Computes the per element sines of _v.
+    #[inline]
+    pub fn sin(&self) -> SimdFloat4 {
+        unsafe {
+            return SimdFloat4::new(_mm_set_ps(f32::sin(self.get_w()), f32::sin(self.get_z()),
+                                              f32::sin(self.get_y()), f32::sin(self.get_x())));
+        }
+    }
+
+    // Computes the sines of the x component of _v and stores it in the x
+    // component of the returned vector. y, z and w of the returned vector are the
+    // same as their respective components in _v.
+    #[inline]
+    pub fn sin_x(&self) -> SimdFloat4 {
+        unsafe {
+            return SimdFloat4::new(_mm_move_ss(self.data, _mm_set_ps1(f32::sin(self.get_x()))));
+        }
+    }
+
+    // Computes the per element arcsine of _v.
+    #[inline]
+    pub fn asin(&self) -> SimdFloat4 {
+        unsafe {
+            return SimdFloat4::new(_mm_set_ps(f32::asin(self.get_w()), f32::asin(self.get_z()),
+                                              f32::asin(self.get_y()), f32::asin(self.get_x())));
+        }
+    }
+
+    // Computes the arcsine of the x component of _v and stores it in the x
+    // component of the returned vector. y, z and w of the returned vector are the
+    // same as their respective components in _v.
+    #[inline]
+    pub fn asin_x(&self) -> SimdFloat4 {
+        unsafe {
+            return SimdFloat4::new(_mm_move_ss(self.data, _mm_set_ps1(f32::asin(self.get_x()))));
+        }
+    }
+
+    // Computes the per element tangent of _v.
+    #[inline]
+    pub fn tan(&self) -> SimdFloat4 {
+        unsafe {
+            return SimdFloat4::new(_mm_set_ps(f32::tan(self.get_w()), f32::tan(self.get_z()),
+                                              f32::tan(self.get_y()), f32::tan(self.get_x())));
+        }
+    }
+
+    // Computes the tangent of the x component of _v and stores it in the x
+    // component of the returned vector. y, z and w of the returned vector are the
+    // same as their respective components in _v.
+    #[inline]
+    pub fn tan_x(&self) -> SimdFloat4 {
+        unsafe {
+            return SimdFloat4::new(_mm_move_ss(self.data, _mm_set_ps1(f32::tan(self.get_x()))));
+        }
+    }
+
+    // Computes the per element arctangent of _v.
+    #[inline]
+    pub fn atan(&self) -> SimdFloat4 {
+        unsafe {
+            return SimdFloat4::new(_mm_set_ps(f32::atan(self.get_w()), f32::atan(self.get_z()),
+                                              f32::atan(self.get_y()), f32::atan(self.get_x())));
+        }
+    }
+
+    // Computes the arctangent of the x component of _v and stores it in the x
+    // component of the returned vector. y, z and w of the returned vector are the
+    // same as their respective components in _v.
+    #[inline]
+    pub fn atan_x(&self) -> SimdFloat4 {
+        unsafe {
+            return SimdFloat4::new(_mm_move_ss(self.data, _mm_set_ps1(f32::atan(self.get_x()))));
+        }
+    }
+
+    // Returns boolean selection of vectors _true and _false according to condition
+    // _b. All bits a each component of _b must have the same value (O or
+    // 0xffffffff) to ensure portability.
+    #[inline]
+    pub fn select(_b: SimdInt4, _true: SimdFloat4, _false: SimdFloat4) -> SimdFloat4 {
+        unsafe {
+            return SimdFloat4::new(ozz_sse_select_f!(_b.data, _true.data, _false.data));
+        }
+    }
+
+    // Per element "equal" comparison of _a and _b.
+    #[inline]
+    pub fn cmp_eq(&self, _b: SimdFloat4) -> SimdInt4 {
+        unsafe {
+            return SimdInt4::new(_mm_castps_si128(_mm_cmpeq_ps(self.data, _b.data)));
+        }
+    }
+
+    // Per element "not equal" comparison of _a and _b.
+    #[inline]
+    pub fn cmp_ne(&self, _b: SimdFloat4) -> SimdInt4 {
+        unsafe {
+            return SimdInt4::new(_mm_castps_si128(_mm_cmpneq_ps(self.data, _b.data)));
+        }
+    }
+
+    // Per element "less than" comparison of _a and _b.
+    #[inline]
+    pub fn cmp_lt(&self, _b: SimdFloat4) -> SimdInt4 {
+        unsafe {
+            return SimdInt4::new(_mm_castps_si128(_mm_cmplt_ps(self.data, _b.data)));
+        }
+    }
+
+    // Per element "less than or equal" comparison of _a and _b.
+    #[inline]
+    pub fn cmp_le(&self, _b: SimdFloat4) -> SimdInt4 {
+        unsafe {
+            return SimdInt4::new(_mm_castps_si128(_mm_cmple_ps(self.data, _b.data)));
+        }
+    }
+
+    // Per element "greater than" comparison of _a and _b.
+    #[inline]
+    pub fn cmp_gt(&self, _b: SimdFloat4) -> SimdInt4 {
+        unsafe {
+            return SimdInt4::new(_mm_castps_si128(_mm_cmpgt_ps(self.data, _b.data)));
+        }
+    }
+
+    // Per element "greater than or equal" comparison of _a and _b.
+    #[inline]
+    pub fn cmp_ge(&self, _b: SimdFloat4) -> SimdInt4 {
+        unsafe {
+            return SimdInt4::new(_mm_castps_si128(_mm_cmpge_ps(self.data, _b.data)));
+        }
+    }
+
+    // Returns per element binary and operation of _a and _b.
+    // _v[0...127] = _a[0...127] & _b[0...127]
+    #[inline]
+    pub fn and_ff(&self, _b: SimdFloat4) -> SimdFloat4 {
+        unsafe {
+            return SimdFloat4::new(_mm_and_ps(self.data, _b.data));
+        }
+    }
+
+    // Returns per element binary or operation of _a and _b.
+    // _v[0...127] = _a[0...127] | _b[0...127]
+    #[inline]
+    pub fn or_ff(&self, _b: SimdFloat4) -> SimdFloat4 {
+        unsafe {
+            return SimdFloat4::new(_mm_or_ps(self.data, _b.data));
+        }
+    }
+
+    // Returns per element binary logical xor operation of _a and _b.
+    // _v[0...127] = _a[0...127] ^ _b[0...127]
+    #[inline]
+    pub fn xor_ff(&self, _b: SimdFloat4) -> SimdFloat4 {
+        unsafe {
+            return SimdFloat4::new(_mm_xor_ps(self.data, _b.data));
+        }
+    }
+
+    // Returns per element binary and operation of _a and _b.
+    // _v[0...127] = _a[0...127] & _b[0...127]
+    #[inline]
+    pub fn and_fi(&self, _b: SimdInt4) -> SimdFloat4 {
+        unsafe {
+            return SimdFloat4::new(_mm_and_ps(self.data, _mm_castsi128_ps(_b.data)));
+        }
+    }
+
+    // Returns per element binary and operation of _a and ~_b.
+    // _v[0...127] = _a[0...127] & ~_b[0...127]
+    #[inline]
+    pub fn and_not(&self, _b: SimdInt4) -> SimdFloat4 {
+        unsafe {
+            return SimdFloat4::new(_mm_andnot_ps(_mm_castsi128_ps(_b.data), self.data));
+        }
+    }
+
+    // Returns per element binary or operation of _a and _b.
+    // _v[0...127] = _a[0...127] | _b[0...127]
+    #[inline]
+    pub fn or_fi(&self, _b: SimdInt4) -> SimdFloat4 {
+        unsafe {
+            return SimdFloat4::new(_mm_or_ps(self.data, _mm_castsi128_ps(_b.data)));
+        }
+    }
+
+    // Returns per element binary logical xor operation of _a and _b.
+    // _v[0...127] = _a[0...127] ^ _b[0...127]
+    #[inline]
+    pub fn xor_fi(&self, _b: SimdInt4) -> SimdFloat4 {
+        unsafe {
+            return SimdFloat4::new(_mm_xor_ps(self.data, _mm_castsi128_ps(_b.data)));
+        }
+    }
+}
 
 // //--------------------------------------------------------------------------------------------------
 // Vector of four integer values.
@@ -1714,15 +1713,15 @@ impl SimdInt4 {
             data
         };
     }
-}
-//     // Returns a SimdInt4 vector with all components set to 0.
-//     #[inline]
-//     pub fn zero() -> SimdInt4 {
-//         unsafe {
-//             return SimdFloat4::new(_mm_setzero_si128();
-//         }
-//     }
-//
+
+    // Returns a SimdInt4 vector with all components set to 0.
+    #[inline]
+    pub fn zero() -> SimdInt4 {
+        unsafe {
+            return SimdInt4::new(_mm_setzero_si128());
+        }
+    }
+
 //     // Returns a SimdInt4 vector with all components set to 1.
 //     #[inline]
 //     pub fn one() -> SimdInt4 {
@@ -2647,20 +2646,20 @@ impl SimdInt4 {
 //             return SimdFloat4::new(_mm_xor_si128(lt, _mm_cmpeq_epi32(_a, _a));
 //         }
 //     }
-// }
-//
-// //--------------------------------------------------------------------------------------------------
-// // Declare the 4x4 matrix type. Uses the column major convention where the
-// // matrix-times-vector is written v'=Mv:
-// // [ m.cols[0].x m.cols[1].x m.cols[2].x m.cols[3].x ]   {v.x}
-// // | m.cols[0].y m.cols[1].y m.cols[2].y m.cols[3].y | * {v.y}
-// // | m.cols[0].z m.cols[1].y m.cols[2].y m.cols[3].y |   {v.z}
-// // [ m.cols[0].w m.cols[1].w m.cols[2].w m.cols[3].w ]   {v.1}
-// pub struct Float4x4 {
-//     // Matrix columns.
-//     pub cols: [SimdFloat4; 4],
-// }
-//
+}
+
+//--------------------------------------------------------------------------------------------------
+// Declare the 4x4 matrix type. Uses the column major convention where the
+// matrix-times-vector is written v'=Mv:
+// [ m.cols[0].x m.cols[1].x m.cols[2].x m.cols[3].x ]   {v.x}
+// | m.cols[0].y m.cols[1].y m.cols[2].y m.cols[3].y | * {v.y}
+// | m.cols[0].z m.cols[1].y m.cols[2].y m.cols[3].y |   {v.z}
+// [ m.cols[0].w m.cols[1].w m.cols[2].w m.cols[3].w ]   {v.1}
+pub struct Float4x4 {
+    // Matrix columns.
+    pub cols: [SimdFloat4; 4],
+}
+
 // impl Float4x4 {
 //     // Returns the identity matrix.
 //     #[inline]
