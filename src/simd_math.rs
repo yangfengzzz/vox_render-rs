@@ -7,7 +7,7 @@
  */
 
 use std::arch::x86_64::*;
-use std::ops::{Mul, Add, Sub, Div};
+use std::ops::{Mul, Add, Sub, Div, Neg};
 
 macro_rules! _mm_shuffle {
         ($z:expr, $y:expr, $x:expr, $w:expr) => {
@@ -1737,6 +1737,16 @@ impl Mul for SimdFloat4 {
     fn mul(self, rhs: Self) -> Self::Output {
         unsafe {
             return SimdFloat4::new(_mm_mul_ps(self.data, rhs.data));
+        }
+    }
+}
+
+impl Neg for SimdFloat4 {
+    type Output = SimdFloat4;
+
+    fn neg(self) -> Self::Output {
+        unsafe {
+            return SimdFloat4::new(_mm_sub_ps(_mm_setzero_ps(), self.data));
         }
     }
 }

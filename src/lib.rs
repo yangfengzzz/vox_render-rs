@@ -8,7 +8,7 @@
 
 pub mod math_constant;
 pub mod simd_math;
-// pub mod simd_quaternion;
+pub mod simd_quaternion;
 
 pub mod vec_float;
 pub mod quaternion;
