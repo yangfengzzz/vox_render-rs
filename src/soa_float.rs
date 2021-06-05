@@ -27,32 +27,32 @@ impl SoaFloat2 {
     #[inline]
     pub fn zero() -> SoaFloat2 {
         return SoaFloat2 {
-            x: simd_float4::zero(),
-            y: simd_float4::zero(),
+            x: SimdFloat4::zero(),
+            y: SimdFloat4::zero(),
         };
     }
 
     #[inline]
     pub fn one() -> SoaFloat2 {
         return SoaFloat2 {
-            x: simd_float4::one(),
-            y: simd_float4::one(),
+            x: SimdFloat4::one(),
+            y: SimdFloat4::one(),
         };
     }
 
     #[inline]
     pub fn x_axis() -> SoaFloat2 {
         return SoaFloat2 {
-            x: simd_float4::one(),
-            y: simd_float4::zero(),
+            x: SimdFloat4::one(),
+            y: SimdFloat4::zero(),
         };
     }
 
     #[inline]
     pub fn y_axis() -> SoaFloat2 {
         return SoaFloat2 {
-            x: simd_float4::zero(),
-            y: simd_float4::one(),
+            x: SimdFloat4::zero(),
+            y: SimdFloat4::one(),
         };
     }
 }
@@ -88,45 +88,45 @@ impl SoaFloat3 {
     #[inline]
     pub fn zero() -> SoaFloat3 {
         return SoaFloat3 {
-            x: simd_float4::zero(),
-            y: simd_float4::zero(),
-            z: simd_float4::zero(),
+            x: SimdFloat4::zero(),
+            y: SimdFloat4::zero(),
+            z: SimdFloat4::zero(),
         };
     }
 
     #[inline]
     pub fn one() -> SoaFloat3 {
         return SoaFloat3 {
-            x: simd_float4::one(),
-            y: simd_float4::one(),
-            z: simd_float4::one(),
+            x: SimdFloat4::one(),
+            y: SimdFloat4::one(),
+            z: SimdFloat4::one(),
         };
     }
 
     #[inline]
     pub fn x_axis() -> SoaFloat3 {
         return SoaFloat3 {
-            x: simd_float4::one(),
-            y: simd_float4::zero(),
-            z: simd_float4::zero(),
+            x: SimdFloat4::one(),
+            y: SimdFloat4::zero(),
+            z: SimdFloat4::zero(),
         };
     }
 
     #[inline]
     pub fn y_axis() -> SoaFloat3 {
         return SoaFloat3 {
-            x: simd_float4::zero(),
-            y: simd_float4::one(),
-            z: simd_float4::zero(),
+            x: SimdFloat4::zero(),
+            y: SimdFloat4::one(),
+            z: SimdFloat4::zero(),
         };
     }
 
     #[inline]
     pub fn z_axis() -> SoaFloat3 {
         return SoaFloat3 {
-            x: simd_float4::zero(),
-            y: simd_float4::zero(),
-            z: simd_float4::one(),
+            x: SimdFloat4::zero(),
+            y: SimdFloat4::zero(),
+            z: SimdFloat4::one(),
         };
     }
 }
@@ -174,7 +174,7 @@ impl SoaFloat4 {
 
     #[inline]
     pub fn zero() -> SoaFloat4 {
-        let zero = simd_float4::zero();
+        let zero = SimdFloat4::zero();
         return SoaFloat4 {
             x: zero,
             y: zero,
@@ -185,7 +185,7 @@ impl SoaFloat4 {
 
     #[inline]
     pub fn one() -> SoaFloat4 {
-        let one = simd_float4::one();
+        let one = SimdFloat4::one();
         return SoaFloat4 {
             x: one,
             y: one,
@@ -196,8 +196,8 @@ impl SoaFloat4 {
 
     #[inline]
     pub fn x_axis() -> SoaFloat4 {
-        let zero = simd_float4::zero();
-        let one = simd_float4::one();
+        let zero = SimdFloat4::zero();
+        let one = SimdFloat4::one();
         return SoaFloat4 {
             x: one,
             y: zero,
@@ -208,8 +208,8 @@ impl SoaFloat4 {
 
     #[inline]
     pub fn y_axis() -> SoaFloat4 {
-        let zero = simd_float4::zero();
-        let one = simd_float4::one();
+        let zero = SimdFloat4::zero();
+        let one = SimdFloat4::one();
         return SoaFloat4 {
             x: zero,
             y: one,
@@ -220,8 +220,8 @@ impl SoaFloat4 {
 
     #[inline]
     pub fn z_axis() -> SoaFloat4 {
-        let zero = simd_float4::zero();
-        let one = simd_float4::one();
+        let zero = SimdFloat4::zero();
+        let one = SimdFloat4::one();
         return SoaFloat4 {
             x: zero,
             y: zero,
@@ -232,8 +232,8 @@ impl SoaFloat4 {
 
     #[inline]
     pub fn w_axis() -> SoaFloat4 {
-        let zero = simd_float4::zero();
-        let one = simd_float4::one();
+        let zero = SimdFloat4::zero();
+        let one = SimdFloat4::one();
         return SoaFloat4 {
             x: zero,
             y: zero,
@@ -439,8 +439,8 @@ pub fn m_add2(_a: &SoaFloat2,
               _b: &SoaFloat2,
               _addend: &SoaFloat2) -> SoaFloat2 {
     return SoaFloat2 {
-        x: simd_float4::madd(_a.x, _b.x, _addend.x),
-        y: simd_float4::madd(_a.y, _b.y, _addend.y),
+        x: SimdFloat4::madd(&_a.x, _b.x, _addend.x),
+        y: SimdFloat4::madd(&_a.y, _b.y, _addend.y),
     };
 }
 
@@ -449,9 +449,9 @@ pub fn m_add3(_a: &SoaFloat3,
               _b: &SoaFloat3,
               _addend: &SoaFloat3) -> SoaFloat3 {
     return SoaFloat3 {
-        x: simd_float4::madd(_a.x, _b.x, _addend.x),
-        y: simd_float4::madd(_a.y, _b.y, _addend.y),
-        z: simd_float4::madd(_a.z, _b.z, _addend.z),
+        x: SimdFloat4::madd(&_a.x, _b.x, _addend.x),
+        y: SimdFloat4::madd(&_a.y, _b.y, _addend.y),
+        z: SimdFloat4::madd(&_a.z, _b.z, _addend.z),
     };
 }
 
@@ -460,10 +460,10 @@ pub fn m_add4(_a: &SoaFloat4,
               _b: &SoaFloat4,
               _addend: &SoaFloat4) -> SoaFloat4 {
     return SoaFloat4 {
-        x: simd_float4::madd(_a.x, _b.x, _addend.x),
-        y: simd_float4::madd(_a.y, _b.y, _addend.y),
-        z: simd_float4::madd(_a.z, _b.z, _addend.z),
-        w: simd_float4::madd(_a.w, _b.w, _addend.w),
+        x: SimdFloat4::madd(&_a.x, _b.x, _addend.x),
+        y: SimdFloat4::madd(&_a.y, _b.y, _addend.y),
+        z: SimdFloat4::madd(&_a.z, _b.z, _addend.z),
+        w: SimdFloat4::madd(&_a.w, _b.w, _addend.w),
     };
 }
 
@@ -544,180 +544,150 @@ impl Div<SimdFloat4> for SoaFloat2 {
 impl SoaFloat4 {
     #[inline]
     pub fn lt(&self, other: &Self) -> SimdInt4 {
-        let x = simd_float4::cmp_lt(self.x, other.x);
-        let y = simd_float4::cmp_lt(self.y, other.y);
-        let z = simd_float4::cmp_lt(self.z, other.z);
-        let w = simd_float4::cmp_lt(self.w, other.w);
-        return simd_int4::and(simd_int4::and(simd_int4::and(x, y), z), w);
+        let x = SimdFloat4::cmp_lt(&self.x, other.x);
+        let y = SimdFloat4::cmp_lt(&self.y, other.y);
+        let z = SimdFloat4::cmp_lt(&self.z, other.z);
+        let w = SimdFloat4::cmp_lt(&self.w, other.w);
+        return SimdInt4::and(&SimdInt4::and(&SimdInt4::and(&x, y), z), w);
     }
 
     #[inline]
     pub fn le(&self, other: &Self) -> SimdInt4 {
-        let x = simd_float4::cmp_le(self.x, other.x);
-        let y = simd_float4::cmp_le(self.y, other.y);
-        let z = simd_float4::cmp_le(self.z, other.z);
-        let w = simd_float4::cmp_le(self.w, other.w);
-        return simd_int4::and(simd_int4::and(simd_int4::and(x, y), z), w);
+        let x = SimdFloat4::cmp_le(&self.x, other.x);
+        let y = SimdFloat4::cmp_le(&self.y, other.y);
+        let z = SimdFloat4::cmp_le(&self.z, other.z);
+        let w = SimdFloat4::cmp_le(&self.w, other.w);
+        return SimdInt4::and(&SimdInt4::and(&SimdInt4::and(&x, y), z), w);
     }
 
     #[inline]
     pub fn gt(&self, other: &Self) -> SimdInt4 {
-        let x = simd_float4::cmp_gt(self.x, other.x);
-        let y = simd_float4::cmp_gt(self.y, other.y);
-        let z = simd_float4::cmp_gt(self.z, other.z);
-        let w = simd_float4::cmp_gt(self.w, other.w);
-        return simd_int4::and(simd_int4::and(simd_int4::and(x, y), z), w);
+        let x = SimdFloat4::cmp_gt(&self.x, other.x);
+        let y = SimdFloat4::cmp_gt(&self.y, other.y);
+        let z = SimdFloat4::cmp_gt(&self.z, other.z);
+        let w = SimdFloat4::cmp_gt(&self.w, other.w);
+        return SimdInt4::and(&SimdInt4::and(&SimdInt4::and(&x, y), z), w);
     }
 
     #[inline]
     pub fn ge(&self, other: &Self) -> SimdInt4 {
-        let x = simd_float4::cmp_ge(self.x, other.x);
-        let y = simd_float4::cmp_ge(self.y, other.y);
-        let z = simd_float4::cmp_ge(self.z, other.z);
-        let w = simd_float4::cmp_ge(self.w, other.w);
-        return simd_int4::and(simd_int4::and(simd_int4::and(x, y), z), w);
+        let x = SimdFloat4::cmp_ge(&self.x, other.x);
+        let y = SimdFloat4::cmp_ge(&self.y, other.y);
+        let z = SimdFloat4::cmp_ge(&self.z, other.z);
+        let w = SimdFloat4::cmp_ge(&self.w, other.w);
+        return SimdInt4::and(&SimdInt4::and(&SimdInt4::and(&x, y), z), w);
     }
 
     #[inline]
     pub fn eq(&self, other: &Self) -> SimdInt4 {
-        let x = simd_float4::cmp_eq(self.x, other.x);
-        let y = simd_float4::cmp_eq(self.y, other.y);
-        let z = simd_float4::cmp_eq(self.z, other.z);
-        let w = simd_float4::cmp_eq(self.w, other.w);
-        return simd_int4::and(simd_int4::and(simd_int4::and(x, y), z), w);
+        let x = SimdFloat4::cmp_eq(&self.x, other.x);
+        let y = SimdFloat4::cmp_eq(&self.y, other.y);
+        let z = SimdFloat4::cmp_eq(&self.z, other.z);
+        let w = SimdFloat4::cmp_eq(&self.w, other.w);
+        return SimdInt4::and(&SimdInt4::and(&SimdInt4::and(&x, y), z), w);
     }
 
     #[inline]
     pub fn ne(&self, other: &Self) -> SimdInt4 {
-        let x = simd_float4::cmp_ne(self.x, other.x);
-        let y = simd_float4::cmp_ne(self.y, other.y);
-        let z = simd_float4::cmp_ne(self.z, other.z);
-        let w = simd_float4::cmp_ne(self.w, other.w);
-        return simd_int4::and(simd_int4::and(simd_int4::and(x, y), z), w);
-    }
-}
-
-impl PartialEq for SoaFloat4 {
-    #[inline]
-    fn eq(&self, other: &Self) -> bool {
-        let x = self.x == other.x;
-        let y = self.y == other.y;
-        let z = self.z == other.z;
-        let w = self.w == other.w;
-        return x && y && z && w;
+        let x = SimdFloat4::cmp_ne(&self.x, other.x);
+        let y = SimdFloat4::cmp_ne(&self.y, other.y);
+        let z = SimdFloat4::cmp_ne(&self.z, other.z);
+        let w = SimdFloat4::cmp_ne(&self.w, other.w);
+        return SimdInt4::and(&SimdInt4::and(&SimdInt4::and(&x, y), z), w);
     }
 }
 
 impl SoaFloat3 {
     #[inline]
     pub fn lt(&self, other: &Self) -> SimdInt4 {
-        let x = simd_float4::cmp_lt(self.x, other.x);
-        let y = simd_float4::cmp_lt(self.y, other.y);
-        let z = simd_float4::cmp_lt(self.z, other.z);
-        return simd_int4::and(simd_int4::and(x, y), z);
+        let x = SimdFloat4::cmp_lt(&self.x, other.x);
+        let y = SimdFloat4::cmp_lt(&self.y, other.y);
+        let z = SimdFloat4::cmp_lt(&self.z, other.z);
+        return SimdInt4::and(&SimdInt4::and(&x, y), z);
     }
 
     #[inline]
     pub fn le(&self, other: &Self) -> SimdInt4 {
-        let x = simd_float4::cmp_le(self.x, other.x);
-        let y = simd_float4::cmp_le(self.y, other.y);
-        let z = simd_float4::cmp_le(self.z, other.z);
-        return simd_int4::and(simd_int4::and(x, y), z);
+        let x = SimdFloat4::cmp_le(&self.x, other.x);
+        let y = SimdFloat4::cmp_le(&self.y, other.y);
+        let z = SimdFloat4::cmp_le(&self.z, other.z);
+        return SimdInt4::and(&SimdInt4::and(&x, y), z);
     }
 
     #[inline]
     pub fn gt(&self, other: &Self) -> SimdInt4 {
-        let x = simd_float4::cmp_gt(self.x, other.x);
-        let y = simd_float4::cmp_gt(self.y, other.y);
-        let z = simd_float4::cmp_gt(self.z, other.z);
-        return simd_int4::and(simd_int4::and(x, y), z);
+        let x = SimdFloat4::cmp_gt(&self.x, other.x);
+        let y = SimdFloat4::cmp_gt(&self.y, other.y);
+        let z = SimdFloat4::cmp_gt(&self.z, other.z);
+        return SimdInt4::and(&SimdInt4::and(&x, y), z);
     }
 
     #[inline]
     pub fn ge(&self, other: &Self) -> SimdInt4 {
-        let x = simd_float4::cmp_ge(self.x, other.x);
-        let y = simd_float4::cmp_ge(self.y, other.y);
-        let z = simd_float4::cmp_ge(self.z, other.z);
-        return simd_int4::and(simd_int4::and(x, y), z);
+        let x = SimdFloat4::cmp_ge(&self.x, other.x);
+        let y = SimdFloat4::cmp_ge(&self.y, other.y);
+        let z = SimdFloat4::cmp_ge(&self.z, other.z);
+        return SimdInt4::and(&SimdInt4::and(&x, y), z);
     }
 
     #[inline]
     pub fn eq(&self, other: &Self) -> SimdInt4 {
-        let x = simd_float4::cmp_eq(self.x, other.x);
-        let y = simd_float4::cmp_eq(self.y, other.y);
-        let z = simd_float4::cmp_eq(self.z, other.z);
-        return simd_int4::and(simd_int4::and(x, y), z);
+        let x = SimdFloat4::cmp_eq(&self.x, other.x);
+        let y = SimdFloat4::cmp_eq(&self.y, other.y);
+        let z = SimdFloat4::cmp_eq(&self.z, other.z);
+        return SimdInt4::and(&SimdInt4::and(&x, y), z);
     }
 
     #[inline]
     pub fn ne(&self, other: &Self) -> SimdInt4 {
-        let x = simd_float4::cmp_ne(self.x, other.x);
-        let y = simd_float4::cmp_ne(self.y, other.y);
-        let z = simd_float4::cmp_ne(self.z, other.z);
-        return simd_int4::and(simd_int4::and(x, y), z);
-    }
-}
-
-impl PartialEq for SoaFloat3 {
-    #[inline]
-    fn eq(&self, other: &Self) -> bool {
-        let x = self.x == other.x;
-        let y = self.y == other.y;
-        let z = self.z == other.z;
-        return x && y && z;
+        let x = SimdFloat4::cmp_ne(&self.x, other.x);
+        let y = SimdFloat4::cmp_ne(&self.y, other.y);
+        let z = SimdFloat4::cmp_ne(&self.z, other.z);
+        return SimdInt4::and(&SimdInt4::and(&x, y), z);
     }
 }
 
 impl SoaFloat2 {
     #[inline]
     pub fn lt(&self, other: &Self) -> SimdInt4 {
-        let x = simd_float4::cmp_lt(self.x, other.x);
-        let y = simd_float4::cmp_lt(self.y, other.y);
-        return simd_int4::and(x, y);
+        let x = SimdFloat4::cmp_lt(&self.x, other.x);
+        let y = SimdFloat4::cmp_lt(&self.y, other.y);
+        return SimdInt4::and(&x, y);
     }
 
     #[inline]
     pub fn le(&self, other: &Self) -> SimdInt4 {
-        let x = simd_float4::cmp_le(self.x, other.x);
-        let y = simd_float4::cmp_le(self.y, other.y);
-        return simd_int4::and(x, y);
+        let x = SimdFloat4::cmp_le(&self.x, other.x);
+        let y = SimdFloat4::cmp_le(&self.y, other.y);
+        return SimdInt4::and(&x, y);
     }
 
     #[inline]
     pub fn gt(&self, other: &Self) -> SimdInt4 {
-        let x = simd_float4::cmp_gt(self.x, other.x);
-        let y = simd_float4::cmp_gt(self.y, other.y);
-        return simd_int4::and(x, y);
+        let x = SimdFloat4::cmp_gt(&self.x, other.x);
+        let y = SimdFloat4::cmp_gt(&self.y, other.y);
+        return SimdInt4::and(&x, y);
     }
 
     #[inline]
     pub fn ge(&self, other: &Self) -> SimdInt4 {
-        let x = simd_float4::cmp_ge(self.x, other.x);
-        let y = simd_float4::cmp_ge(self.y, other.y);
-        return simd_int4::and(x, y);
+        let x = SimdFloat4::cmp_ge(&self.x, other.x);
+        let y = SimdFloat4::cmp_ge(&self.y, other.y);
+        return SimdInt4::and(&x, y);
     }
 
     #[inline]
     pub fn eq(&self, other: &Self) -> SimdInt4 {
-        let x = simd_float4::cmp_eq(self.x, other.x);
-        let y = simd_float4::cmp_eq(self.y, other.y);
-        return simd_int4::and(x, y);
+        let x = SimdFloat4::cmp_eq(&self.x, other.x);
+        let y = SimdFloat4::cmp_eq(&self.y, other.y);
+        return SimdInt4::and(&x, y);
     }
 
     #[inline]
     pub fn ne(&self, other: &Self) -> SimdInt4 {
-        let x = simd_float4::cmp_ne(self.x, other.x);
-        let y = simd_float4::cmp_ne(self.y, other.y);
-        return simd_int4::and(x, y);
-    }
-}
-
-impl PartialEq for SoaFloat2 {
-    #[inline]
-    fn eq(&self, other: &Self) -> bool {
-        let x = self.x == other.x;
-        let y = self.y == other.y;
-        return x && y;
+        let x = SimdFloat4::cmp_ne(&self.x, other.x);
+        let y = SimdFloat4::cmp_ne(&self.y, other.y);
+        return SimdInt4::and(&x, y);
     }
 }
 
@@ -786,10 +756,10 @@ pub fn length_sqr2(_v: &SoaFloat2) -> SimdFloat4 {
 // Returns the normalized vector _v.
 pub fn normalize4(_v: &SoaFloat4) -> SoaFloat4 {
     let len2 = _v.x * _v.x + _v.y * _v.y + _v.z * _v.z + _v.w * _v.w;
-    debug_assert!(len2.ne(SimdFloat4::new(0.0, 0.0, 0.0, 0.0)).all()
+    debug_assert!(len2.ne(SimdFloat4::load(0.0, 0.0, 0.0, 0.0)).all()
         && "_v is not normalizable".parse().unwrap());
 
-    let inv_len = SimdFloat4::new(1.0, 1.0, 1.0, 1.0) / len2.sqrt();
+    let inv_len = SimdFloat4::load(1.0, 1.0, 1.0, 1.0) / len2.sqrt();
     return SoaFloat4::load(
         _v.x * inv_len, _v.y * inv_len, _v.z * inv_len,
         _v.w * inv_len,
@@ -798,19 +768,19 @@ pub fn normalize4(_v: &SoaFloat4) -> SoaFloat4 {
 
 pub fn normalize3(_v: &SoaFloat3) -> SoaFloat3 {
     let len2 = _v.x * _v.x + _v.y * _v.y + _v.z * _v.z;
-    debug_assert!(len2.ne(SimdFloat4::new(0.0, 0.0, 0.0, 0.0)).all()
+    debug_assert!(len2.ne(SimdFloat4::load(0.0, 0.0, 0.0, 0.0)).all()
         && "_v is not normalizable".parse().unwrap());
 
-    let inv_len = SimdFloat4::new(1.0, 1.0, 1.0, 1.0) / len2.sqrt();
+    let inv_len = SimdFloat4::load(1.0, 1.0, 1.0, 1.0) / len2.sqrt();
     return SoaFloat3::load(_v.x * inv_len, _v.y * inv_len, _v.z * inv_len);
 }
 
 pub fn normalize2(_v: &SoaFloat2) -> SoaFloat2 {
     let len2 = _v.x * _v.x + _v.y * _v.y;
-    debug_assert!(len2.ne(SimdFloat4::new(0.0, 0.0, 0.0, 0.0)).all()
+    debug_assert!(len2.ne(SimdFloat4::load(0.0, 0.0, 0.0, 0.0)).all()
         && "_v is not normalizable".parse().unwrap());
 
-    let inv_len = SimdFloat4::new(1.0, 1.0, 1.0, 1.0) / len2.sqrt();
+    let inv_len = SimdFloat4::load(1.0, 1.0, 1.0, 1.0) / len2.sqrt();
     return SoaFloat2::load(_v.x * inv_len, _v.y * inv_len);
 }
 
@@ -818,23 +788,23 @@ pub fn normalize2(_v: &SoaFloat2) -> SoaFloat2 {
 // Test if each vector _v is normalized.
 pub fn is_normalized4(_v: &SoaFloat4) -> SimdInt4 {
     let len2 = _v.x * _v.x + _v.y * _v.y + _v.z * _v.z + _v.w * _v.w;
-    return (len2 - SimdFloat4::new(1.0, 1.0, 1.0, 1.0)).abs().
-        lt(SimdFloat4::new(K_NORMALIZATION_TOLERANCE_SQ, K_NORMALIZATION_TOLERANCE_SQ,
-                           K_NORMALIZATION_TOLERANCE_SQ, K_NORMALIZATION_TOLERANCE_SQ));
+    return (len2 - SimdFloat4::load(1.0, 1.0, 1.0, 1.0)).abs().
+        lt(SimdFloat4::load(K_NORMALIZATION_TOLERANCE_SQ, K_NORMALIZATION_TOLERANCE_SQ,
+                            K_NORMALIZATION_TOLERANCE_SQ, K_NORMALIZATION_TOLERANCE_SQ));
 }
 
 pub fn is_normalized3(_v: &SoaFloat3) -> SimdInt4 {
     let len2 = _v.x * _v.x + _v.y * _v.y + _v.z * _v.z;
-    return (len2 - SimdFloat4::new(1.0, 1.0, 1.0, 1.0)).abs().
-        lt(SimdFloat4::new(K_NORMALIZATION_TOLERANCE_SQ, K_NORMALIZATION_TOLERANCE_SQ,
-                           K_NORMALIZATION_TOLERANCE_SQ, K_NORMALIZATION_TOLERANCE_SQ));
+    return (len2 - SimdFloat4::load(1.0, 1.0, 1.0, 1.0)).abs().
+        lt(SimdFloat4::load(K_NORMALIZATION_TOLERANCE_SQ, K_NORMALIZATION_TOLERANCE_SQ,
+                            K_NORMALIZATION_TOLERANCE_SQ, K_NORMALIZATION_TOLERANCE_SQ));
 }
 
 pub fn is_normalized2(_v: &SoaFloat2) -> SimdInt4 {
     let len2 = _v.x * _v.x + _v.y * _v.y;
-    return (len2 - SimdFloat4::new(1.0, 1.0, 1.0, 1.0)).abs().
-        lt(SimdFloat4::new(K_NORMALIZATION_TOLERANCE_SQ, K_NORMALIZATION_TOLERANCE_SQ,
-                           K_NORMALIZATION_TOLERANCE_SQ, K_NORMALIZATION_TOLERANCE_SQ));
+    return (len2 - SimdFloat4::load(1.0, 1.0, 1.0, 1.0)).abs().
+        lt(SimdFloat4::load(K_NORMALIZATION_TOLERANCE_SQ, K_NORMALIZATION_TOLERANCE_SQ,
+                            K_NORMALIZATION_TOLERANCE_SQ, K_NORMALIZATION_TOLERANCE_SQ));
 }
 
 
@@ -842,23 +812,23 @@ pub fn is_normalized2(_v: &SoaFloat2) -> SimdInt4 {
 // Test if each vector _v is normalized using estimated tolerance.
 pub fn is_normalized_est4(_v: &SoaFloat4) -> SimdInt4 {
     let len2 = _v.x * _v.x + _v.y * _v.y + _v.z * _v.z + _v.w * _v.w;
-    return (len2 - SimdFloat4::new(1.0, 1.0, 1.0, 1.0)).abs().
-        lt(SimdFloat4::new(K_NORMALIZATION_TOLERANCE_EST_SQ, K_NORMALIZATION_TOLERANCE_EST_SQ,
-                           K_NORMALIZATION_TOLERANCE_EST_SQ, K_NORMALIZATION_TOLERANCE_EST_SQ));
+    return (len2 - SimdFloat4::load(1.0, 1.0, 1.0, 1.0)).abs().
+        lt(SimdFloat4::load(K_NORMALIZATION_TOLERANCE_EST_SQ, K_NORMALIZATION_TOLERANCE_EST_SQ,
+                            K_NORMALIZATION_TOLERANCE_EST_SQ, K_NORMALIZATION_TOLERANCE_EST_SQ));
 }
 
 pub fn is_normalized_est3(_v: &SoaFloat3) -> SimdInt4 {
     let len2 = _v.x * _v.x + _v.y * _v.y + _v.z * _v.z;
-    return (len2 - SimdFloat4::new(1.0, 1.0, 1.0, 1.0)).abs().
-        lt(SimdFloat4::new(K_NORMALIZATION_TOLERANCE_EST_SQ, K_NORMALIZATION_TOLERANCE_EST_SQ,
-                           K_NORMALIZATION_TOLERANCE_EST_SQ, K_NORMALIZATION_TOLERANCE_EST_SQ));
+    return (len2 - SimdFloat4::load(1.0, 1.0, 1.0, 1.0)).abs().
+        lt(SimdFloat4::load(K_NORMALIZATION_TOLERANCE_EST_SQ, K_NORMALIZATION_TOLERANCE_EST_SQ,
+                            K_NORMALIZATION_TOLERANCE_EST_SQ, K_NORMALIZATION_TOLERANCE_EST_SQ));
 }
 
 pub fn is_normalized_est2(_v: &SoaFloat2) -> SimdInt4 {
     let len2 = _v.x * _v.x + _v.y * _v.y;
-    return (len2 - SimdFloat4::new(1.0, 1.0, 1.0, 1.0)).abs().
-        lt(SimdFloat4::new(K_NORMALIZATION_TOLERANCE_EST_SQ, K_NORMALIZATION_TOLERANCE_EST_SQ,
-                           K_NORMALIZATION_TOLERANCE_EST_SQ, K_NORMALIZATION_TOLERANCE_EST_SQ));
+    return (len2 - SimdFloat4::load(1.0, 1.0, 1.0, 1.0)).abs().
+        lt(SimdFloat4::load(K_NORMALIZATION_TOLERANCE_EST_SQ, K_NORMALIZATION_TOLERANCE_EST_SQ,
+                            K_NORMALIZATION_TOLERANCE_EST_SQ, K_NORMALIZATION_TOLERANCE_EST_SQ));
 }
 
 //--------------------------------------------------------------------------------------------------
@@ -867,8 +837,8 @@ pub fn is_normalized_est2(_v: &SoaFloat2) -> SimdInt4 {
 pub fn normalize_safe4(_v: &SoaFloat4, _safer: &SoaFloat4) -> SoaFloat4 {
     debug_assert!(is_normalized_est4(_safer).all() && "_safer is not normalized".parse().unwrap());
     let len2 = _v.x * _v.x + _v.y * _v.y + _v.z * _v.z + _v.w * _v.w;
-    let b = len2.ne(SimdFloat4::new(0.0, 0.0, 0.0, 0.0));
-    let inv_len = SimdFloat4::new(1.0, 1.0, 1.0, 1.0) / len2.sqrt();
+    let b = len2.ne(SimdFloat4::load(0.0, 0.0, 0.0, 0.0));
+    let inv_len = SimdFloat4::load(1.0, 1.0, 1.0, 1.0) / len2.sqrt();
     return SoaFloat4::load(
         b.select(_v.x * inv_len, _safer.x), b.select(_v.y * inv_len, _safer.y),
         b.select(_v.z * inv_len, _safer.z), b.select(_v.w * inv_len, _safer.w));
@@ -878,8 +848,8 @@ pub fn normalize_safe3(_v: &SoaFloat3, _safer: &SoaFloat3) -> SoaFloat3 {
     debug_assert!(is_normalized_est3(_safer).all() && "_safer is not normalized".parse().unwrap());
 
     let len2 = _v.x * _v.x + _v.y * _v.y + _v.z * _v.z;
-    let b = len2.ne(SimdFloat4::new(0.0, 0.0, 0.0, 0.0));
-    let inv_len = SimdFloat4::new(1.0, 1.0, 1.0, 1.0) / len2.sqrt();
+    let b = len2.ne(SimdFloat4::load(0.0, 0.0, 0.0, 0.0));
+    let inv_len = SimdFloat4::load(1.0, 1.0, 1.0, 1.0) / len2.sqrt();
     return SoaFloat3::load(b.select(_v.x * inv_len, _safer.x),
                            b.select(_v.y * inv_len, _safer.y),
                            b.select(_v.z * inv_len, _safer.z));
@@ -888,8 +858,8 @@ pub fn normalize_safe3(_v: &SoaFloat3, _safer: &SoaFloat3) -> SoaFloat3 {
 pub fn normalize_safe2(_v: &SoaFloat2, _safer: &SoaFloat2) -> SoaFloat2 {
     debug_assert!(is_normalized_est2(_safer).all() && "_safer is not normalized".parse().unwrap());
     let len2 = _v.x * _v.x + _v.y * _v.y;
-    let b = len2.ne(SimdFloat4::new(0.0, 0.0, 0.0, 0.0));
-    let inv_len = SimdFloat4::new(1.0, 1.0, 1.0, 1.0) / len2.sqrt();
+    let b = len2.ne(SimdFloat4::load(0.0, 0.0, 0.0, 0.0));
+    let inv_len = SimdFloat4::load(1.0, 1.0, 1.0, 1.0) / len2.sqrt();
     return SoaFloat2::load(b.select(_v.x * inv_len, _safer.x),
                            b.select(_v.y * inv_len, _safer.y));
 }
@@ -914,35 +884,35 @@ pub fn lerp2(_a: &SoaFloat2, _b: &SoaFloat2, _f: SimdFloat4) -> SoaFloat2 {
 //--------------------------------------------------------------------------------------------------
 // Returns the minimum of each element of _a and _b.
 pub fn min4(_a: &SoaFloat4, _b: &SoaFloat4) -> SoaFloat4 {
-    return SoaFloat4::load(simd_float4::min(_a.x, _b.x), simd_float4::min(_a.y, _b.y),
-                           simd_float4::min(_a.z, _b.z),
-                           simd_float4::min(_a.w, _b.w));
+    return SoaFloat4::load(SimdFloat4::min(&_a.x, _b.x), SimdFloat4::min(&_a.y, _b.y),
+                           SimdFloat4::min(&_a.z, _b.z),
+                           SimdFloat4::min(&_a.w, _b.w));
 }
 
 pub fn min3(_a: &SoaFloat3, _b: &SoaFloat3) -> SoaFloat3 {
-    return SoaFloat3::load(simd_float4::min(_a.x, _b.x), simd_float4::min(_a.y, _b.y),
-                           simd_float4::min(_a.z, _b.z));
+    return SoaFloat3::load(SimdFloat4::min(&_a.x, _b.x), SimdFloat4::min(&_a.y, _b.y),
+                           SimdFloat4::min(&_a.z, _b.z));
 }
 
 pub fn min2(_a: &SoaFloat2, _b: &SoaFloat2) -> SoaFloat2 {
-    return SoaFloat2::load(simd_float4::min(_a.x, _b.x), simd_float4::min(_a.y, _b.y));
+    return SoaFloat2::load(SimdFloat4::min(&_a.x, _b.x), SimdFloat4::min(&_a.y, _b.y));
 }
 
 //--------------------------------------------------------------------------------------------------
 // Returns the maximum of each element of _a and _b.
 pub fn max4(_a: &SoaFloat4, _b: &SoaFloat4) -> SoaFloat4 {
-    return SoaFloat4::load(simd_float4::max(_a.x, _b.x), simd_float4::max(_a.y, _b.y),
-                           simd_float4::max(_a.z, _b.z),
-                           simd_float4::max(_a.w, _b.w));
+    return SoaFloat4::load(SimdFloat4::max(&_a.x, _b.x), SimdFloat4::max(&_a.y, _b.y),
+                           SimdFloat4::max(&_a.z, _b.z),
+                           SimdFloat4::max(&_a.w, _b.w));
 }
 
 pub fn max3(_a: &SoaFloat3, _b: &SoaFloat3) -> SoaFloat3 {
-    return SoaFloat3::load(simd_float4::max(_a.x, _b.x), simd_float4::max(_a.y, _b.y),
-                           simd_float4::max(_a.z, _b.z));
+    return SoaFloat3::load(SimdFloat4::max(&_a.x, _b.x), SimdFloat4::max(&_a.y, _b.y),
+                           SimdFloat4::max(&_a.z, _b.z));
 }
 
 pub fn max2(_a: &SoaFloat2, _b: &SoaFloat2) -> SoaFloat2 {
-    return SoaFloat2::load(simd_float4::max(_a.x, _b.x), simd_float4::max(_a.y, _b.y));
+    return SoaFloat2::load(SimdFloat4::max(&_a.x, _b.x), SimdFloat4::max(&_a.y, _b.y));
 }
 
 //--------------------------------------------------------------------------------------------------

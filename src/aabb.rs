@@ -80,21 +80,21 @@ pub fn merge(_a: &AABB, _b: &AABB) -> AABB {
 
 // Compute box transformation by a matrix.
 pub fn transform_box(_matrix: &Float4x4, _box: &AABB) -> AABB {
-    let min = simd_float4::load3ptr_u([_box.min.x, _box.min.y, _box.min.z, 0.0]);
-    let max = simd_float4::load3ptr_u([_box.max.x, _box.max.y, _box.max.z, 0.0]);
+    let min = SimdFloat4::load3ptr_u([_box.min.x, _box.min.y, _box.min.z, 0.0]);
+    let max = SimdFloat4::load3ptr_u([_box.max.x, _box.max.y, _box.max.z, 0.0]);
 
     // Transforms min and max.
-    let ta = transform_point(_matrix, min);
-    let tb = transform_point(_matrix, max);
+    let ta = _matrix.transform_point(min);
+    let tb = _matrix.transform_point(max);
 
     // Finds new min and max and store them in box.
     let mut tbox = AABB::new_default();
     let mut result = [0.0_f32; 4];
-    simd_float4::store3ptr_u(simd_float4::min(ta, tb), &mut result);
+    ta.min(tb).store3ptr_u(&mut result);
     tbox.min.x = result[0];
     tbox.min.y = result[1];
     tbox.min.z = result[2];
-    simd_float4::store3ptr_u(simd_float4::max(ta, tb), &mut result);
+    ta.max(tb).store3ptr_u(&mut result);
     tbox.max.x = result[0];
     tbox.max.y = result[1];
     tbox.max.z = result[2];
