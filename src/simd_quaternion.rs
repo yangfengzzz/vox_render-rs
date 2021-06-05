@@ -62,41 +62,40 @@ impl SimdQuaternion {
         return SimdQuaternion { xyzw: result };
     }
 
-    // // Returns the quaternion that will rotate vector _from into vector _to,
-    // // around their plan perpendicular axis.The input vectors don't need to be
-    // // normalized, they can be null also.
-    // #[inline]
-    // pub fn from_vectors(_from: SimdFloat4,
-    //                     _to: SimdFloat4) -> SimdQuaternion {
-    //     unsafe {
-    //         // http://lolengine.net/blog/2014/02/24/quaternion-from-two-vectors-final
-    //         let norm_from_norm_to =
-    //             simd_float4::sqrt_x(_mm_mul_ps(simd_float4::length3sqr(_from), simd_float4::length3sqr(_to)));
-    //         let norm_from_norm_to_x = simd_float4::get_x(norm_from_norm_to);
-    //         if norm_from_norm_to_x < 1.0e-6 {
-    //             return SimdQuaternion::identity();
-    //         }
-    //
-    //         let real_part = _mm_add_ps(norm_from_norm_to, simd_float4::dot3(_from, _to));
-    //         let mut quat = SimdQuaternion { xyzw: _mm_setzero_ps() };
-    //         if simd_float4::get_x(real_part) < 1.0e-6 * norm_from_norm_to_x {
-    //             // If _from and _to are exactly opposite, rotate 180 degrees around an
-    //             // arbitrary orthogonal axis. Axis normalization can happen later, when we
-    //             // normalize the quaternion.
-    //             let mut from: [f32; 4] = [0.0; 4];
-    //             simd_float4::store_ptr_u(_from, &mut from);
-    //             quat.xyzw = match f32::abs(from[0]) > f32::abs(from[2]) {
-    //                 true => simd_float4::load(-from[1], from[0], 0.0, 0.0),
-    //                 false => simd_float4::load(0.0, -from[2], from[1], 0.0)
-    //             }
-    //         } else {
-    //             // This is the general code path.
-    //             quat.xyzw = simd_float4::set_w(simd_float4::cross3(_from, _to), real_part);
-    //         }
-    //         return normalize(&quat);
-    //     }
-    // }
-    //
+    // Returns the quaternion that will rotate vector _from into vector _to,
+    // around their plan perpendicular axis.The input vectors don't need to be
+    // normalized, they can be null also.
+    #[inline]
+    pub fn from_vectors(_from: SimdFloat4,
+                        _to: SimdFloat4) -> SimdQuaternion {
+        // http://lolengine.net/blog/2014/02/24/quaternion-from-two-vectors-final
+        let norm_from_norm_to = (_from.length3sqr() * _to.length3sqr()).sqrt_x();
+        let norm_from_norm_to_x = norm_from_norm_to.get_x();
+        if norm_from_norm_to_x < 1.0e-6 {
+            return SimdQuaternion::identity();
+        }
+
+        let real_part = norm_from_norm_to + _from.dot3(_to);
+        let mut quat = SimdQuaternion { xyzw: SimdFloat4::zero() };
+        if real_part.get_x() < 1.0e-6 * norm_from_norm_to_x {
+            // If _from and _to are exactly opposite, rotate 180 degrees around an
+            // arbitrary orthogonal axis. Axis normalization can happen later, when we
+            // normalize the quaternion.
+            let mut from: [f32; 4] = [0.0; 4];
+            _from.store_ptr_u(&mut from);
+            quat.xyzw = match f32::abs(from[0]) > f32::abs(from[2]) {
+                true => SimdFloat4::load(-from[1], from[0], 0.0, 0.0),
+                false => SimdFloat4::load(0.0, -from[2], from[1], 0.0)
+            }
+        } else {
+            // This is the general code path.
+            let mut result = _from.cross3(_to);
+            result.set_w(real_part);
+            quat.xyzw = result;
+        }
+        return quat.normalize();
+    }
+
     // // Returns the quaternion that will rotate vector _from into vector _to,
     // // around their plan perpendicular axis. The input vectors must be normalized.
     // #[inline]
@@ -162,68 +161,70 @@ impl SimdQuaternion {
 //         }
 //     }
 // }
-//
-// // Returns the conjugate of _q. This is the same as the inverse if _q is
-// // normalized. Otherwise the magnitude of the inverse is 1.f/|_q|.
-// #[inline]
-// pub fn conjugate(_q: &SimdQuaternion) -> SimdQuaternion {
-//     return SimdQuaternion { xyzw: simd_float4::xor_fi(_q.xyzw, simd_int4::mask_sign_xyz()) };
-// }
-//
-// impl Neg for SimdQuaternion {
-//     type Output = SimdQuaternion;
-//     #[inline]
-//     fn neg(self) -> Self::Output {
-//         return SimdQuaternion { xyzw: simd_float4::xor_fi(self.xyzw, simd_int4::mask_sign()) };
-//     }
-// }
-//
-// // Returns the normalized quaternion _q.
-// #[inline]
-// pub fn normalize(_q: &SimdQuaternion) -> SimdQuaternion {
-//     return SimdQuaternion { xyzw: simd_float4::normalize4(_q.xyzw) };
-// }
-//
-// // Returns the normalized quaternion _q if the norm of _q is not 0.
-// // Otherwise returns _safer.
-// #[inline]
-// pub fn normalize_safe(_q: &SimdQuaternion,
-//                       _safer: &SimdQuaternion) -> SimdQuaternion {
-//     return SimdQuaternion { xyzw: simd_float4::normalize_safe4(_q.xyzw, _safer.xyzw) };
-// }
-//
-// // Returns the estimated normalized quaternion _q.
-// #[inline]
-// pub fn normalize_est(_q: &SimdQuaternion) -> SimdQuaternion {
-//     return SimdQuaternion { xyzw: simd_float4::normalize_est4(_q.xyzw) };
-// }
-//
-// // Returns the estimated normalized quaternion _q if the norm of _q is not 0.
-// // Otherwise returns _safer.
-// #[inline]
-// pub fn normalize_safe_est(_q: &SimdQuaternion,
-//                           _safer: &SimdQuaternion) -> SimdQuaternion {
-//     return SimdQuaternion { xyzw: simd_float4::normalize_safe_est4(_q.xyzw, _safer.xyzw) };
-// }
-//
-// // Tests if the _q is a normalized quaternion.
-// // Returns the result in the x component of the returned vector. y, z and w are
-// // set to 0.
-// #[inline]
-// pub fn is_normalized(_q: &SimdQuaternion) -> SimdInt4 {
-//     return simd_float4::is_normalized4(_q.xyzw);
-// }
-//
-// // Tests if the _q is a normalized quaternion.
-// // Uses the estimated normalization coefficient, that matches estimated math
-// // functions (RecpEst, MormalizeEst...).
-// // Returns the result in the x component of the returned vector. y, z and w are
-// // set to 0.
-// #[inline]
-// pub fn is_normalized_est(_q: &SimdQuaternion) -> SimdInt4 {
-//     return simd_float4::is_normalized_est4(_q.xyzw);
-// }
-//
+
+impl Neg for SimdQuaternion {
+    type Output = SimdQuaternion;
+    #[inline]
+    fn neg(self) -> Self::Output {
+        return SimdQuaternion { xyzw: self.xyzw.xor_fi(SimdInt4::mask_sign()) };
+    }
+}
+
+impl SimdQuaternion {
+    // Returns the conjugate of _q. This is the same as the inverse if _q is
+    // normalized. Otherwise the magnitude of the inverse is 1.f/|_q|.
+    #[inline]
+    pub fn conjugate(&self) -> SimdQuaternion {
+        return SimdQuaternion { xyzw: self.xyzw.xor_fi(SimdInt4::mask_sign_xyz()) };
+    }
+
+    // Returns the normalized quaternion _q.
+    #[inline]
+    pub fn normalize(&self) -> SimdQuaternion {
+        return SimdQuaternion { xyzw: self.xyzw.normalize4() };
+    }
+
+    // Returns the normalized quaternion _q if the norm of _q is not 0.
+    // Otherwise returns _safer.
+    #[inline]
+    pub fn normalize_safe(&self,
+                          _safer: &SimdQuaternion) -> SimdQuaternion {
+        return SimdQuaternion { xyzw: self.xyzw.normalize_safe4(_safer.xyzw) };
+    }
+
+    // Returns the estimated normalized quaternion _q.
+    #[inline]
+    pub fn normalize_est(&self) -> SimdQuaternion {
+        return SimdQuaternion { xyzw: self.xyzw.normalize_est4() };
+    }
+
+    // Returns the estimated normalized quaternion _q if the norm of _q is not 0.
+    // Otherwise returns _safer.
+    #[inline]
+    pub fn normalize_safe_est(&self,
+                              _safer: &SimdQuaternion) -> SimdQuaternion {
+        return SimdQuaternion { xyzw: self.xyzw.normalize_safe_est4(_safer.xyzw) };
+    }
+
+    // Tests if the _q is a normalized quaternion.
+    // Returns the result in the x component of the returned vector. y, z and w are
+    // set to 0.
+    #[inline]
+    pub fn is_normalized(&self) -> SimdInt4 {
+        return self.xyzw.is_normalized4();
+    }
+
+    // Tests if the _q is a normalized quaternion.
+    // Uses the estimated normalization coefficient, that matches estimated math
+    // functions (RecpEst, MormalizeEst...).
+    // Returns the result in the x component of the returned vector. y, z and w are
+    // set to 0.
+    #[inline]
+    pub fn is_normalized_est(&self) -> SimdInt4 {
+        return self.xyzw.is_normalized_est4();
+    }
+}
+
 // // Returns to an axis angle representation of quaternion _q.
 // // Assumes quaternion _q is normalized.
 // #[inline]
