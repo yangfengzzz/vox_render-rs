@@ -113,6 +113,7 @@ macro_rules! ozz_sse_select_i {
 
 //----------------------------------------------------------------------------------------------
 // Vector of four floating point values.
+#[derive(Copy, Clone)]
 pub struct SimdFloat4 {
     pub data: __m128,
 }
@@ -1702,6 +1703,7 @@ impl SimdFloat4 {
 
 // //--------------------------------------------------------------------------------------------------
 // Vector of four integer values.
+#[derive(Copy, Clone)]
 pub struct SimdInt4 {
     pub data: __m128i,
 }
@@ -2889,14 +2891,15 @@ impl Float4x4 {
         }
     }
 
-    // Returns the transpose of matrix _m.
+    //----------------------------------------------------------------------------------------------
+    // Returns the transpose of matrix self.
     #[inline]
-    pub fn transpose(_m: &Float4x4) -> Float4x4 {
+    pub fn transpose(&self) -> Float4x4 {
         unsafe {
-            let tmp0 = _mm_unpacklo_ps(_m.cols[0].data, _m.cols[2].data);
-            let tmp1 = _mm_unpacklo_ps(_m.cols[1].data, _m.cols[3].data);
-            let tmp2 = _mm_unpackhi_ps(_m.cols[0].data, _m.cols[2].data);
-            let tmp3 = _mm_unpackhi_ps(_m.cols[1].data, _m.cols[3].data);
+            let tmp0 = _mm_unpacklo_ps(self.cols[0].data, self.cols[2].data);
+            let tmp1 = _mm_unpacklo_ps(self.cols[1].data, self.cols[3].data);
+            let tmp2 = _mm_unpackhi_ps(self.cols[0].data, self.cols[2].data);
+            let tmp3 = _mm_unpackhi_ps(self.cols[1].data, self.cols[3].data);
             return Float4x4 {
                 cols:
                 [SimdFloat4::new(_mm_unpacklo_ps(tmp0, tmp1)), SimdFloat4::new(_mm_unpackhi_ps(tmp0, tmp1)),
@@ -2905,300 +2908,303 @@ impl Float4x4 {
         }
     }
 
-// // Returns the inverse of matrix _m.
-// // If _invertible is not nullptr, its x component will be set to true if matrix is
-// // invertible. If _invertible is nullptr, then an assert is triggered in case the
-// // matrix isn't invertible.
-// #[inline]
-// pub fn invert(_m: &Float4x4, mut _invertible: Option<SimdInt4>) -> Float4x4 {
-//     unsafe {
-//         let _t0 =
-//             _mm_shuffle_ps(_m.cols[0], _m.cols[1], _mm_shuffle!(1, 0, 1, 0));
-//         let _t1 =
-//             _mm_shuffle_ps(_m.cols[2], _m.cols[3], _mm_shuffle!(1, 0, 1, 0));
-//         let _t2 =
-//             _mm_shuffle_ps(_m.cols[0], _m.cols[1], _mm_shuffle!(3, 2, 3, 2));
-//         let _t3 =
-//             _mm_shuffle_ps(_m.cols[2], _m.cols[3], _mm_shuffle!(3, 2, 3, 2));
-//         let c0 = _mm_shuffle_ps(_t0, _t1, _mm_shuffle!(2, 0, 2, 0));
-//         let c1 = _mm_shuffle_ps(_t1, _t0, _mm_shuffle!(3, 1, 3, 1));
-//         let c2 = _mm_shuffle_ps(_t2, _t3, _mm_shuffle!(2, 0, 2, 0));
-//         let c3 = _mm_shuffle_ps(_t3, _t2, _mm_shuffle!(3, 1, 3, 1));
-//
-//         let mut tmp1 = _mm_mul_ps(c2, c3);
-//         tmp1 = ozz_shuffle_ps1!(tmp1, 0xB1);
-//         let mut minor0 = _mm_mul_ps(c1, tmp1);
-//         let mut minor1 = _mm_mul_ps(c0, tmp1);
-//         tmp1 = ozz_shuffle_ps1!(tmp1, 0x4E);
-//         minor0 = ozz_msub!(c1, tmp1, minor0);
-//         minor1 = ozz_msub!(c0, tmp1, minor1);
-//         minor1 = ozz_shuffle_ps1!(minor1, 0x4E);
-//
-//         tmp1 = _mm_mul_ps(c1, c2);
-//         tmp1 = ozz_shuffle_ps1!(tmp1, 0xB1);
-//         minor0 = ozz_madd!(c3, tmp1, minor0);
-//         let mut minor3 = _mm_mul_ps(c0, tmp1);
-//         tmp1 = ozz_shuffle_ps1!(tmp1, 0x4E);
-//         minor0 = ozz_nmadd!(c3, tmp1, minor0);
-//         minor3 = ozz_msub!(c0, tmp1, minor3);
-//         minor3 = ozz_shuffle_ps1!(minor3, 0x4E);
-//
-//         tmp1 = _mm_mul_ps(ozz_shuffle_ps1!(c1, 0x4E), c3);
-//         tmp1 = ozz_shuffle_ps1!(tmp1, 0xB1);
-//         let tmp2 = ozz_shuffle_ps1!(c2, 0x4E);
-//         minor0 = ozz_madd!(tmp2, tmp1, minor0);
-//         let mut minor2 = _mm_mul_ps(c0, tmp1);
-//         tmp1 = ozz_shuffle_ps1!(tmp1, 0x4E);
-//         minor0 = ozz_nmadd!(tmp2, tmp1, minor0);
-//         minor2 = ozz_msub!(c0, tmp1, minor2);
-//         minor2 = ozz_shuffle_ps1!(minor2, 0x4E);
-//
-//         tmp1 = _mm_mul_ps(c0, c1);
-//         tmp1 = ozz_shuffle_ps1!(tmp1, 0xB1);
-//         minor2 = ozz_madd!(c3, tmp1, minor2);
-//         minor3 = ozz_msub!(tmp2, tmp1, minor3);
-//         tmp1 = ozz_shuffle_ps1!(tmp1, 0x4E);
-//         minor2 = ozz_msub!(c3, tmp1, minor2);
-//         minor3 = ozz_nmadd!(tmp2, tmp1, minor3);
-//
-//         tmp1 = _mm_mul_ps(c0, c3);
-//         tmp1 = ozz_shuffle_ps1!(tmp1, 0xB1);
-//         minor1 = ozz_nmadd!(tmp2, tmp1, minor1);
-//         minor2 = ozz_madd!(c1, tmp1, minor2);
-//         tmp1 = ozz_shuffle_ps1!(tmp1, 0x4E);
-//         minor1 = ozz_madd!(tmp2, tmp1, minor1);
-//         minor2 = ozz_nmadd!(c1, tmp1, minor2);
-//
-//         tmp1 = _mm_mul_ps(c0, tmp2);
-//         tmp1 = ozz_shuffle_ps1!(tmp1, 0xB1);
-//         minor1 = ozz_madd!(c3, tmp1, minor1);
-//         minor3 = ozz_nmadd!(c1, tmp1, minor3);
-//         tmp1 = ozz_shuffle_ps1!(tmp1, 0x4E);
-//         minor1 = ozz_nmadd!(c3, tmp1, minor1);
-//         minor3 = ozz_madd!(c1, tmp1, minor3);
-//
-//         let mut det = _mm_mul_ps(c0, minor0);
-//         det = _mm_add_ps(ozz_shuffle_ps1!(det, 0x4E), det);
-//         det = _mm_add_ss(ozz_shuffle_ps1!(det, 0xB1), det);
-//         let invertible = simd_float4::cmp_ne(det, simd_float4::zero());
-//         debug_assert!((_invertible.is_none() || simd_int4::are_all_true1(invertible)) &&
-//             "Matrix is not invertible".parse().unwrap());
-//         if _invertible.is_some() {
-//             _invertible = Some(invertible);
-//         }
-//         tmp1 = ozz_sse_select_f!(invertible, simd_float4::rcp_est_nr(det), simd_float4::zero());
-//         det = ozz_nmaddx!(det, _mm_mul_ss(tmp1, tmp1), _mm_add_ss(tmp1, tmp1));
-//         det = ozz_shuffle_ps1!(det, 0x00);
-//
-//         // Copy the final columns
-//         return Float4x4 {
-//             cols: [_mm_mul_ps(det, minor0), _mm_mul_ps(det, minor1),
-//                 _mm_mul_ps(det, minor2), _mm_mul_ps(det, minor3)]
-//         };
-//     }
-// }
-//
-// // Translates matrix _m along the axis defined by _v components.
-// // _v.w is ignored.
-// #[inline]
-// pub fn translate(_m: &Float4x4, _v: SimdFloat4) -> Float4x4 {
-//     unsafe {
-//         let a01 = ozz_madd!(_m.cols[0], ozz_sse_splat_f!(_v, 0),
-//                                     _mm_mul_ps(_m.cols[1], ozz_sse_splat_f!(_v, 1)));
-//         let m3 = ozz_madd!(_m.cols[2], ozz_sse_splat_f!(_v, 2), _m.cols[3]);
-//         return Float4x4 {
-//             cols:
-//             [_m.cols[0], _m.cols[1], _m.cols[2], _mm_add_ps(a01, m3)]
-//         };
-//     }
-// }
-//
-// // Scales matrix _m along each axis with x, y, z components of _v.
-// // _v.w is ignored.
-// #[inline]
-// pub fn scale(_m: &Float4x4, _v: SimdFloat4) -> Float4x4 {
-//     unsafe {
-//         return Float4x4 {
-//             cols: [_mm_mul_ps(_m.cols[0], ozz_sse_splat_f!(_v, 0)),
-//                 _mm_mul_ps(_m.cols[1], ozz_sse_splat_f!(_v, 1)),
-//                 _mm_mul_ps(_m.cols[2], ozz_sse_splat_f!(_v, 2)),
-//                 _m.cols[3]]
-//         };
-//     }
-// }
-//
-// // Multiply each column of matrix _m with vector _v.
-// #[inline]
-// pub fn column_multiply(_m: &Float4x4, _v: SimdFloat4) -> Float4x4 {
-//     unsafe {
-//         return Float4x4 {
-//             cols: [_mm_mul_ps(_m.cols[0], _v), _mm_mul_ps(_m.cols[1], _v),
-//                 _mm_mul_ps(_m.cols[2], _v),
-//                 _mm_mul_ps(_m.cols[3], _v)]
-//         };
-//     }
-// }
-//
-// // Tests if each 3 column of upper 3x3 matrix of _m is a normal matrix.
-// // Returns the result in the x, y and z component of the returned vector. w is
-// // set to 0.
-// #[inline]
-// pub fn is_normalized(_m: &Float4x4) -> SimdInt4 {
-//     unsafe {
-//         let max = _mm_set_ps1(1.0 + crate::math_constant::K_NORMALIZATION_TOLERANCE_SQ);
-//         let min = _mm_set_ps1(1.0 - crate::math_constant::K_NORMALIZATION_TOLERANCE_SQ);
-//
-//         let tmp0 = _mm_unpacklo_ps(_m.cols[0], _m.cols[2]);
-//         let tmp1 = _mm_unpacklo_ps(_m.cols[1], _m.cols[3]);
-//         let tmp2 = _mm_unpackhi_ps(_m.cols[0], _m.cols[2]);
-//         let tmp3 = _mm_unpackhi_ps(_m.cols[1], _m.cols[3]);
-//         let row0 = _mm_unpacklo_ps(tmp0, tmp1);
-//         let row1 = _mm_unpackhi_ps(tmp0, tmp1);
-//         let row2 = _mm_unpacklo_ps(tmp2, tmp3);
-//
-//         let dot =
-//             ozz_madd!(row0, row0, ozz_madd!(row1, row1, _mm_mul_ps(row2, row2)));
-//         let normalized =
-//             _mm_and_ps(_mm_cmplt_ps(dot, max), _mm_cmpgt_ps(dot, min));
-//         return Float4x4::new(_mm_castps_si128(
-//             _mm_and_ps(normalized, _mm_castsi128_ps(simd_int4::mask_fff0())));
-//     }
-// }
-//
-// // Tests if each 3 column of upper 3x3 matrix of _m is a normal matrix.
-// // Uses the estimated tolerance
-// // Returns the result in the x, y and z component of the returned vector. w is
-// // set to 0.
-// #[inline]
-// pub fn is_normalized_est(_m: &Float4x4) -> SimdInt4 {
-//     unsafe {
-//         let max = _mm_set_ps1(1.0 + crate::math_constant::K_NORMALIZATION_TOLERANCE_EST_SQ);
-//         let min = _mm_set_ps1(1.0 - crate::math_constant::K_NORMALIZATION_TOLERANCE_EST_SQ);
-//
-//         let tmp0 = _mm_unpacklo_ps(_m.cols[0], _m.cols[2]);
-//         let tmp1 = _mm_unpacklo_ps(_m.cols[1], _m.cols[3]);
-//         let tmp2 = _mm_unpackhi_ps(_m.cols[0], _m.cols[2]);
-//         let tmp3 = _mm_unpackhi_ps(_m.cols[1], _m.cols[3]);
-//         let row0 = _mm_unpacklo_ps(tmp0, tmp1);
-//         let row1 = _mm_unpackhi_ps(tmp0, tmp1);
-//         let row2 = _mm_unpacklo_ps(tmp2, tmp3);
-//
-//         let dot =
-//             ozz_madd!(row0, row0, ozz_madd!(row1, row1, _mm_mul_ps(row2, row2)));
-//
-//         let normalized =
-//             _mm_and_ps(_mm_cmplt_ps(dot, max), _mm_cmpgt_ps(dot, min));
-//
-//         return Float4x4::new(_mm_castps_si128(
-//             _mm_and_ps(normalized, _mm_castsi128_ps(simd_int4::mask_fff0())));
-//     }
-// }
-//
-// // Tests if the upper 3x3 matrix of _m is an orthogonal matrix.
-// // A matrix that contains a reflexion cannot be considered orthogonal.
-// // Returns the result in the x component of the returned vector. y, z and w are
-// // set to 0.
-// #[inline]
-// pub fn is_orthogonal(_m: &Float4x4) -> SimdInt4 {
-//     unsafe {
-//         let max = _mm_set_ss(1.0 + crate::math_constant::K_NORMALIZATION_TOLERANCE_SQ);
-//         let min = _mm_set_ss(1.0 - crate::math_constant::K_NORMALIZATION_TOLERANCE_SQ);
-//         let zero = _mm_setzero_ps();
-//
-//         // Use simd_float4::zero() if one of the normalization fails. _m will then be
-//         // considered not orthogonal.
-//         let cross = simd_float4::normalize_safe3(simd_float4::cross3(_m.cols[0], _m.cols[1]), zero);
-//         let at = simd_float4::normalize_safe3(_m.cols[2], zero);
-//
-//         let dot;
-//         ozz_sse_dot3_f!(cross, at, dot);
-//         let dotx000 = _mm_move_ss(zero, dot);
-//         return Float4x4::new(_mm_castps_si128(
-//             _mm_and_ps(_mm_cmplt_ss(dotx000, max), _mm_cmpgt_ss(dotx000, min)));
-//     }
-// }
-//
-// // Returns the quaternion that represent the rotation of matrix _m.
-// // _m must be normalized and orthogonal.
-// // the return SimdFloat4::new(quaternion is normalized.
-// #[inline]
-// pub fn to_quaternion(_m: &Float4x4) -> SimdFloat4 {
-//     unsafe {
-//         debug_assert!(simd_int4::are_all_true3(is_normalized_est(_m)));
-//         debug_assert!(simd_int4::are_all_true1(is_orthogonal(_m)));
-//
-//         // Prepares constants.
-//         let zero = _mm_setzero_si128();
-//         let ffff = _mm_cmpeq_epi32(zero, zero);
-//         let half = _mm_set1_ps(0.50);
-//         let mask_f000 = _mm_srli_si128(ffff, 12);
-//         let mask_000f = _mm_slli_si128(ffff, 12);
-//         let one =
-//             _mm_castsi128_ps(_mm_srli_epi32(_mm_slli_epi32(ffff, 25), 2));
-//         let mask_0f00 = _mm_slli_si128(mask_f000, 4);
-//         let mask_00f0 = _mm_slli_si128(mask_f000, 8);
-//
-//         let xx_yy = ozz_sse_select_f!(mask_0f00, _m.cols[1], _m.cols[0]);
-//         let xx_yy_0010 = ozz_shuffle_ps1!(xx_yy, _mm_shuffle!(0, 0, 1, 0));
-//         let xx_yy_zz_xx =
-//             ozz_sse_select_f!(mask_00f0, _m.cols[2], xx_yy_0010);
-//         let yy_zz_xx_yy =
-//             ozz_shuffle_ps1!(xx_yy_zz_xx, _mm_shuffle!(1, 0, 2, 1));
-//         let zz_xx_yy_zz =
-//             ozz_shuffle_ps1!(xx_yy_zz_xx, _mm_shuffle!(2, 1, 0, 2));
-//
-//         let diag_sum =
-//             _mm_add_ps(_mm_add_ps(xx_yy_zz_xx, yy_zz_xx_yy), zz_xx_yy_zz);
-//         let diag_diff =
-//             _mm_sub_ps(_mm_sub_ps(xx_yy_zz_xx, yy_zz_xx_yy), zz_xx_yy_zz);
-//         let radicand =
-//             _mm_add_ps(ozz_sse_select_f!(mask_000f, diag_sum, diag_diff), one);
-//         let inv_sqrt = _mm_div_ps(one, _mm_sqrt_ps(radicand));
-//
-//         let mut zy_xz_yx = ozz_sse_select_f!(mask_00f0, _m.cols[1], _m.cols[0]);
-//         zy_xz_yx = ozz_shuffle_ps1!(zy_xz_yx, _mm_shuffle!(0, 1, 2, 2));
-//         zy_xz_yx =
-//             ozz_sse_select_f!(mask_0f00, ozz_sse_splat_f!(_m.cols[2], 0), zy_xz_yx);
-//         let mut yz_zx_xy = ozz_sse_select_f!(mask_f000, _m.cols[1], _m.cols[0]);
-//         yz_zx_xy = ozz_shuffle_ps1!(yz_zx_xy, _mm_shuffle!(0, 0, 2, 0));
-//         yz_zx_xy =
-//             ozz_sse_select_f!(mask_f000, ozz_sse_splat_f!(_m.cols[2], 1), yz_zx_xy);
-//         let sum = _mm_add_ps(zy_xz_yx, yz_zx_xy);
-//         let diff = _mm_sub_ps(zy_xz_yx, yz_zx_xy);
-//         let scale = _mm_mul_ps(inv_sqrt, half);
-//
-//         let sum0 = ozz_shuffle_ps1!(sum, _mm_shuffle!(0, 1, 2, 0));
-//         let sum1 = ozz_shuffle_ps1!(sum, _mm_shuffle!(0, 0, 0, 2));
-//         let sum2 = ozz_shuffle_ps1!(sum, _mm_shuffle!(0, 0, 0, 1));
-//         let mut res0 = ozz_sse_select_f!(mask_000f, ozz_sse_splat_f!(diff, 0), sum0);
-//         let mut res1 = ozz_sse_select_f!(mask_000f, ozz_sse_splat_f!(diff, 1), sum1);
-//         let mut res2 = ozz_sse_select_f!(mask_000f, ozz_sse_splat_f!(diff, 2), sum2);
-//         res0 = _mm_mul_ps(ozz_sse_select_f!(mask_f000, radicand, res0),
-//                           ozz_sse_splat_f!(scale, 0));
-//         res1 = _mm_mul_ps(ozz_sse_select_f!(mask_0f00, radicand, res1),
-//                           ozz_sse_splat_f!(scale, 1));
-//         res2 = _mm_mul_ps(ozz_sse_select_f!(mask_00f0, radicand, res2),
-//                           ozz_sse_splat_f!(scale, 2));
-//         let res3 = _mm_mul_ps(ozz_sse_select_f!(mask_000f, radicand, diff),
-//                               ozz_sse_splat_f!(scale, 3));
-//
-//         let xx = ozz_sse_splat_f!(_m.cols[0], 0);
-//         let yy = ozz_sse_splat_f!(_m.cols[1], 1);
-//         let zz = ozz_sse_splat_f!(_m.cols[2], 2);
-//         let cond0 = _mm_castps_si128(_mm_cmpgt_ps(yy, xx));
-//         let cond1 =
-//             _mm_castps_si128(_mm_and_ps(_mm_cmpgt_ps(zz, xx), _mm_cmpgt_ps(zz, yy)));
-//         let cond2 = _mm_castps_si128(
-//             _mm_cmpgt_ps(ozz_sse_splat_f!(diag_sum, 0), _mm_castsi128_ps(zero)));
-//         let mut res = ozz_sse_select_f!(cond0, res1, res0);
-//         res = ozz_sse_select_f!(cond1, res2, res);
-//         res = ozz_sse_select_f!(cond2, res3, res);
-//
-//         debug_assert!(simd_int4::are_all_true1(is_normalized_est4(res)));
-//         return res;
-//     }
-// }
-//
+    // Returns the inverse of matrix self.
+    // If _invertible is not nullptr, its x component will be set to true if matrix is
+    // invertible. If _invertible is nullptr, then an assert is triggered in case the
+    // matrix isn't invertible.
+    #[inline]
+    pub fn invert(&self, mut _invertible: Option<SimdInt4>) -> Float4x4 {
+        unsafe {
+            let _t0 =
+                _mm_shuffle_ps(self.cols[0].data, self.cols[1].data, _mm_shuffle!(1, 0, 1, 0));
+            let _t1 =
+                _mm_shuffle_ps(self.cols[2].data, self.cols[3].data, _mm_shuffle!(1, 0, 1, 0));
+            let _t2 =
+                _mm_shuffle_ps(self.cols[0].data, self.cols[1].data, _mm_shuffle!(3, 2, 3, 2));
+            let _t3 =
+                _mm_shuffle_ps(self.cols[2].data, self.cols[3].data, _mm_shuffle!(3, 2, 3, 2));
+            let c0 = _mm_shuffle_ps(_t0, _t1, _mm_shuffle!(2, 0, 2, 0));
+            let c1 = _mm_shuffle_ps(_t1, _t0, _mm_shuffle!(3, 1, 3, 1));
+            let c2 = _mm_shuffle_ps(_t2, _t3, _mm_shuffle!(2, 0, 2, 0));
+            let c3 = _mm_shuffle_ps(_t3, _t2, _mm_shuffle!(3, 1, 3, 1));
+
+            let mut tmp1 = _mm_mul_ps(c2, c3);
+            tmp1 = ozz_shuffle_ps1!(tmp1, 0xB1);
+            let mut minor0 = _mm_mul_ps(c1, tmp1);
+            let mut minor1 = _mm_mul_ps(c0, tmp1);
+            tmp1 = ozz_shuffle_ps1!(tmp1, 0x4E);
+            minor0 = ozz_msub!(c1, tmp1, minor0);
+            minor1 = ozz_msub!(c0, tmp1, minor1);
+            minor1 = ozz_shuffle_ps1!(minor1, 0x4E);
+
+            tmp1 = _mm_mul_ps(c1, c2);
+            tmp1 = ozz_shuffle_ps1!(tmp1, 0xB1);
+            minor0 = ozz_madd!(c3, tmp1, minor0);
+            let mut minor3 = _mm_mul_ps(c0, tmp1);
+            tmp1 = ozz_shuffle_ps1!(tmp1, 0x4E);
+            minor0 = ozz_nmadd!(c3, tmp1, minor0);
+            minor3 = ozz_msub!(c0, tmp1, minor3);
+            minor3 = ozz_shuffle_ps1!(minor3, 0x4E);
+
+            tmp1 = _mm_mul_ps(ozz_shuffle_ps1!(c1, 0x4E), c3);
+            tmp1 = ozz_shuffle_ps1!(tmp1, 0xB1);
+            let tmp2 = ozz_shuffle_ps1!(c2, 0x4E);
+            minor0 = ozz_madd!(tmp2, tmp1, minor0);
+            let mut minor2 = _mm_mul_ps(c0, tmp1);
+            tmp1 = ozz_shuffle_ps1!(tmp1, 0x4E);
+            minor0 = ozz_nmadd!(tmp2, tmp1, minor0);
+            minor2 = ozz_msub!(c0, tmp1, minor2);
+            minor2 = ozz_shuffle_ps1!(minor2, 0x4E);
+
+            tmp1 = _mm_mul_ps(c0, c1);
+            tmp1 = ozz_shuffle_ps1!(tmp1, 0xB1);
+            minor2 = ozz_madd!(c3, tmp1, minor2);
+            minor3 = ozz_msub!(tmp2, tmp1, minor3);
+            tmp1 = ozz_shuffle_ps1!(tmp1, 0x4E);
+            minor2 = ozz_msub!(c3, tmp1, minor2);
+            minor3 = ozz_nmadd!(tmp2, tmp1, minor3);
+
+            tmp1 = _mm_mul_ps(c0, c3);
+            tmp1 = ozz_shuffle_ps1!(tmp1, 0xB1);
+            minor1 = ozz_nmadd!(tmp2, tmp1, minor1);
+            minor2 = ozz_madd!(c1, tmp1, minor2);
+            tmp1 = ozz_shuffle_ps1!(tmp1, 0x4E);
+            minor1 = ozz_madd!(tmp2, tmp1, minor1);
+            minor2 = ozz_nmadd!(c1, tmp1, minor2);
+
+            tmp1 = _mm_mul_ps(c0, tmp2);
+            tmp1 = ozz_shuffle_ps1!(tmp1, 0xB1);
+            minor1 = ozz_madd!(c3, tmp1, minor1);
+            minor3 = ozz_nmadd!(c1, tmp1, minor3);
+            tmp1 = ozz_shuffle_ps1!(tmp1, 0x4E);
+            minor1 = ozz_nmadd!(c3, tmp1, minor1);
+            minor3 = ozz_madd!(c1, tmp1, minor3);
+
+            let mut det = _mm_mul_ps(c0, minor0);
+            det = _mm_add_ps(ozz_shuffle_ps1!(det, 0x4E), det);
+            det = _mm_add_ss(ozz_shuffle_ps1!(det, 0xB1), det);
+            let invertible = SimdFloat4::cmp_ne(&SimdFloat4::new(det), SimdFloat4::zero());
+            debug_assert!((_invertible.is_none() || SimdInt4::are_all_true1(&invertible)) &&
+                "Matrix is not invertible".parse().unwrap());
+            if _invertible.is_some() {
+                _invertible = Some(invertible);
+            }
+            tmp1 = ozz_sse_select_f!(invertible.data, SimdFloat4::rcp_est_nr(&SimdFloat4::new(det)).data, SimdFloat4::zero().data);
+            det = ozz_nmaddx!(det, _mm_mul_ss(tmp1, tmp1), _mm_add_ss(tmp1, tmp1));
+            det = ozz_shuffle_ps1!(det, 0x00);
+
+            // Copy the final columns
+            return Float4x4 {
+                cols: [SimdFloat4::new(_mm_mul_ps(det, minor0)), SimdFloat4::new(_mm_mul_ps(det, minor1)),
+                    SimdFloat4::new(_mm_mul_ps(det, minor2)), SimdFloat4::new(_mm_mul_ps(det, minor3))]
+            };
+        }
+    }
+
+    // Translates matrix _m along the axis defined by _v components.
+    // _v.w is ignored.
+    #[inline]
+    pub fn translate(&self, _v: SimdFloat4) -> Float4x4 {
+        unsafe {
+            let a01 = ozz_madd!(self.cols[0].data, ozz_sse_splat_f!(_v.data, 0),
+                                    _mm_mul_ps(self.cols[1].data, ozz_sse_splat_f!(_v.data, 1)));
+            let m3 = ozz_madd!(self.cols[2].data, ozz_sse_splat_f!(_v.data, 2), self.cols[3].data);
+            return Float4x4 {
+                cols:
+                [self.cols[0], self.cols[1],
+                    self.cols[2], SimdFloat4::new(_mm_add_ps(a01, m3))]
+            };
+        }
+    }
+
+    // Scales matrix _m along each axis with x, y, z components of _v.
+    // _v.w is ignored.
+    #[inline]
+    pub fn scale(&self, _v: SimdFloat4) -> Float4x4 {
+        unsafe {
+            return Float4x4 {
+                cols: [SimdFloat4::new(_mm_mul_ps(self.cols[0].data, ozz_sse_splat_f!(_v.data, 0))),
+                    SimdFloat4::new(_mm_mul_ps(self.cols[1].data, ozz_sse_splat_f!(_v.data, 1))),
+                    SimdFloat4::new(_mm_mul_ps(self.cols[2].data, ozz_sse_splat_f!(_v.data, 2))),
+                    self.cols[3]]
+            };
+        }
+    }
+
+    // Multiply each column of matrix _m with vector _v.
+    #[inline]
+    pub fn column_multiply(&self, _v: SimdFloat4) -> Float4x4 {
+        unsafe {
+            return Float4x4 {
+                cols: [SimdFloat4::new(_mm_mul_ps(self.cols[0].data, _v.data)),
+                    SimdFloat4::new(_mm_mul_ps(self.cols[1].data, _v.data)),
+                    SimdFloat4::new(_mm_mul_ps(self.cols[2].data, _v.data)),
+                    SimdFloat4::new(_mm_mul_ps(self.cols[3].data, _v.data))]
+            };
+        }
+    }
+
+    // Tests if each 3 column of upper 3x3 matrix of _m is a normal matrix.
+// Returns the result in the x, y and z component of the returned vector. w is
+// set to 0.
+    #[inline]
+    pub fn is_normalized(&self) -> SimdInt4 {
+        unsafe {
+            let max = _mm_set_ps1(1.0 + crate::math_constant::K_NORMALIZATION_TOLERANCE_SQ);
+            let min = _mm_set_ps1(1.0 - crate::math_constant::K_NORMALIZATION_TOLERANCE_SQ);
+
+            let tmp0 = _mm_unpacklo_ps(self.cols[0].data, self.cols[2].data);
+            let tmp1 = _mm_unpacklo_ps(self.cols[1].data, self.cols[3].data);
+            let tmp2 = _mm_unpackhi_ps(self.cols[0].data, self.cols[2].data);
+            let tmp3 = _mm_unpackhi_ps(self.cols[1].data, self.cols[3].data);
+            let row0 = _mm_unpacklo_ps(tmp0, tmp1);
+            let row1 = _mm_unpackhi_ps(tmp0, tmp1);
+            let row2 = _mm_unpacklo_ps(tmp2, tmp3);
+
+            let dot =
+                ozz_madd!(row0, row0, ozz_madd!(row1, row1, _mm_mul_ps(row2, row2)));
+            let normalized =
+                _mm_and_ps(_mm_cmplt_ps(dot, max), _mm_cmpgt_ps(dot, min));
+            return SimdInt4::new(_mm_castps_si128(
+                _mm_and_ps(normalized, _mm_castsi128_ps(SimdInt4::mask_fff0().data))));
+        }
+    }
+
+    // Tests if each 3 column of upper 3x3 matrix of _m is a normal matrix.
+    // Uses the estimated tolerance
+    // Returns the result in the x, y and z component of the returned vector. w is
+    // set to 0.
+    #[inline]
+    pub fn is_normalized_est(&self) -> SimdInt4 {
+        unsafe {
+            let max = _mm_set_ps1(1.0 + crate::math_constant::K_NORMALIZATION_TOLERANCE_EST_SQ);
+            let min = _mm_set_ps1(1.0 - crate::math_constant::K_NORMALIZATION_TOLERANCE_EST_SQ);
+
+            let tmp0 = _mm_unpacklo_ps(self.cols[0].data, self.cols[2].data);
+            let tmp1 = _mm_unpacklo_ps(self.cols[1].data, self.cols[3].data);
+            let tmp2 = _mm_unpackhi_ps(self.cols[0].data, self.cols[2].data);
+            let tmp3 = _mm_unpackhi_ps(self.cols[1].data, self.cols[3].data);
+            let row0 = _mm_unpacklo_ps(tmp0, tmp1);
+            let row1 = _mm_unpackhi_ps(tmp0, tmp1);
+            let row2 = _mm_unpacklo_ps(tmp2, tmp3);
+
+            let dot =
+                ozz_madd!(row0, row0, ozz_madd!(row1, row1, _mm_mul_ps(row2, row2)));
+
+            let normalized =
+                _mm_and_ps(_mm_cmplt_ps(dot, max), _mm_cmpgt_ps(dot, min));
+
+            return SimdInt4::new(_mm_castps_si128(
+                _mm_and_ps(normalized, _mm_castsi128_ps(SimdInt4::mask_fff0().data))));
+        }
+    }
+
+    // Tests if the upper 3x3 matrix of _m is an orthogonal matrix.
+    // A matrix that contains a reflexion cannot be considered orthogonal.
+    // Returns the result in the x component of the returned vector. y, z and w are
+    // set to 0.
+    #[inline]
+    pub fn is_orthogonal(&self) -> SimdInt4 {
+        unsafe {
+            let max = _mm_set_ss(1.0 + crate::math_constant::K_NORMALIZATION_TOLERANCE_SQ);
+            let min = _mm_set_ss(1.0 - crate::math_constant::K_NORMALIZATION_TOLERANCE_SQ);
+            let zero = _mm_setzero_ps();
+
+            // Use simd_float4::zero() if one of the normalization fails. _m will then be
+            // considered not orthogonal.
+            let cross = SimdFloat4::normalize_safe3(&SimdFloat4::cross3(&self.cols[0], self.cols[1]), SimdFloat4::zero());
+            let at = SimdFloat4::normalize_safe3(&self.cols[2], SimdFloat4::zero());
+
+            let dot;
+            ozz_sse_dot3_f!(cross.data, at.data, dot);
+            let dotx000 = _mm_move_ss(zero, dot);
+            return SimdInt4::new(_mm_castps_si128(
+                _mm_and_ps(_mm_cmplt_ss(dotx000, max), _mm_cmpgt_ss(dotx000, min))));
+        }
+    }
+
+    // Returns the quaternion that represent the rotation of matrix self.
+    // _m must be normalized and orthogonal.
+    // the return SimdFloat4::new(quaternion is normalized.
+    #[inline]
+    pub fn to_quaternion(&self) -> SimdFloat4 {
+        unsafe {
+            debug_assert!(self.is_normalized_est().are_all_true3());
+            debug_assert!(self.is_orthogonal().are_all_true1());
+
+            // Prepares constants.
+            let zero = _mm_setzero_si128();
+            let ffff = _mm_cmpeq_epi32(zero, zero);
+            let half = _mm_set1_ps(0.50);
+            let mask_f000 = _mm_srli_si128(ffff, 12);
+            let mask_000f = _mm_slli_si128(ffff, 12);
+            let one =
+                _mm_castsi128_ps(_mm_srli_epi32(_mm_slli_epi32(ffff, 25), 2));
+            let mask_0f00 = _mm_slli_si128(mask_f000, 4);
+            let mask_00f0 = _mm_slli_si128(mask_f000, 8);
+
+            let xx_yy = ozz_sse_select_f!(mask_0f00, self.cols[1].data, self.cols[0].data);
+            let xx_yy_0010 = ozz_shuffle_ps1!(xx_yy, _mm_shuffle!(0, 0, 1, 0));
+            let xx_yy_zz_xx =
+                ozz_sse_select_f!(mask_00f0, self.cols[2].data, xx_yy_0010);
+            let yy_zz_xx_yy =
+                ozz_shuffle_ps1!(xx_yy_zz_xx, _mm_shuffle!(1, 0, 2, 1));
+            let zz_xx_yy_zz =
+                ozz_shuffle_ps1!(xx_yy_zz_xx, _mm_shuffle!(2, 1, 0, 2));
+
+            let diag_sum =
+                _mm_add_ps(_mm_add_ps(xx_yy_zz_xx, yy_zz_xx_yy), zz_xx_yy_zz);
+            let diag_diff =
+                _mm_sub_ps(_mm_sub_ps(xx_yy_zz_xx, yy_zz_xx_yy), zz_xx_yy_zz);
+            let radicand =
+                _mm_add_ps(ozz_sse_select_f!(mask_000f, diag_sum, diag_diff), one);
+            let inv_sqrt = _mm_div_ps(one, _mm_sqrt_ps(radicand));
+
+            let mut zy_xz_yx = ozz_sse_select_f!(mask_00f0, self.cols[1].data, self.cols[0].data);
+            zy_xz_yx = ozz_shuffle_ps1!(zy_xz_yx, _mm_shuffle!(0, 1, 2, 2));
+            zy_xz_yx =
+                ozz_sse_select_f!(mask_0f00, ozz_sse_splat_f!(self.cols[2].data, 0), zy_xz_yx);
+            let mut yz_zx_xy = ozz_sse_select_f!(mask_f000, self.cols[1].data, self.cols[0].data);
+            yz_zx_xy = ozz_shuffle_ps1!(yz_zx_xy, _mm_shuffle!(0, 0, 2, 0));
+            yz_zx_xy =
+                ozz_sse_select_f!(mask_f000, ozz_sse_splat_f!(self.cols[2].data, 1), yz_zx_xy);
+            let sum = _mm_add_ps(zy_xz_yx, yz_zx_xy);
+            let diff = _mm_sub_ps(zy_xz_yx, yz_zx_xy);
+            let scale = _mm_mul_ps(inv_sqrt, half);
+
+            let sum0 = ozz_shuffle_ps1!(sum, _mm_shuffle!(0, 1, 2, 0));
+            let sum1 = ozz_shuffle_ps1!(sum, _mm_shuffle!(0, 0, 0, 2));
+            let sum2 = ozz_shuffle_ps1!(sum, _mm_shuffle!(0, 0, 0, 1));
+            let mut res0 = ozz_sse_select_f!(mask_000f, ozz_sse_splat_f!(diff, 0), sum0);
+            let mut res1 = ozz_sse_select_f!(mask_000f, ozz_sse_splat_f!(diff, 1), sum1);
+            let mut res2 = ozz_sse_select_f!(mask_000f, ozz_sse_splat_f!(diff, 2), sum2);
+            res0 = _mm_mul_ps(ozz_sse_select_f!(mask_f000, radicand, res0),
+                              ozz_sse_splat_f!(scale, 0));
+            res1 = _mm_mul_ps(ozz_sse_select_f!(mask_0f00, radicand, res1),
+                              ozz_sse_splat_f!(scale, 1));
+            res2 = _mm_mul_ps(ozz_sse_select_f!(mask_00f0, radicand, res2),
+                              ozz_sse_splat_f!(scale, 2));
+            let res3 = _mm_mul_ps(ozz_sse_select_f!(mask_000f, radicand, diff),
+                                  ozz_sse_splat_f!(scale, 3));
+
+            let xx = ozz_sse_splat_f!(self.cols[0].data, 0);
+            let yy = ozz_sse_splat_f!(self.cols[1].data, 1);
+            let zz = ozz_sse_splat_f!(self.cols[2].data, 2);
+            let cond0 = _mm_castps_si128(_mm_cmpgt_ps(yy, xx));
+            let cond1 =
+                _mm_castps_si128(_mm_and_ps(_mm_cmpgt_ps(zz, xx), _mm_cmpgt_ps(zz, yy)));
+            let cond2 = _mm_castps_si128(
+                _mm_cmpgt_ps(ozz_sse_splat_f!(diag_sum, 0), _mm_castsi128_ps(zero)));
+            let mut res = ozz_sse_select_f!(cond0, res1, res0);
+            res = ozz_sse_select_f!(cond1, res2, res);
+            res = ozz_sse_select_f!(cond2, res3, res);
+
+            let result = SimdFloat4::new(res);
+            debug_assert!( result.is_normalized_est4().are_all_true1());
+            return result;
+        }
+    }
+
 // // Decompose a general 3D transformation matrix _m into its scalar, rotational
 // // and translational components.
 // // Returns false if it was not possible to decompose the matrix. This would be
