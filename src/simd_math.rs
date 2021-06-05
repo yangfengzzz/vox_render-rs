@@ -2660,252 +2660,251 @@ pub struct Float4x4 {
     pub cols: [SimdFloat4; 4],
 }
 
-// impl Float4x4 {
-//     // Returns the identity matrix.
-//     #[inline]
-//     pub fn identity() -> Float4x4 {
-//         unsafe {
-//             let zero = _mm_setzero_si128();
-//             let ffff = _mm_cmpeq_epi32(zero, zero);
-//             let one = _mm_srli_epi32(_mm_slli_epi32(ffff, 25), 2);
-//             let x = _mm_srli_si128(one, 12);
-//             return SimdFloat4::new(Float4x4 {
-//                 cols: [_mm_castsi128_ps(x),
-//                     _mm_castsi128_ps(_mm_slli_si128(x, 4)),
-//                     _mm_castsi128_ps(_mm_slli_si128(x, 8)),
-//                     _mm_castsi128_ps(_mm_slli_si128(one, 12))]
-//             };
-//         }
-//     }
-//
-//     // Returns a translation matrix.
-//     // _v.w is ignored.
-//     #[inline]
-//     pub fn translation(_v: SimdFloat4) -> Float4x4 {
-//         unsafe {
-//             let zero = _mm_setzero_si128();
-//             let ffff = _mm_cmpeq_epi32(zero, zero);
-//             let mask000f = _mm_slli_si128(ffff, 12);
-//             let one = _mm_srli_epi32(_mm_slli_epi32(ffff, 25), 2);
-//             let x = _mm_srli_si128(one, 12);
-//             return SimdFloat4::new(Float4x4 {
-//                 cols:
-//                 [_mm_castsi128_ps(x), _mm_castsi128_ps(_mm_slli_si128(x, 4)),
-//                     _mm_castsi128_ps(_mm_slli_si128(x, 8)),
-//                     ozz_sse_select_f!(mask000f, _mm_castsi128_ps(one), _v)]
-//             };
-//         }
-//     }
-//
-//     // Returns a scaling matrix that scales along _v.
-//     // _v.w is ignored.
-//     #[inline]
-//     pub fn scaling(_v: SimdFloat4) -> Float4x4 {
-//         unsafe {
-//             let zero = _mm_setzero_si128();
-//             let ffff = _mm_cmpeq_epi32(zero, zero);
-//             let if000 = _mm_srli_si128(ffff, 12);
-//             let ione = _mm_srli_epi32(_mm_slli_epi32(ffff, 25), 2);
-//             return SimdFloat4::new(Float4x4 {
-//                 cols:
-//                 [_mm_and_ps(_v, _mm_castsi128_ps(if000)),
-//                     _mm_and_ps(_v, _mm_castsi128_ps(_mm_slli_si128(if000, 4))),
-//                     _mm_and_ps(_v, _mm_castsi128_ps(_mm_slli_si128(if000, 8))),
-//                     _mm_castsi128_ps(_mm_slli_si128(ione, 12))]
-//             };
-//         }
-//     }
-//
-//     // Returns the rotation matrix built from Euler angles defined by x, y and z
-//     // components of _v. Euler angles are ordered Heading, Elevation and Bank, or
-//     // Yaw, Pitch and Roll. _v.w is ignored.
-//     #[inline]
-//     pub fn from_euler(_v: SimdFloat4) -> Float4x4 {
-//         let cos = simd_float4::cos(_v);
-//         let sin = simd_float4::sin(_v);
-//
-//         let cx = simd_float4::get_x(cos);
-//         let sx = simd_float4::get_x(sin);
-//         let cy = simd_float4::get_y(cos);
-//         let sy = simd_float4::get_y(sin);
-//         let cz = simd_float4::get_z(cos);
-//         let sz = simd_float4::get_z(sin);
-//
-//         let sycz = sy * cz;
-//         let sysz = sy * sz;
-//
-//         return SimdFloat4::new(Float4x4 {
-//             cols: [simd_float4::load(cx * cy, sx * sz - cx * sycz,
-//                                      cx * sysz + sx * cz, 0.0),
-//                 simd_float4::load(sy, cy * cz, -cy * sz, 0.0),
-//                 simd_float4::load(-sx * cy, sx * sycz + cx * sz,
-//                                   -sx * sysz + cx * cz, 0.0),
-//                 simd_float4::w_axis()]
-//         };
-//     }
-//
-//     // Returns the rotation matrix built from axis defined by _axis.xyz and
-//     // _angle.x
-//     #[inline]
-//     pub fn from_axis_angle(_axis: SimdFloat4, _angle: SimdFloat4) -> Float4x4 {
-//         unsafe {
-//             debug_assert!(simd_int4::are_all_true1(is_normalized_est3(_axis)));
-//
-//             let zero = _mm_setzero_si128();
-//             let ffff = _mm_cmpeq_epi32(zero, zero);
-//             let ione = _mm_srli_epi32(_mm_slli_epi32(ffff, 25), 2);
-//             let fff0 = _mm_castsi128_ps(_mm_srli_si128(ffff, 4));
-//             let one = _mm_castsi128_ps(ione);
-//             let w_axis = _mm_castsi128_ps(_mm_slli_si128(ione, 12));
-//
-//             let sin = simd_float4::splat_x(simd_float4::sin_x(_angle));
-//             let cos = simd_float4::splat_x(simd_float4::cos_x(_angle));
-//             let one_minus_cos = _mm_sub_ps(one, cos);
-//
-//             let v0 =
-//                 _mm_mul_ps(_mm_mul_ps(one_minus_cos,
-//                                       ozz_shuffle_ps1!(_axis, _mm_shuffle!(3, 0, 2, 1))),
-//                            ozz_shuffle_ps1!(_axis, _mm_shuffle!(3, 1, 0, 2)));
-//             let r0 =
-//                 _mm_add_ps(_mm_mul_ps(_mm_mul_ps(one_minus_cos, _axis), _axis), cos);
-//             let r1 = _mm_add_ps(_mm_mul_ps(sin, _axis), v0);
-//             let r2 = _mm_sub_ps(v0, _mm_mul_ps(sin, _axis));
-//             let r0fff0 = _mm_and_ps(r0, fff0);
-//             let r1r22120 = _mm_shuffle_ps(r1, r2, _mm_shuffle!(2, 1, 2, 0));
-//             let v1 = ozz_shuffle_ps1!(r1r22120, _mm_shuffle!(0, 3, 2, 1));
-//             let r1r20011 = _mm_shuffle_ps(r1, r2, _mm_shuffle!(0, 0, 1, 1));
-//             let v2 = ozz_shuffle_ps1!(r1r20011, _mm_shuffle!(2, 0, 2, 0));
-//
-//             let t0 = _mm_shuffle_ps(r0fff0, v1, _mm_shuffle!(1, 0, 3, 0));
-//             let t1 = _mm_shuffle_ps(r0fff0, v1, _mm_shuffle!(3, 2, 3, 1));
-//             return SimdFloat4::new(Float4x4 {
-//                 cols: [ozz_shuffle_ps1!(t0, _mm_shuffle!(1, 3, 2, 0)),
-//                     ozz_shuffle_ps1!(t1, _mm_shuffle!(1, 3, 0, 2)),
-//                     _mm_shuffle_ps(v2, r0fff0, _mm_shuffle!(3, 2, 1, 0)),
-//                     w_axis]
-//             };
-//         }
-//     }
-//
-//     // Returns the rotation matrix built from quaternion defined by x, y, z and w
-//     // components of _v.
-//     #[inline]
-//     pub fn from_quaternion(_quaternion: SimdFloat4) -> Float4x4 {
-//         unsafe {
-//             debug_assert!(simd_int4::are_all_true1(is_normalized_est4(_quaternion)));
-//
-//             let zero = _mm_setzero_si128();
-//             let ffff = _mm_cmpeq_epi32(zero, zero);
-//             let ione = _mm_srli_epi32(_mm_slli_epi32(ffff, 25), 2);
-//             let fff0 = _mm_castsi128_ps(_mm_srli_si128(ffff, 4));
-//             let c1110 = _mm_castsi128_ps(_mm_srli_si128(ione, 4));
-//             let w_axis = _mm_castsi128_ps(_mm_slli_si128(ione, 12));
-//
-//             let vsum = _mm_add_ps(_quaternion, _quaternion);
-//             let vms = _mm_mul_ps(_quaternion, vsum);
-//
-//             let r0 = _mm_sub_ps(
-//                 _mm_sub_ps(
-//                     c1110,
-//                     _mm_and_ps(ozz_shuffle_ps1!(vms, _mm_shuffle!(3, 0, 0, 1)), fff0)),
-//                 _mm_and_ps(ozz_shuffle_ps1!(vms, _mm_shuffle!(3, 1, 2, 2)), fff0));
-//             let v0 =
-//                 _mm_mul_ps(ozz_shuffle_ps1!(_quaternion, _mm_shuffle!(3, 1, 0, 0)),
-//                            ozz_shuffle_ps1!(vsum, _mm_shuffle!(3, 2, 1, 2)));
-//             let v1 =
-//                 _mm_mul_ps(ozz_shuffle_ps1!(_quaternion, _mm_shuffle!(3, 3, 3, 3)),
-//                            ozz_shuffle_ps1!(vsum, _mm_shuffle!(3, 0, 2, 1)));
-//
-//             let r1 = _mm_add_ps(v0, v1);
-//             let r2 = _mm_sub_ps(v0, v1);
-//
-//             let r1r21021 = _mm_shuffle_ps(r1, r2, _mm_shuffle!(1, 0, 2, 1));
-//             let v2 = ozz_shuffle_ps1!(r1r21021, _mm_shuffle!(1, 3, 2, 0));
-//             let r1r22200 = _mm_shuffle_ps(r1, r2, _mm_shuffle!(2, 2, 0, 0));
-//             let v3 = ozz_shuffle_ps1!(r1r22200, _mm_shuffle!(2, 0, 2, 0));
-//
-//             let q0 = _mm_shuffle_ps(r0, v2, _mm_shuffle!(1, 0, 3, 0));
-//             let q1 = _mm_shuffle_ps(r0, v2, _mm_shuffle!(3, 2, 3, 1));
-//             return SimdFloat4::new(Float4x4 {
-//                 cols: [ozz_shuffle_ps1!(q0, _mm_shuffle!(1, 3, 2, 0)),
-//                     ozz_shuffle_ps1!(q1, _mm_shuffle!(1, 3, 0, 2)),
-//                     _mm_shuffle_ps(v3, r0, _mm_shuffle!(3, 2, 1, 0)),
-//                     w_axis]
-//             };
-//         }
-//     }
-//
-//     // Returns the affine transformation matrix built from split translation,
-//     // rotation (quaternion) and scale.
-//     #[inline]
-//     pub fn from_affine(_translation: SimdFloat4,
-//                        _quaternion: SimdFloat4,
-//                        _scale: SimdFloat4) -> Float4x4 {
-//         unsafe {
-//             debug_assert!(simd_int4::are_all_true1(is_normalized_est4(_quaternion)));
-//
-//             let zero = _mm_setzero_si128();
-//             let ffff = _mm_cmpeq_epi32(zero, zero);
-//             let ione = _mm_srli_epi32(_mm_slli_epi32(ffff, 25), 2);
-//             let fff0 = _mm_castsi128_ps(_mm_srli_si128(ffff, 4));
-//             let c1110 = _mm_castsi128_ps(_mm_srli_si128(ione, 4));
-//
-//             let vsum = _mm_add_ps(_quaternion, _quaternion);
-//             let vms = _mm_mul_ps(_quaternion, vsum);
-//
-//             let r0 = _mm_sub_ps(
-//                 _mm_sub_ps(
-//                     c1110,
-//                     _mm_and_ps(ozz_shuffle_ps1!(vms, _mm_shuffle!(3, 0, 0, 1)), fff0)),
-//                 _mm_and_ps(ozz_shuffle_ps1!(vms, _mm_shuffle!(3, 1, 2, 2)), fff0));
-//             let v0 =
-//                 _mm_mul_ps(ozz_shuffle_ps1!(_quaternion, _mm_shuffle!(3, 1, 0, 0)),
-//                            ozz_shuffle_ps1!(vsum, _mm_shuffle!(3, 2, 1, 2)));
-//             let v1 =
-//                 _mm_mul_ps(ozz_shuffle_ps1!(_quaternion, _mm_shuffle!(3, 3, 3, 3)),
-//                            ozz_shuffle_ps1!(vsum, _mm_shuffle!(3, 0, 2, 1)));
-//
-//             let r1 = _mm_add_ps(v0, v1);
-//             let r2 = _mm_sub_ps(v0, v1);
-//
-//             let r1r21021 = _mm_shuffle_ps(r1, r2, _mm_shuffle!(1, 0, 2, 1));
-//             let v2 = ozz_shuffle_ps1!(r1r21021, _mm_shuffle!(1, 3, 2, 0));
-//             let r1r22200 = _mm_shuffle_ps(r1, r2, _mm_shuffle!(2, 2, 0, 0));
-//             let v3 = ozz_shuffle_ps1!(r1r22200, _mm_shuffle!(2, 0, 2, 0));
-//
-//             let q0 = _mm_shuffle_ps(r0, v2, _mm_shuffle!(1, 0, 3, 0));
-//             let q1 = _mm_shuffle_ps(r0, v2, _mm_shuffle!(3, 2, 3, 1));
-//
-//             return SimdFloat4::new(Float4x4 {
-//                 cols:
-//                 [_mm_mul_ps(ozz_shuffle_ps1!(q0, _mm_shuffle!(1, 3, 2, 0)),
-//                             ozz_sse_splat_f!(_scale, 0)),
-//                     _mm_mul_ps(ozz_shuffle_ps1!(q1, _mm_shuffle!(1, 3, 0, 2)),
-//                                ozz_sse_splat_f!(_scale, 1)),
-//                     _mm_mul_ps(_mm_shuffle_ps(v3, r0, _mm_shuffle!(3, 2, 1, 0)),
-//                                ozz_sse_splat_f!(_scale, 2)),
-//                     _mm_movelh_ps(_translation, _mm_unpackhi_ps(_translation, c1110))]
-//             };
-//         }
-//     }
-// }
-//
-// // Returns the transpose of matrix _m.
-// #[inline]
-// pub fn transpose(_m: &Float4x4) -> Float4x4 {
-//     unsafe {
-//         let tmp0 = _mm_unpacklo_ps(_m.cols[0], _m.cols[2]);
-//         let tmp1 = _mm_unpacklo_ps(_m.cols[1], _m.cols[3]);
-//         let tmp2 = _mm_unpackhi_ps(_m.cols[0], _m.cols[2]);
-//         let tmp3 = _mm_unpackhi_ps(_m.cols[1], _m.cols[3]);
-//         return SimdFloat4::new(Float4x4 {
-//             cols:
-//             [_mm_unpacklo_ps(tmp0, tmp1), _mm_unpackhi_ps(tmp0, tmp1),
-//                 _mm_unpacklo_ps(tmp2, tmp3), _mm_unpackhi_ps(tmp2, tmp3)]
-//         };
-//     }
-// }
-//
+impl Float4x4 {
+    // Returns the identity matrix.
+    #[inline]
+    pub fn identity() -> Float4x4 {
+        unsafe {
+            let zero = _mm_setzero_si128();
+            let ffff = _mm_cmpeq_epi32(zero, zero);
+            let one = _mm_srli_epi32(_mm_slli_epi32(ffff, 25), 2);
+            let x = _mm_srli_si128(one, 12);
+            return Float4x4 {
+                cols: [SimdFloat4::new(_mm_castsi128_ps(x)),
+                    SimdFloat4::new(_mm_castsi128_ps(_mm_slli_si128(x, 4))),
+                    SimdFloat4::new(_mm_castsi128_ps(_mm_slli_si128(x, 8))),
+                    SimdFloat4::new(_mm_castsi128_ps(_mm_slli_si128(one, 12)))]
+            };
+        }
+    }
+
+    // Returns a translation matrix.
+    // _v.w is ignored.
+    #[inline]
+    pub fn translation(_v: SimdFloat4) -> Float4x4 {
+        unsafe {
+            let zero = _mm_setzero_si128();
+            let ffff = _mm_cmpeq_epi32(zero, zero);
+            let mask000f = _mm_slli_si128(ffff, 12);
+            let one = _mm_srli_epi32(_mm_slli_epi32(ffff, 25), 2);
+            let x = _mm_srli_si128(one, 12);
+            return Float4x4 {
+                cols:
+                [SimdFloat4::new(_mm_castsi128_ps(x)), SimdFloat4::new(_mm_castsi128_ps(_mm_slli_si128(x, 4))),
+                    SimdFloat4::new(_mm_castsi128_ps(_mm_slli_si128(x, 8))),
+                    SimdFloat4::new(ozz_sse_select_f!(mask000f, _mm_castsi128_ps(one), _v.data))]
+            };
+        }
+    }
+
+    // Returns a scaling matrix that scales along _v.
+    // _v.w is ignored.
+    #[inline]
+    pub fn scaling(_v: SimdFloat4) -> Float4x4 {
+        unsafe {
+            let zero = _mm_setzero_si128();
+            let ffff = _mm_cmpeq_epi32(zero, zero);
+            let if000 = _mm_srli_si128(ffff, 12);
+            let ione = _mm_srli_epi32(_mm_slli_epi32(ffff, 25), 2);
+            return Float4x4 {
+                cols:
+                [SimdFloat4::new(_mm_and_ps(_v.data, _mm_castsi128_ps(if000))),
+                    SimdFloat4::new(_mm_and_ps(_v.data, _mm_castsi128_ps(_mm_slli_si128(if000, 4)))),
+                    SimdFloat4::new(_mm_and_ps(_v.data, _mm_castsi128_ps(_mm_slli_si128(if000, 8)))),
+                    SimdFloat4::new(_mm_castsi128_ps(_mm_slli_si128(ione, 12)))]
+            };
+        }
+    }
+
+    // Returns the rotation matrix built from Euler angles defined by x, y and z
+    // components of _v. Euler angles are ordered Heading, Elevation and Bank, or
+    // Yaw, Pitch and Roll. _v.w is ignored.
+    #[inline]
+    pub fn from_euler(_v: SimdFloat4) -> Float4x4 {
+        let cos = _v.cos();
+        let sin = _v.sin();
+
+        let cx = cos.get_x();
+        let sx = sin.get_x();
+        let cy = cos.get_y();
+        let sy = sin.get_y();
+        let cz = cos.get_z();
+        let sz = sin.get_z();
+
+        let sycz = sy * cz;
+        let sysz = sy * sz;
+
+        return Float4x4 {
+            cols: [SimdFloat4::load(cx * cy, sx * sz - cx * sycz,
+                                    cx * sysz + sx * cz, 0.0),
+                SimdFloat4::load(sy, cy * cz, -cy * sz, 0.0),
+                SimdFloat4::load(-sx * cy, sx * sycz + cx * sz,
+                                 -sx * sysz + cx * cz, 0.0),
+                SimdFloat4::w_axis()]
+        };
+    }
+
+    // Returns the rotation matrix built from axis defined by _axis.xyz and
+    // _angle.x
+    #[inline]
+    pub fn from_axis_angle(_axis: SimdFloat4, _angle: SimdFloat4) -> Float4x4 {
+        unsafe {
+            debug_assert!(SimdInt4::are_all_true1(&_axis.is_normalized_est3()));
+
+            let zero = _mm_setzero_si128();
+            let ffff = _mm_cmpeq_epi32(zero, zero);
+            let ione = _mm_srli_epi32(_mm_slli_epi32(ffff, 25), 2);
+            let fff0 = _mm_castsi128_ps(_mm_srli_si128(ffff, 4));
+            let one = _mm_castsi128_ps(ione);
+            let w_axis = _mm_castsi128_ps(_mm_slli_si128(ione, 12));
+
+            let sin = SimdFloat4::splat_x(&SimdFloat4::sin_x(&_angle));
+            let cos = SimdFloat4::splat_x(&SimdFloat4::cos_x(&_angle));
+            let one_minus_cos = _mm_sub_ps(one, cos.data);
+
+            let v0 =
+                _mm_mul_ps(_mm_mul_ps(one_minus_cos,
+                                      ozz_shuffle_ps1!(_axis.data, _mm_shuffle!(3, 0, 2, 1))),
+                           ozz_shuffle_ps1!(_axis.data, _mm_shuffle!(3, 1, 0, 2)));
+            let r0 =
+                _mm_add_ps(_mm_mul_ps(_mm_mul_ps(one_minus_cos, _axis.data), _axis.data), cos.data);
+            let r1 = _mm_add_ps(_mm_mul_ps(sin.data, _axis.data), v0);
+            let r2 = _mm_sub_ps(v0, _mm_mul_ps(sin.data, _axis.data));
+            let r0fff0 = _mm_and_ps(r0, fff0);
+            let r1r22120 = _mm_shuffle_ps(r1, r2, _mm_shuffle!(2, 1, 2, 0));
+            let v1 = ozz_shuffle_ps1!(r1r22120, _mm_shuffle!(0, 3, 2, 1));
+            let r1r20011 = _mm_shuffle_ps(r1, r2, _mm_shuffle!(0, 0, 1, 1));
+            let v2 = ozz_shuffle_ps1!(r1r20011, _mm_shuffle!(2, 0, 2, 0));
+
+            let t0 = _mm_shuffle_ps(r0fff0, v1, _mm_shuffle!(1, 0, 3, 0));
+            let t1 = _mm_shuffle_ps(r0fff0, v1, _mm_shuffle!(3, 2, 3, 1));
+            return Float4x4 {
+                cols: [SimdFloat4::new(ozz_shuffle_ps1!(t0, _mm_shuffle!(1, 3, 2, 0))),
+                    SimdFloat4::new(ozz_shuffle_ps1!(t1, _mm_shuffle!(1, 3, 0, 2))),
+                    SimdFloat4::new(_mm_shuffle_ps(v2, r0fff0, _mm_shuffle!(3, 2, 1, 0))),
+                    SimdFloat4::new(w_axis)]
+            };
+        }
+    }
+
+    // Returns the rotation matrix built from quaternion defined by x, y, z and w
+    // components of _v.
+    #[inline]
+    pub fn from_quaternion(_quaternion: SimdFloat4) -> Float4x4 {
+        unsafe {
+            debug_assert!(SimdInt4::are_all_true1(&_quaternion.is_normalized_est4()));
+
+            let zero = _mm_setzero_si128();
+            let ffff = _mm_cmpeq_epi32(zero, zero);
+            let ione = _mm_srli_epi32(_mm_slli_epi32(ffff, 25), 2);
+            let fff0 = _mm_castsi128_ps(_mm_srli_si128(ffff, 4));
+            let c1110 = _mm_castsi128_ps(_mm_srli_si128(ione, 4));
+            let w_axis = _mm_castsi128_ps(_mm_slli_si128(ione, 12));
+
+            let vsum = _mm_add_ps(_quaternion.data, _quaternion.data);
+            let vms = _mm_mul_ps(_quaternion.data, vsum);
+
+            let r0 = _mm_sub_ps(
+                _mm_sub_ps(
+                    c1110,
+                    _mm_and_ps(ozz_shuffle_ps1!(vms, _mm_shuffle!(3, 0, 0, 1)), fff0)),
+                _mm_and_ps(ozz_shuffle_ps1!(vms, _mm_shuffle!(3, 1, 2, 2)), fff0));
+            let v0 =
+                _mm_mul_ps(ozz_shuffle_ps1!(_quaternion.data, _mm_shuffle!(3, 1, 0, 0)),
+                           ozz_shuffle_ps1!(vsum, _mm_shuffle!(3, 2, 1, 2)));
+            let v1 =
+                _mm_mul_ps(ozz_shuffle_ps1!(_quaternion.data, _mm_shuffle!(3, 3, 3, 3)),
+                           ozz_shuffle_ps1!(vsum, _mm_shuffle!(3, 0, 2, 1)));
+
+            let r1 = _mm_add_ps(v0, v1);
+            let r2 = _mm_sub_ps(v0, v1);
+
+            let r1r21021 = _mm_shuffle_ps(r1, r2, _mm_shuffle!(1, 0, 2, 1));
+            let v2 = ozz_shuffle_ps1!(r1r21021, _mm_shuffle!(1, 3, 2, 0));
+            let r1r22200 = _mm_shuffle_ps(r1, r2, _mm_shuffle!(2, 2, 0, 0));
+            let v3 = ozz_shuffle_ps1!(r1r22200, _mm_shuffle!(2, 0, 2, 0));
+
+            let q0 = _mm_shuffle_ps(r0, v2, _mm_shuffle!(1, 0, 3, 0));
+            let q1 = _mm_shuffle_ps(r0, v2, _mm_shuffle!(3, 2, 3, 1));
+            return Float4x4 {
+                cols: [SimdFloat4::new(ozz_shuffle_ps1!(q0, _mm_shuffle!(1, 3, 2, 0))),
+                    SimdFloat4::new(ozz_shuffle_ps1!(q1, _mm_shuffle!(1, 3, 0, 2))),
+                    SimdFloat4::new(_mm_shuffle_ps(v3, r0, _mm_shuffle!(3, 2, 1, 0))),
+                    SimdFloat4::new(w_axis)]
+            };
+        }
+    }
+
+    // Returns the affine transformation matrix built from split translation,
+    // rotation (quaternion) and scale.
+    #[inline]
+    pub fn from_affine(_translation: SimdFloat4,
+                       _quaternion: SimdFloat4,
+                       _scale: SimdFloat4) -> Float4x4 {
+        unsafe {
+            debug_assert!(SimdInt4::are_all_true1(&_quaternion.is_normalized_est4()));
+
+            let zero = _mm_setzero_si128();
+            let ffff = _mm_cmpeq_epi32(zero, zero);
+            let ione = _mm_srli_epi32(_mm_slli_epi32(ffff, 25), 2);
+            let fff0 = _mm_castsi128_ps(_mm_srli_si128(ffff, 4));
+            let c1110 = _mm_castsi128_ps(_mm_srli_si128(ione, 4));
+
+            let vsum = _mm_add_ps(_quaternion.data, _quaternion.data);
+            let vms = _mm_mul_ps(_quaternion.data, vsum);
+
+            let r0 = _mm_sub_ps(
+                _mm_sub_ps(
+                    c1110,
+                    _mm_and_ps(ozz_shuffle_ps1!(vms, _mm_shuffle!(3, 0, 0, 1)), fff0)),
+                _mm_and_ps(ozz_shuffle_ps1!(vms, _mm_shuffle!(3, 1, 2, 2)), fff0));
+            let v0 =
+                _mm_mul_ps(ozz_shuffle_ps1!(_quaternion.data, _mm_shuffle!(3, 1, 0, 0)),
+                           ozz_shuffle_ps1!(vsum, _mm_shuffle!(3, 2, 1, 2)));
+            let v1 =
+                _mm_mul_ps(ozz_shuffle_ps1!(_quaternion.data, _mm_shuffle!(3, 3, 3, 3)),
+                           ozz_shuffle_ps1!(vsum, _mm_shuffle!(3, 0, 2, 1)));
+
+            let r1 = _mm_add_ps(v0, v1);
+            let r2 = _mm_sub_ps(v0, v1);
+
+            let r1r21021 = _mm_shuffle_ps(r1, r2, _mm_shuffle!(1, 0, 2, 1));
+            let v2 = ozz_shuffle_ps1!(r1r21021, _mm_shuffle!(1, 3, 2, 0));
+            let r1r22200 = _mm_shuffle_ps(r1, r2, _mm_shuffle!(2, 2, 0, 0));
+            let v3 = ozz_shuffle_ps1!(r1r22200, _mm_shuffle!(2, 0, 2, 0));
+
+            let q0 = _mm_shuffle_ps(r0, v2, _mm_shuffle!(1, 0, 3, 0));
+            let q1 = _mm_shuffle_ps(r0, v2, _mm_shuffle!(3, 2, 3, 1));
+
+            return Float4x4 {
+                cols:
+                [SimdFloat4::new(_mm_mul_ps(ozz_shuffle_ps1!(q0, _mm_shuffle!(1, 3, 2, 0)),
+                                            ozz_sse_splat_f!(_scale.data, 0))),
+                    SimdFloat4::new(_mm_mul_ps(ozz_shuffle_ps1!(q1, _mm_shuffle!(1, 3, 0, 2)),
+                                               ozz_sse_splat_f!(_scale.data, 1))),
+                    SimdFloat4::new(_mm_mul_ps(_mm_shuffle_ps(v3, r0, _mm_shuffle!(3, 2, 1, 0)),
+                                               ozz_sse_splat_f!(_scale.data, 2))),
+                    SimdFloat4::new(_mm_movelh_ps(_translation.data, _mm_unpackhi_ps(_translation.data, c1110)))]
+            };
+        }
+    }
+
+    // Returns the transpose of matrix _m.
+    #[inline]
+    pub fn transpose(_m: &Float4x4) -> Float4x4 {
+        unsafe {
+            let tmp0 = _mm_unpacklo_ps(_m.cols[0].data, _m.cols[2].data);
+            let tmp1 = _mm_unpacklo_ps(_m.cols[1].data, _m.cols[3].data);
+            let tmp2 = _mm_unpackhi_ps(_m.cols[0].data, _m.cols[2].data);
+            let tmp3 = _mm_unpackhi_ps(_m.cols[1].data, _m.cols[3].data);
+            return Float4x4 {
+                cols:
+                [SimdFloat4::new(_mm_unpacklo_ps(tmp0, tmp1)), SimdFloat4::new(_mm_unpackhi_ps(tmp0, tmp1)),
+                    SimdFloat4::new(_mm_unpacklo_ps(tmp2, tmp3)), SimdFloat4::new(_mm_unpackhi_ps(tmp2, tmp3))]
+            };
+        }
+    }
+
 // // Returns the inverse of matrix _m.
 // // If _invertible is not nullptr, its x component will be set to true if matrix is
 // // invertible. If _invertible is nullptr, then an assert is triggered in case the
@@ -2992,7 +2991,7 @@ pub struct Float4x4 {
 //         det = ozz_shuffle_ps1!(det, 0x00);
 //
 //         // Copy the final columns
-//         return SimdFloat4::new(Float4x4 {
+//         return Float4x4 {
 //             cols: [_mm_mul_ps(det, minor0), _mm_mul_ps(det, minor1),
 //                 _mm_mul_ps(det, minor2), _mm_mul_ps(det, minor3)]
 //         };
@@ -3007,7 +3006,7 @@ pub struct Float4x4 {
 //         let a01 = ozz_madd!(_m.cols[0], ozz_sse_splat_f!(_v, 0),
 //                                     _mm_mul_ps(_m.cols[1], ozz_sse_splat_f!(_v, 1)));
 //         let m3 = ozz_madd!(_m.cols[2], ozz_sse_splat_f!(_v, 2), _m.cols[3]);
-//         return SimdFloat4::new(Float4x4 {
+//         return Float4x4 {
 //             cols:
 //             [_m.cols[0], _m.cols[1], _m.cols[2], _mm_add_ps(a01, m3)]
 //         };
@@ -3019,7 +3018,7 @@ pub struct Float4x4 {
 // #[inline]
 // pub fn scale(_m: &Float4x4, _v: SimdFloat4) -> Float4x4 {
 //     unsafe {
-//         return SimdFloat4::new(Float4x4 {
+//         return Float4x4 {
 //             cols: [_mm_mul_ps(_m.cols[0], ozz_sse_splat_f!(_v, 0)),
 //                 _mm_mul_ps(_m.cols[1], ozz_sse_splat_f!(_v, 1)),
 //                 _mm_mul_ps(_m.cols[2], ozz_sse_splat_f!(_v, 2)),
@@ -3032,7 +3031,7 @@ pub struct Float4x4 {
 // #[inline]
 // pub fn column_multiply(_m: &Float4x4, _v: SimdFloat4) -> Float4x4 {
 //     unsafe {
-//         return SimdFloat4::new(Float4x4 {
+//         return Float4x4 {
 //             cols: [_mm_mul_ps(_m.cols[0], _v), _mm_mul_ps(_m.cols[1], _v),
 //                 _mm_mul_ps(_m.cols[2], _v),
 //                 _mm_mul_ps(_m.cols[3], _v)]
@@ -3061,7 +3060,7 @@ pub struct Float4x4 {
 //             ozz_madd!(row0, row0, ozz_madd!(row1, row1, _mm_mul_ps(row2, row2)));
 //         let normalized =
 //             _mm_and_ps(_mm_cmplt_ps(dot, max), _mm_cmpgt_ps(dot, min));
-//         return SimdFloat4::new(_mm_castps_si128(
+//         return Float4x4::new(_mm_castps_si128(
 //             _mm_and_ps(normalized, _mm_castsi128_ps(simd_int4::mask_fff0())));
 //     }
 // }
@@ -3090,7 +3089,7 @@ pub struct Float4x4 {
 //         let normalized =
 //             _mm_and_ps(_mm_cmplt_ps(dot, max), _mm_cmpgt_ps(dot, min));
 //
-//         return SimdFloat4::new(_mm_castps_si128(
+//         return Float4x4::new(_mm_castps_si128(
 //             _mm_and_ps(normalized, _mm_castsi128_ps(simd_int4::mask_fff0())));
 //     }
 // }
@@ -3114,7 +3113,7 @@ pub struct Float4x4 {
 //         let dot;
 //         ozz_sse_dot3_f!(cross, at, dot);
 //         let dotx000 = _mm_move_ss(zero, dot);
-//         return SimdFloat4::new(_mm_castps_si128(
+//         return Float4x4::new(_mm_castps_si128(
 //             _mm_and_ps(_mm_cmplt_ss(dotx000, max), _mm_cmpgt_ss(dotx000, min)));
 //     }
 // }
@@ -3196,7 +3195,7 @@ pub struct Float4x4 {
 //         res = ozz_sse_select_f!(cond2, res3, res);
 //
 //         debug_assert!(simd_int4::are_all_true1(is_normalized_est4(res)));
-//         return SimdFloat4::new(res;
+//         return res;
 //     }
 // }
 //
@@ -3285,7 +3284,7 @@ pub struct Float4x4 {
 //
 //         // Extracts quaternion.
 //         *_quaternion = to_quaternion(&orthonormal);
-//         return SimdFloat4::new(true;
+//         return true;
 //     }
 // }
 //
@@ -3298,7 +3297,7 @@ pub struct Float4x4 {
 //         let xxxx = _mm_mul_ps(ozz_sse_splat_f!(_v, 0), _m.cols[0]);
 //         let a23 = ozz_madd!(ozz_sse_splat_f!(_v, 2), _m.cols[2], _m.cols[3]);
 //         let a01 = ozz_madd!(ozz_sse_splat_f!(_v, 1), _m.cols[1], xxxx);
-//         return SimdFloat4::new(_mm_add_ps(a01, a23);
+//         return SimdFloat4::new(_mm_add_ps(a01, a23));
 //     }
 // }
 //
@@ -3311,7 +3310,7 @@ pub struct Float4x4 {
 //         let xxxx = _mm_mul_ps(_m.cols[0], ozz_sse_splat_f!(_v, 0));
 //         let zzzz = _mm_mul_ps(_m.cols[1], ozz_sse_splat_f!(_v, 1));
 //         let a21 = ozz_madd!(_m.cols[2], ozz_sse_splat_f!(_v, 2), xxxx);
-//         return SimdFloat4::new(_mm_add_ps(zzzz, a21);
+//         return SimdFloat4::new(_mm_add_ps(zzzz, a21));
 //     }
 // }
 //
@@ -3325,7 +3324,7 @@ pub struct Float4x4 {
 //             let zzzz = _mm_mul_ps(ozz_sse_splat_f!(rhs, 2), self.cols[2]);
 //             let a01 = ozz_madd!(ozz_sse_splat_f!(rhs, 1), self.cols[1], xxxx);
 //             let a23 = ozz_madd!(ozz_sse_splat_f!(rhs, 3), self.cols[3], zzzz);
-//             return SimdFloat4::new(_mm_add_ps(a01, a23);
+//             return SimdFloat4::new(_mm_add_ps(a01, a23));
 //         }
 //     }
 // }
@@ -3373,7 +3372,7 @@ pub struct Float4x4 {
 //                     ozz_madd!(ozz_sse_splat_f!(rhs.cols[3], 3), self.cols[3], zzzz);
 //                 ret.cols[3] = _mm_add_ps(a01, a23);
 //             }
-//             return SimdFloat4::new(ret;
+//             return ret;
 //         }
 //     }
 // }
@@ -3384,7 +3383,7 @@ pub struct Float4x4 {
 //     #[inline]
 //     fn add(self, rhs: Self) -> Self::Output {
 //         unsafe {
-//             return SimdFloat4::new(Float4x4 {
+//             return Float4x4 {
 //                 cols:
 //                 [_mm_add_ps(self.cols[0], rhs.cols[0]), _mm_add_ps(self.cols[1], rhs.cols[1]),
 //                     _mm_add_ps(self.cols[2], rhs.cols[2]), _mm_add_ps(self.cols[3], rhs.cols[3])]
@@ -3399,7 +3398,7 @@ pub struct Float4x4 {
 //     #[inline]
 //     fn sub(self, rhs: Self) -> Self::Output {
 //         unsafe {
-//             return SimdFloat4::new(Float4x4 {
+//             return Float4x4 {
 //                 cols:
 //                 [_mm_sub_ps(self.cols[0], rhs.cols[0]), _mm_sub_ps(self.cols[1], rhs.cols[1]),
 //                     _mm_sub_ps(self.cols[2], rhs.cols[2]), _mm_sub_ps(self.cols[3], rhs.cols[3])]
@@ -3413,7 +3412,7 @@ pub struct Float4x4 {
 // pub fn float_to_half(_f: f32) -> u16 {
 //     unsafe {
 //         let h = _mm_cvtsi128_si32(float_to_half_simd(_mm_set1_ps(_f)));
-//         return SimdFloat4::new(h as u16;
+//         return h as u16;
 //     }
 // }
 //
@@ -3421,7 +3420,7 @@ pub struct Float4x4 {
 // #[inline]
 // pub fn half_to_float(_h: u16) -> f32 {
 //     unsafe {
-//         return SimdFloat4::new(_mm_cvtss_f32(half_to_float_simd(_mm_set1_epi32(_h as i32)));
+//         return _mm_cvtss_f32(half_to_float_simd(_mm_set1_epi32(_h as i32)));
 //     }
 // }
 //
@@ -3459,7 +3458,7 @@ pub struct Float4x4 {
 //         let joined = _mm_or_si128(normal, not_normal);
 //
 //         let sign_shift = _mm_srli_epi32(_mm_castps_si128(justsign), 16);
-//         return SimdFloat4::new(_mm_or_si128(joined, sign_shift);
+//         return SimdInt4::new(_mm_or_si128(joined, sign_shift));
 //     }
 // }
 //
@@ -3480,6 +3479,6 @@ pub struct Float4x4 {
 //         let infnanexp =
 //             _mm_and_ps(_mm_castsi128_ps(b_wasinfnan), exp_infnan);
 //         let sign_inf = _mm_or_ps(_mm_castsi128_ps(sign), infnanexp);
-//         return SimdFloat4::new(_mm_or_ps(scaled, sign_inf);
+//         return SimdFloat4::new(_mm_or_ps(scaled, sign_inf));
 //     }
-// }
+}
