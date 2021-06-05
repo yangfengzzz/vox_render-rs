@@ -619,409 +619,410 @@ impl SimdFloat4 {
         }
     }
 
-//     // Transposes the x components of the 4 SimdFloat4 of _in into the 1
-//     // SimdFloat4 of _out.
-//     #[inline]
-//     pub fn transpose4x1(_in: [SimdFloat4; 4], _out: &mut [SimdFloat4; 1]) {
-//         unsafe {
-//             let xz = _mm_unpacklo_ps(_in[0], _in[2]);
-//             let yw = _mm_unpacklo_ps(_in[1], _in[3]);
-//             _out[0] = _mm_unpacklo_ps(xz, yw);
-//         }
-//     }
-//
-//     // Transposes x, y, z and w components of _in to the x components of _out.
-//     // Remaining y, z and w are set to 0.
-//     #[inline]
-//     pub fn transpose1x4(_in: [SimdFloat4; 1], _out: &mut [SimdFloat4; 4]) {
-//         unsafe {
-//             let zwzw = _mm_movehl_ps(_in[0], _in[0]);
-//             let yyyy = ozz_sse_splat_f!(_in[0], 1);
-//             let wwww = ozz_sse_splat_f!(_in[0], 3);
-//             let zero = _mm_setzero_ps();
-//             _out[0] = _mm_move_ss(zero, _in[0]);
-//             _out[1] = _mm_move_ss(zero, yyyy);
-//             _out[2] = _mm_move_ss(zero, zwzw);
-//             _out[3] = _mm_move_ss(zero, wwww);
-//         }
-//     }
-//
-//     // Transposes the 1 SimdFloat4 of _in into the x components of the 4
-//     // SimdFloat4 of _out. Remaining y, z and w are set to 0.
-//     #[inline]
-//     pub fn transpose2x4(_in: [SimdFloat4; 2], _out: &mut [SimdFloat4; 4]) {
-//         unsafe {
-//             let tmp0 = _mm_unpacklo_ps(_in[0], _in[1]);
-//             let tmp1 = _mm_unpackhi_ps(_in[0], _in[1]);
-//             let zero = _mm_setzero_ps();
-//             _out[0] = _mm_movelh_ps(tmp0, zero);
-//             _out[1] = _mm_movehl_ps(zero, tmp0);
-//             _out[2] = _mm_movelh_ps(tmp1, zero);
-//             _out[3] = _mm_movehl_ps(zero, tmp1);
-//         }
-//     }
-//
-//     // Transposes the x and y components of the 4 SimdFloat4 of _in into the 2
-//     // SimdFloat4 of _out.
-//     #[inline]
-//     pub fn transpose4x2(_in: [SimdFloat4; 4], _out: &mut [SimdFloat4; 2]) {
-//         unsafe {
-//             let tmp0 = _mm_unpacklo_ps(_in[0], _in[2]);
-//             let tmp1 = _mm_unpacklo_ps(_in[1], _in[3]);
-//             _out[0] = _mm_unpacklo_ps(tmp0, tmp1);
-//             _out[1] = _mm_unpackhi_ps(tmp0, tmp1);
-//         }
-//     }
-//
-//     // Transposes the x, y and z components of the 4 SimdFloat4 of _in into the 3
-//     // SimdFloat4 of _out.
-//     #[inline]
-//     pub fn transpose4x3(_in: [SimdFloat4; 4], _out: &mut [SimdFloat4; 3]) {
-//         unsafe {
-//             let tmp0 = _mm_unpacklo_ps(_in[0], _in[2]);
-//             let tmp1 = _mm_unpacklo_ps(_in[1], _in[3]);
-//             let tmp2 = _mm_unpackhi_ps(_in[0], _in[2]);
-//             let tmp3 = _mm_unpackhi_ps(_in[1], _in[3]);
-//             _out[0] = _mm_unpacklo_ps(tmp0, tmp1);
-//             _out[1] = _mm_unpackhi_ps(tmp0, tmp1);
-//             _out[2] = _mm_unpacklo_ps(tmp2, tmp3);
-//         }
-//     }
-//
-//     // Transposes the 3 SimdFloat4 of _in into the x, y and z components of the 4
-//     // SimdFloat4 of _out. Remaining w are set to 0.
-//     #[inline]
-//     pub fn transpose3x4(_in: [SimdFloat4; 3], _out: &mut [SimdFloat4; 4]) {
-//         unsafe {
-//             let zero = _mm_setzero_ps();
-//             let temp0 = _mm_unpacklo_ps(_in[0], _in[1]);
-//             let temp1 = _mm_unpacklo_ps(_in[2], zero);
-//             let temp2 = _mm_unpackhi_ps(_in[0], _in[1]);
-//             let temp3 = _mm_unpackhi_ps(_in[2], zero);
-//             _out[0] = _mm_movelh_ps(temp0, temp1);
-//             _out[1] = _mm_movehl_ps(temp1, temp0);
-//             _out[2] = _mm_movelh_ps(temp2, temp3);
-//             _out[3] = _mm_movehl_ps(temp3, temp2);
-//         }
-//     }
-//
-//     // Transposes the 4 SimdFloat4 of _in into the 4 SimdFloat4 of _out.
-//     #[inline]
-//     pub fn transpose4x4(_in: [SimdFloat4; 4], _out: &mut [SimdFloat4; 4]) {
-//         unsafe {
-//             let tmp0 = _mm_unpacklo_ps(_in[0], _in[2]);
-//             let tmp1 = _mm_unpacklo_ps(_in[1], _in[3]);
-//             let tmp2 = _mm_unpackhi_ps(_in[0], _in[2]);
-//             let tmp3 = _mm_unpackhi_ps(_in[1], _in[3]);
-//             _out[0] = _mm_unpacklo_ps(tmp0, tmp1);
-//             _out[1] = _mm_unpackhi_ps(tmp0, tmp1);
-//             _out[2] = _mm_unpacklo_ps(tmp2, tmp3);
-//             _out[3] = _mm_unpackhi_ps(tmp2, tmp3);
-//         }
-//     }
-//
-//     // Transposes the 16 SimdFloat4 of _in into the 16 SimdFloat4 of _out.
-//     #[inline]
-//     pub fn transpose16x16(_in: [SimdFloat4; 16], _out: &mut [SimdFloat4; 16]) {
-//         unsafe {
-//             let tmp0 = _mm_unpacklo_ps(_in[0], _in[2]);
-//             let tmp1 = _mm_unpacklo_ps(_in[1], _in[3]);
-//             _out[0] = _mm_unpacklo_ps(tmp0, tmp1);
-//             _out[4] = _mm_unpackhi_ps(tmp0, tmp1);
-//             let tmp2 = _mm_unpackhi_ps(_in[0], _in[2]);
-//             let tmp3 = _mm_unpackhi_ps(_in[1], _in[3]);
-//             _out[8] = _mm_unpacklo_ps(tmp2, tmp3);
-//             _out[12] = _mm_unpackhi_ps(tmp2, tmp3);
-//             let tmp4 = _mm_unpacklo_ps(_in[4], _in[6]);
-//             let tmp5 = _mm_unpacklo_ps(_in[5], _in[7]);
-//             _out[1] = _mm_unpacklo_ps(tmp4, tmp5);
-//             _out[5] = _mm_unpackhi_ps(tmp4, tmp5);
-//             let tmp6 = _mm_unpackhi_ps(_in[4], _in[6]);
-//             let tmp7 = _mm_unpackhi_ps(_in[5], _in[7]);
-//             _out[9] = _mm_unpacklo_ps(tmp6, tmp7);
-//             _out[13] = _mm_unpackhi_ps(tmp6, tmp7);
-//             let tmp8 = _mm_unpacklo_ps(_in[8], _in[10]);
-//             let tmp9 = _mm_unpacklo_ps(_in[9], _in[11]);
-//             _out[2] = _mm_unpacklo_ps(tmp8, tmp9);
-//             _out[6] = _mm_unpackhi_ps(tmp8, tmp9);
-//             let tmp10 = _mm_unpackhi_ps(_in[8], _in[10]);
-//             let tmp11 = _mm_unpackhi_ps(_in[9], _in[11]);
-//             _out[10] = _mm_unpacklo_ps(tmp10, tmp11);
-//             _out[14] = _mm_unpackhi_ps(tmp10, tmp11);
-//             let tmp12 = _mm_unpacklo_ps(_in[12], _in[14]);
-//             let tmp13 = _mm_unpacklo_ps(_in[13], _in[15]);
-//             _out[3] = _mm_unpacklo_ps(tmp12, tmp13);
-//             _out[7] = _mm_unpackhi_ps(tmp12, tmp13);
-//             let tmp14 = _mm_unpackhi_ps(_in[12], _in[14]);
-//             let tmp15 = _mm_unpackhi_ps(_in[13], _in[15]);
-//             _out[11] = _mm_unpacklo_ps(tmp14, tmp15);
-//             _out[15] = _mm_unpackhi_ps(tmp14, tmp15);
-//         }
-//     }
-//
-//     // Multiplies _a and _b, then adds _c.
-//     // v = (_a * _b) + _c
-//     #[inline]
-//     pub fn madd(_a: SimdFloat4, _b: SimdFloat4, _c: SimdFloat4) -> SimdFloat4 {
-//         unsafe {
-//             return SimdFloat4::new(ozz_madd!(_a, _b, _c);
-//         }
-//     }
-//
-//     // Multiplies _a and _b, then subs _c.
-//     // v = (_a * _b) + _c
-//     #[inline]
-//     pub fn msub(_a: SimdFloat4, _b: SimdFloat4, _c: SimdFloat4) -> SimdFloat4 {
-//         unsafe {
-//             return SimdFloat4::new(ozz_msub!(_a, _b, _c);
-//         }
-//     }
-//
-//     // Multiplies _a and _b, negate it, then adds _c.
-//     // v = -(_a * _b) + _c
-//     #[inline]
-//     pub fn nmadd(_a: SimdFloat4, _b: SimdFloat4, _c: SimdFloat4) -> SimdFloat4 {
-//         unsafe {
-//             return SimdFloat4::new(ozz_nmadd!(_a, _b, _c);
-//         }
-//     }
-//
-//     // Multiplies _a and _b, negate it, then subs _c.
-//     // v = -(_a * _b) + _c
-//     #[inline]
-//     pub fn nmsub(_a: SimdFloat4, _b: SimdFloat4, _c: SimdFloat4) -> SimdFloat4 {
-//         unsafe {
-//             return SimdFloat4::new(_mm_sub_ps(zero(), _mm_add_ps(_mm_mul_ps(_a, _b), _c));
-//         }
-//     }
-//
-//     // Divides the x component of _a by the _x component of _b and stores it in the
-//     // x component of the returned vector. y, z, w of the returned vector are the
-//     // same as _a respective components.
-//     // r.x = _a.x / _b.x
-//     // r.y = _a.y
-//     // r.z = _a.z
-//     // r.w = _a.w
-//     #[inline]
-//     pub fn div_x(_a: SimdFloat4, _b: SimdFloat4) -> SimdFloat4 {
-//         unsafe {
-//             return SimdFloat4::new(_mm_div_ss(_a, _b);
-//         }
-//     }
-//
-//     // Computes the (horizontal) addition of x and y components of _v. The result is
-//     // stored in the x component of the returned value. y, z, w of the returned
-//     // vector are the same as their respective components in _v.
-//     // r.x = _a.x + _a.y
-//     // r.y = _a.y
-//     // r.z = _a.z
-//     // r.w = _a.w
-//     #[inline]
-//     pub fn hadd2(_v: SimdFloat4) -> SimdFloat4 {
-//         unsafe {
-//             return SimdFloat4::new(ozz_sse_hadd2_f!(_v);
-//         }
-//     }
-//
-//     // Computes the (horizontal) addition of x, y and z components of _v. The result
-//     // is stored in the x component of the returned value. y, z, w of the returned
-//     // vector are the same as their respective components in _v.
-//     // r.x = _a.x + _a.y + _a.z
-//     // r.y = _a.y
-//     // r.z = _a.z
-//     // r.w = _a.w
-//     #[inline]
-//     pub fn hadd3(_v: SimdFloat4) -> SimdFloat4 {
-//         unsafe {
-//             return SimdFloat4::new(ozz_sse_hadd3_f!(_v);
-//         }
-//     }
-//
-//     // Computes the (horizontal) addition of x and y components of _v. The result is
-//     // stored in the x component of the returned value. y, z, w of the returned
-//     // vector are the same as their respective components in _v.
-//     // r.x = _a.x + _a.y + _a.z + _a.w
-//     // r.y = _a.y
-//     // r.z = _a.z
-//     // r.w = _a.w
-//     #[inline]
-//     pub fn hadd4(_v: SimdFloat4) -> SimdFloat4 {
-//         unsafe {
-//             let hadd4: __m128;
-//             ozz_sse_hadd4_f!(_v, hadd4);
-//             return SimdFloat4::new(hadd4;
-//         }
-//     }
-//
-//     // Computes the dot product of x and y components of _v. The result is
-//     // stored in the x component of the returned value. y, z, w of the returned
-//     // vector are undefined.
-//     // r.x = _a.x * _a.x + _a.y * _a.y
-//     // r.y = ?
-//     // r.z = ?
-//     // r.w = ?
-//     #[inline]
-//     pub fn dot2(_a: SimdFloat4, _b: SimdFloat4) -> SimdFloat4 {
-//         unsafe {
-//             let dot2: __m128;
-//             ozz_sse_dot2_f!(_a, _b, dot2);
-//             return SimdFloat4::new(dot2;
-//         }
-//     }
-//
-//     // Computes the dot product of x, y and z components of _v. The result is
-//     // stored in the x component of the returned value. y, z, w of the returned
-//     // vector are undefined.
-//     // r.x = _a.x * _a.x + _a.y * _a.y + _a.z * _a.z
-//     // r.y = ?
-//     // r.z = ?
-//     // r.w = ?
-//     #[inline]
-//     pub fn dot3(_a: SimdFloat4, _b: SimdFloat4) -> SimdFloat4 {
-//         unsafe {
-//             let dot3: __m128;
-//             ozz_sse_dot3_f!(_a, _b, dot3);
-//             return SimdFloat4::new(dot3;
-//         }
-//     }
-//
-//     // Computes the dot product of x, y, z and w components of _v. The result is
-//     // stored in the x component of the returned value. y, z, w of the returned
-//     // vector are undefined.
-//     // r.x = _a.x * _a.x + _a.y * _a.y + _a.z * _a.z + _a.w * _a.w
-//     // r.y = ?
-//     // r.z = ?
-//     // r.w = ?
-//     #[inline]
-//     pub fn dot4(_a: SimdFloat4, _b: SimdFloat4) -> SimdFloat4 {
-//         unsafe {
-//             let dot4: __m128;
-//             ozz_sse_dot4_f!(_a, _b, dot4);
-//             return SimdFloat4::new(dot4;
-//         }
-//     }
-//
-//     // Computes the cross product of x, y and z components of _v. The result is
-//     // stored in the x, y and z components of the returned value. w of the returned
-//     // vector is undefined.
-//     // r.x = _a.y * _b.z - _a.z * _b.y
-//     // r.y = _a.z * _b.x - _a.x * _b.z
-//     // r.z = _a.x * _b.y - _a.y * _b.x
-//     // r.w = ?
-//     #[inline]
-//     pub fn cross3(_a: SimdFloat4, _b: SimdFloat4) -> SimdFloat4 {
-//         unsafe {
-//             // Implementation with 3 shuffles only is based on:
-//             // https://geometrian.com/programming/tutorials/cross-product
-//             let shufa = ozz_shuffle_ps1!(_a, _mm_shuffle!(3, 0, 2, 1));
-//             let shufb = ozz_shuffle_ps1!(_b, _mm_shuffle!(3, 0, 2, 1));
-//             let shufc = ozz_msub!(_a, shufb, _mm_mul_ps(_b, shufa));
-//             return SimdFloat4::new(ozz_shuffle_ps1!(shufc, _mm_shuffle!(3, 0, 2, 1));
-//         }
-//     }
-//
-//     // Returns the per component estimated reciprocal of _v.
-//     #[inline]
-//     pub fn rcp_est(_v: SimdFloat4) -> SimdFloat4 {
-//         unsafe {
-//             return SimdFloat4::new(_mm_rcp_ps(_v);
-//         }
-//     }
-//
-//     // Returns the per component estimated reciprocal of _v, where approximation is
-//     // improved with one more new Newton-Raphson step.
-//     #[inline]
-//     pub fn rcp_est_nr(_v: SimdFloat4) -> SimdFloat4 {
-//         unsafe {
-//             let nr = _mm_rcp_ps(_v);
-//             // Do one more Newton-Raphson step to improve precision.
-//             return SimdFloat4::new(ozz_nmadd!(_mm_mul_ps(nr, nr), _v, _mm_add_ps(nr, nr));
-//         }
-//     }
-//
-//     // Returns the estimated reciprocal of the x component of _v and stores it in
-//     // the x component of the returned vector. y, z, w of the returned vector are
-//     // the same as their respective components in _v.
-//     #[inline]
-//     pub fn rcp_est_x(_v: SimdFloat4) -> SimdFloat4 {
-//         unsafe {
-//             return SimdFloat4::new(_mm_rcp_ss(_v);
-//         }
-//     }
-//
-//     // Returns the estimated reciprocal of the x component of _v, where
-//     // approximation is improved with one more new Newton-Raphson step. y, z, w of
-//     // the returned vector are undefined.
-//     #[inline]
-//     pub fn rcp_est_xnr(_v: SimdFloat4) -> SimdFloat4 {
-//         unsafe {
-//             let nr = _mm_rcp_ss(_v);
-//             // Do one more Newton-Raphson step to improve precision.
-//             return SimdFloat4::new(ozz_nmaddx!(_mm_mul_ss(nr, nr), _v, _mm_add_ss(nr, nr));
-//         }
-//     }
-//
-//     // Returns the per component square root of _v.
-//     #[inline]
-//     pub fn sqrt(_v: SimdFloat4) -> SimdFloat4 {
-//         unsafe {
-//             return SimdFloat4::new(_mm_sqrt_ps(_v);
-//         }
-//     }
-//
-//     // Returns the square root of the x component of _v and stores it in the x
-//     // component of the returned vector. y, z, w of the returned vector are the
-//     // same as their respective components in _v.
-//     #[inline]
-//     pub fn sqrt_x(_v: SimdFloat4) -> SimdFloat4 {
-//         unsafe {
-//             return SimdFloat4::new(_mm_sqrt_ss(_v);
-//         }
-//     }
-//
-//     // Returns the per component estimated reciprocal square root of _v.
-//     #[inline]
-//     pub fn rsqrt_est(_v: SimdFloat4) -> SimdFloat4 {
-//         unsafe {
-//             return SimdFloat4::new(_mm_rsqrt_ps(_v);
-//         }
-//     }
-//
-//     // Returns the per component estimated reciprocal square root of _v, where
-//     // approximation is improved with one more new Newton-Raphson step.
-//     #[inline]
-//     pub fn rsqrt_est_nr(_v: SimdFloat4) -> SimdFloat4 {
-//         unsafe {
-//             let nr = _mm_rsqrt_ps(_v);
-//             // Do one more Newton-Raphson step to improve precision.
-//             return SimdFloat4::new(_mm_mul_ps(_mm_mul_ps(_mm_set_ps1(0.5), nr),
-//                                               ozz_nmadd!(_mm_mul_ps(_v, nr), nr, _mm_set_ps1(3.0)));
-//         }
-//     }
-//
-//     // Returns the estimated reciprocal square root of the x component of _v and
-//     // stores it in the x component of the returned vector. y, z, w of the returned
-//     // vector are the same as their respective components in _v.
-//     #[inline]
-//     pub fn rsqrt_est_x(_v: SimdFloat4) -> SimdFloat4 {
-//         unsafe {
-//             return SimdFloat4::new(_mm_rsqrt_ss(_v);
-//         }
-//     }
-//
-//     // Returns the estimated reciprocal square root of the x component of _v, where
-//     // approximation is improved with one more new Newton-Raphson step. y, z, w of
-//     // the returned vector are undefined.
-//     #[inline]
-//     pub fn rsqrt_est_xnr(_v: SimdFloat4) -> SimdFloat4 {
-//         unsafe {
-//             let nr = _mm_rsqrt_ss(_v);
-//             // Do one more Newton-Raphson step to improve precision.
-//             return SimdFloat4::new(_mm_mul_ss(_mm_mul_ss(_mm_set_ps1(0.5), nr),
-//                                               ozz_nmaddx!(_mm_mul_ss(_v, nr), nr, _mm_set_ps1(3.0)));
-//         }
-//     }
-//
+    // Transposes the x components of the 4 SimdFloat4 of _in into the 1
+    // SimdFloat4 of _out.
+    #[inline]
+    pub fn transpose4x1(_in: [SimdFloat4; 4], _out: &mut [SimdFloat4; 1]) {
+        unsafe {
+            let xz = _mm_unpacklo_ps(_in[0].data, _in[2].data);
+            let yw = _mm_unpacklo_ps(_in[1].data, _in[3].data);
+            _out[0].data = _mm_unpacklo_ps(xz, yw);
+        }
+    }
+
+    // Transposes x, y, z and w components of _in to the x components of _out.
+    // Remaining y, z and w are set to 0.
+    #[inline]
+    pub fn transpose1x4(_in: [SimdFloat4; 1], _out: &mut [SimdFloat4; 4]) {
+        unsafe {
+            let zwzw = _mm_movehl_ps(_in[0].data, _in[0].data);
+            let yyyy = ozz_sse_splat_f!(_in[0].data, 1);
+            let wwww = ozz_sse_splat_f!(_in[0].data, 3);
+            let zero = _mm_setzero_ps();
+            _out[0].data = _mm_move_ss(zero, _in[0].data);
+            _out[1].data = _mm_move_ss(zero, yyyy);
+            _out[2].data = _mm_move_ss(zero, zwzw);
+            _out[3].data = _mm_move_ss(zero, wwww);
+        }
+    }
+
+    // Transposes the 1 SimdFloat4 of _in into the x components of the 4
+    // SimdFloat4 of _out. Remaining y, z and w are set to 0.
+    #[inline]
+    pub fn transpose2x4(_in: [SimdFloat4; 2], _out: &mut [SimdFloat4; 4]) {
+        unsafe {
+            let tmp0 = _mm_unpacklo_ps(_in[0].data, _in[1].data);
+            let tmp1 = _mm_unpackhi_ps(_in[0].data, _in[1].data);
+            let zero = _mm_setzero_ps();
+            _out[0].data = _mm_movelh_ps(tmp0, zero);
+            _out[1].data = _mm_movehl_ps(zero, tmp0);
+            _out[2].data = _mm_movelh_ps(tmp1, zero);
+            _out[3].data = _mm_movehl_ps(zero, tmp1);
+        }
+    }
+
+    // Transposes the x and y components of the 4 SimdFloat4 of _in into the 2
+    // SimdFloat4 of _out.
+    #[inline]
+    pub fn transpose4x2(_in: [SimdFloat4; 4], _out: &mut [SimdFloat4; 2]) {
+        unsafe {
+            let tmp0 = _mm_unpacklo_ps(_in[0].data, _in[2].data);
+            let tmp1 = _mm_unpacklo_ps(_in[1].data, _in[3].data);
+            _out[0].data = _mm_unpacklo_ps(tmp0, tmp1);
+            _out[1].data = _mm_unpackhi_ps(tmp0, tmp1);
+        }
+    }
+
+    // Transposes the x, y and z components of the 4 SimdFloat4 of _in into the 3
+    // SimdFloat4 of _out.
+    #[inline]
+    pub fn transpose4x3(_in: [SimdFloat4; 4], _out: &mut [SimdFloat4; 3]) {
+        unsafe {
+            let tmp0 = _mm_unpacklo_ps(_in[0].data, _in[2].data);
+            let tmp1 = _mm_unpacklo_ps(_in[1].data, _in[3].data);
+            let tmp2 = _mm_unpackhi_ps(_in[0].data, _in[2].data);
+            let tmp3 = _mm_unpackhi_ps(_in[1].data, _in[3].data);
+            _out[0].data = _mm_unpacklo_ps(tmp0, tmp1);
+            _out[1].data = _mm_unpackhi_ps(tmp0, tmp1);
+            _out[2].data = _mm_unpacklo_ps(tmp2, tmp3);
+        }
+    }
+
+    // Transposes the 3 SimdFloat4 of _in into the x, y and z components of the 4
+    // SimdFloat4 of _out. Remaining w are set to 0.
+    #[inline]
+    pub fn transpose3x4(_in: [SimdFloat4; 3], _out: &mut [SimdFloat4; 4]) {
+        unsafe {
+            let zero = _mm_setzero_ps();
+            let temp0 = _mm_unpacklo_ps(_in[0].data, _in[1].data);
+            let temp1 = _mm_unpacklo_ps(_in[2].data, zero);
+            let temp2 = _mm_unpackhi_ps(_in[0].data, _in[1].data);
+            let temp3 = _mm_unpackhi_ps(_in[2].data, zero);
+            _out[0].data = _mm_movelh_ps(temp0, temp1);
+            _out[1].data = _mm_movehl_ps(temp1, temp0);
+            _out[2].data = _mm_movelh_ps(temp2, temp3);
+            _out[3].data = _mm_movehl_ps(temp3, temp2);
+        }
+    }
+
+    // Transposes the 4 SimdFloat4 of _in into the 4 SimdFloat4 of _out.
+    #[inline]
+    pub fn transpose4x4(_in: [SimdFloat4; 4], _out: &mut [SimdFloat4; 4]) {
+        unsafe {
+            let tmp0 = _mm_unpacklo_ps(_in[0].data, _in[2].data);
+            let tmp1 = _mm_unpacklo_ps(_in[1].data, _in[3].data);
+            let tmp2 = _mm_unpackhi_ps(_in[0].data, _in[2].data);
+            let tmp3 = _mm_unpackhi_ps(_in[1].data, _in[3].data);
+            _out[0].data = _mm_unpacklo_ps(tmp0, tmp1);
+            _out[1].data = _mm_unpackhi_ps(tmp0, tmp1);
+            _out[2].data = _mm_unpacklo_ps(tmp2, tmp3);
+            _out[3].data = _mm_unpackhi_ps(tmp2, tmp3);
+        }
+    }
+
+    // Transposes the 16 SimdFloat4 of _in into the 16 SimdFloat4 of _out.
+    #[inline]
+    pub fn transpose16x16(_in: [SimdFloat4; 16], _out: &mut [SimdFloat4; 16]) {
+        unsafe {
+            let tmp0 = _mm_unpacklo_ps(_in[0].data, _in[2].data);
+            let tmp1 = _mm_unpacklo_ps(_in[1].data, _in[3].data);
+            _out[0].data = _mm_unpacklo_ps(tmp0, tmp1);
+            _out[4].data = _mm_unpackhi_ps(tmp0, tmp1);
+            let tmp2 = _mm_unpackhi_ps(_in[0].data, _in[2].data);
+            let tmp3 = _mm_unpackhi_ps(_in[1].data, _in[3].data);
+            _out[8].data = _mm_unpacklo_ps(tmp2, tmp3);
+            _out[12].data = _mm_unpackhi_ps(tmp2, tmp3);
+            let tmp4 = _mm_unpacklo_ps(_in[4].data, _in[6].data);
+            let tmp5 = _mm_unpacklo_ps(_in[5].data, _in[7].data);
+            _out[1].data = _mm_unpacklo_ps(tmp4, tmp5);
+            _out[5].data = _mm_unpackhi_ps(tmp4, tmp5);
+            let tmp6 = _mm_unpackhi_ps(_in[4].data, _in[6].data);
+            let tmp7 = _mm_unpackhi_ps(_in[5].data, _in[7].data);
+            _out[9].data = _mm_unpacklo_ps(tmp6, tmp7);
+            _out[13].data = _mm_unpackhi_ps(tmp6, tmp7);
+            let tmp8 = _mm_unpacklo_ps(_in[8].data, _in[10].data);
+            let tmp9 = _mm_unpacklo_ps(_in[9].data, _in[11].data);
+            _out[2].data = _mm_unpacklo_ps(tmp8, tmp9);
+            _out[6].data = _mm_unpackhi_ps(tmp8, tmp9);
+            let tmp10 = _mm_unpackhi_ps(_in[8].data, _in[10].data);
+            let tmp11 = _mm_unpackhi_ps(_in[9].data, _in[11].data);
+            _out[10].data = _mm_unpacklo_ps(tmp10, tmp11);
+            _out[14].data = _mm_unpackhi_ps(tmp10, tmp11);
+            let tmp12 = _mm_unpacklo_ps(_in[12].data, _in[14].data);
+            let tmp13 = _mm_unpacklo_ps(_in[13].data, _in[15].data);
+            _out[3].data = _mm_unpacklo_ps(tmp12, tmp13);
+            _out[7].data = _mm_unpackhi_ps(tmp12, tmp13);
+            let tmp14 = _mm_unpackhi_ps(_in[12].data, _in[14].data);
+            let tmp15 = _mm_unpackhi_ps(_in[13].data, _in[15].data);
+            _out[11].data = _mm_unpacklo_ps(tmp14, tmp15);
+            _out[15].data = _mm_unpackhi_ps(tmp14, tmp15);
+        }
+    }
+
+    // Multiplies _a and _b, then adds _c.
+    // v = (_a * _b) + _c
+    #[inline]
+    pub fn madd(&self, _b: SimdFloat4, _c: SimdFloat4) -> SimdFloat4 {
+        unsafe {
+            return SimdFloat4::new(ozz_madd!(self.data, _b.data, _c.data));
+        }
+    }
+
+    // Multiplies _a and _b, then subs _c.
+    // v = (_a * _b) + _c
+    #[inline]
+    pub fn msub(&self, _b: SimdFloat4, _c: SimdFloat4) -> SimdFloat4 {
+        unsafe {
+            return SimdFloat4::new(ozz_msub!(self.data, _b.data, _c.data));
+        }
+    }
+
+    // Multiplies _a and _b, negate it, then adds _c.
+    // v = -(_a * _b) + _c
+    #[inline]
+    pub fn nmadd(&self, _b: SimdFloat4, _c: SimdFloat4) -> SimdFloat4 {
+        unsafe {
+            return SimdFloat4::new(ozz_nmadd!(self.data, _b.data, _c.data));
+        }
+    }
+
+    // Multiplies _a and _b, negate it, then subs _c.
+    // v = -(_a * _b) + _c
+    #[inline]
+    pub fn nmsub(&self, _b: SimdFloat4, _c: SimdFloat4) -> SimdFloat4 {
+        unsafe {
+            return SimdFloat4::new(_mm_sub_ps(SimdFloat4::zero().data,
+                                              _mm_add_ps(_mm_mul_ps(self.data, _b.data), _c.data)));
+        }
+    }
+
+    // Divides the x component of _a by the _x component of _b and stores it in the
+    // x component of the returned vector. y, z, w of the returned vector are the
+    // same as _a respective components.
+    // r.x = _a.x / _b.x
+    // r.y = _a.y
+    // r.z = _a.z
+    // r.w = _a.w
+    #[inline]
+    pub fn div_x(&self, _b: SimdFloat4) -> SimdFloat4 {
+        unsafe {
+            return SimdFloat4::new(_mm_div_ss(self.data, _b.data));
+        }
+    }
+
+    // Computes the (horizontal) addition of x and y components of _v. The result is
+    // stored in the x component of the returned value. y, z, w of the returned
+    // vector are the same as their respective components in _v.
+    // r.x = _a.x + _a.y
+    // r.y = _a.y
+    // r.z = _a.z
+    // r.w = _a.w
+    #[inline]
+    pub fn hadd2(&self) -> SimdFloat4 {
+        unsafe {
+            return SimdFloat4::new(ozz_sse_hadd2_f!(self.data));
+        }
+    }
+
+    // Computes the (horizontal) addition of x, y and z components of _v. The result
+    // is stored in the x component of the returned value. y, z, w of the returned
+    // vector are the same as their respective components in _v.
+    // r.x = _a.x + _a.y + _a.z
+    // r.y = _a.y
+    // r.z = _a.z
+    // r.w = _a.w
+    #[inline]
+    pub fn hadd3(&self) -> SimdFloat4 {
+        unsafe {
+            return SimdFloat4::new(ozz_sse_hadd3_f!(self.data));
+        }
+    }
+
+    // Computes the (horizontal) addition of x and y components of _v. The result is
+    // stored in the x component of the returned value. y, z, w of the returned
+    // vector are the same as their respective components in _v.
+    // r.x = _a.x + _a.y + _a.z + _a.w
+    // r.y = _a.y
+    // r.z = _a.z
+    // r.w = _a.w
+    #[inline]
+    pub fn hadd4(&self) -> SimdFloat4 {
+        unsafe {
+            let hadd4: __m128;
+            ozz_sse_hadd4_f!(self.data, hadd4);
+            return SimdFloat4::new(hadd4);
+        }
+    }
+
+    // Computes the dot product of x and y components of _v. The result is
+    // stored in the x component of the returned value. y, z, w of the returned
+    // vector are undefined.
+    // r.x = _a.x * _a.x + _a.y * _a.y
+    // r.y = ?
+    // r.z = ?
+    // r.w = ?
+    #[inline]
+    pub fn dot2(&self, _b: SimdFloat4) -> SimdFloat4 {
+        unsafe {
+            let dot2: __m128;
+            ozz_sse_dot2_f!(self.data, _b.data, dot2);
+            return SimdFloat4::new(dot2);
+        }
+    }
+
+    // Computes the dot product of x, y and z components of _v. The result is
+    // stored in the x component of the returned value. y, z, w of the returned
+    // vector are undefined.
+    // r.x = _a.x * _a.x + _a.y * _a.y + _a.z * _a.z
+    // r.y = ?
+    // r.z = ?
+    // r.w = ?
+    #[inline]
+    pub fn dot3(&self, _b: SimdFloat4) -> SimdFloat4 {
+        unsafe {
+            let dot3: __m128;
+            ozz_sse_dot3_f!(self.data, _b.data, dot3);
+            return SimdFloat4::new(dot3);
+        }
+    }
+
+    // Computes the dot product of x, y, z and w components of _v. The result is
+    // stored in the x component of the returned value. y, z, w of the returned
+    // vector are undefined.
+    // r.x = _a.x * _a.x + _a.y * _a.y + _a.z * _a.z + _a.w * _a.w
+    // r.y = ?
+    // r.z = ?
+    // r.w = ?
+    #[inline]
+    pub fn dot4(&self, _b: SimdFloat4) -> SimdFloat4 {
+        unsafe {
+            let dot4: __m128;
+            ozz_sse_dot4_f!(self.data, _b.data, dot4);
+            return SimdFloat4::new(dot4);
+        }
+    }
+
+    // Computes the cross product of x, y and z components of _v. The result is
+    // stored in the x, y and z components of the returned value. w of the returned
+    // vector is undefined.
+    // r.x = _a.y * _b.z - _a.z * _b.y
+    // r.y = _a.z * _b.x - _a.x * _b.z
+    // r.z = _a.x * _b.y - _a.y * _b.x
+    // r.w = ?
+    #[inline]
+    pub fn cross3(&self, _b: SimdFloat4) -> SimdFloat4 {
+        unsafe {
+            // Implementation with 3 shuffles only is based on:
+            // https://geometrian.com/programming/tutorials/cross-product
+            let shufa = ozz_shuffle_ps1!(self.data, _mm_shuffle!(3, 0, 2, 1));
+            let shufb = ozz_shuffle_ps1!(_b.data, _mm_shuffle!(3, 0, 2, 1));
+            let shufc = ozz_msub!(self.data, shufb, _mm_mul_ps(_b.data, shufa));
+            return SimdFloat4::new(ozz_shuffle_ps1!(shufc, _mm_shuffle!(3, 0, 2, 1)));
+        }
+    }
+
+    // Returns the per component estimated reciprocal of _v.
+    #[inline]
+    pub fn rcp_est(&self) -> SimdFloat4 {
+        unsafe {
+            return SimdFloat4::new(_mm_rcp_ps(self.data));
+        }
+    }
+
+    // Returns the per component estimated reciprocal of _v, where approximation is
+    // improved with one more new Newton-Raphson step.
+    #[inline]
+    pub fn rcp_est_nr(&self) -> SimdFloat4 {
+        unsafe {
+            let nr = _mm_rcp_ps(self.data);
+            // Do one more Newton-Raphson step to improve precision.
+            return SimdFloat4::new(ozz_nmadd!(_mm_mul_ps(nr, nr), self.data, _mm_add_ps(nr, nr)));
+        }
+    }
+
+    // Returns the estimated reciprocal of the x component of _v and stores it in
+    // the x component of the returned vector. y, z, w of the returned vector are
+    // the same as their respective components in _v.
+    #[inline]
+    pub fn rcp_est_x(&self) -> SimdFloat4 {
+        unsafe {
+            return SimdFloat4::new(_mm_rcp_ss(self.data));
+        }
+    }
+
+    // Returns the estimated reciprocal of the x component of _v, where
+    // approximation is improved with one more new Newton-Raphson step. y, z, w of
+    // the returned vector are undefined.
+    #[inline]
+    pub fn rcp_est_xnr(&self) -> SimdFloat4 {
+        unsafe {
+            let nr = _mm_rcp_ss(self.data);
+            // Do one more Newton-Raphson step to improve precision.
+            return SimdFloat4::new(ozz_nmaddx!(_mm_mul_ss(nr, nr), self.data, _mm_add_ss(nr, nr)));
+        }
+    }
+
+    // Returns the per component square root of _v.
+    #[inline]
+    pub fn sqrt(&self) -> SimdFloat4 {
+        unsafe {
+            return SimdFloat4::new(_mm_sqrt_ps(self.data));
+        }
+    }
+
+    // Returns the square root of the x component of _v and stores it in the x
+    // component of the returned vector. y, z, w of the returned vector are the
+    // same as their respective components in _v.
+    #[inline]
+    pub fn sqrt_x(&self) -> SimdFloat4 {
+        unsafe {
+            return SimdFloat4::new(_mm_sqrt_ss(self.data));
+        }
+    }
+
+    // Returns the per component estimated reciprocal square root of _v.
+    #[inline]
+    pub fn rsqrt_est(&self) -> SimdFloat4 {
+        unsafe {
+            return SimdFloat4::new(_mm_rsqrt_ps(self.data));
+        }
+    }
+
+    // Returns the per component estimated reciprocal square root of _v, where
+    // approximation is improved with one more new Newton-Raphson step.
+    #[inline]
+    pub fn rsqrt_est_nr(&self) -> SimdFloat4 {
+        unsafe {
+            let nr = _mm_rsqrt_ps(self.data);
+            // Do one more Newton-Raphson step to improve precision.
+            return SimdFloat4::new(_mm_mul_ps(_mm_mul_ps(_mm_set_ps1(0.5), nr),
+                                              ozz_nmadd!(_mm_mul_ps(self.data, nr), nr, _mm_set_ps1(3.0))));
+        }
+    }
+
+    // Returns the estimated reciprocal square root of the x component of _v and
+    // stores it in the x component of the returned vector. y, z, w of the returned
+    // vector are the same as their respective components in _v.
+    #[inline]
+    pub fn rsqrt_est_x(&self) -> SimdFloat4 {
+        unsafe {
+            return SimdFloat4::new(_mm_rsqrt_ss(self.data));
+        }
+    }
+
+    // Returns the estimated reciprocal square root of the x component of _v, where
+    // approximation is improved with one more new Newton-Raphson step. y, z, w of
+    // the returned vector are undefined.
+    #[inline]
+    pub fn rsqrt_est_xnr(&self) -> SimdFloat4 {
+        unsafe {
+            let nr = _mm_rsqrt_ss(self.data);
+            // Do one more Newton-Raphson step to improve precision.
+            return SimdFloat4::new(_mm_mul_ss(_mm_mul_ss(_mm_set_ps1(0.5), nr),
+                                              ozz_nmaddx!(_mm_mul_ss(self.data, nr), nr, _mm_set_ps1(3.0))));
+        }
+    }
+
 //     // Returns the per element absolute value of _v.
 //     #[inline]
 //     pub fn abs(_v: SimdFloat4) -> SimdFloat4 {
