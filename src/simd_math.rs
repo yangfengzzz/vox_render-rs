@@ -119,8 +119,8 @@ pub struct SimdFloat4 {
 }
 
 pub union SimdFloat4Union {
-    ret: __m128,
-    af: [f32; 4],
+    pub ret: __m128,
+    pub af: [f32; 4],
 }
 
 impl SimdFloat4 {
@@ -1759,8 +1759,8 @@ pub struct SimdInt4 {
 }
 
 pub union SimdInt4Union {
-    ret: __m128i,
-    af: [i32; 4],
+    pub ret: __m128i,
+    pub af: [i32; 4],
 }
 
 impl SimdInt4 {

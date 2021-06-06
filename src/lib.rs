@@ -6,6 +6,7 @@
  * // property of any third parties.
  */
 
+pub mod math_test_helper;
 pub mod math_constant;
 pub mod simd_math;
 pub mod simd_quaternion;
