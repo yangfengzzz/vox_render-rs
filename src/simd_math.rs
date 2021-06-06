@@ -3573,3 +3573,25 @@ pub fn half_to_float_simd(_h: __m128i) -> __m128 {
         return _mm_or_ps(scaled, sign_inf);
     }
 }
+
+//--------------------------------------------------------------------------------------------------
+//--------------------------------------------------------------------------------------------------
+//--------------------------------------------------------------------------------------------------
+#[cfg(test)]
+mod tests {
+    use crate::simd_math::*;
+    use crate::math_test_helper::*;
+    use crate::*;
+
+    #[test]
+    fn test_load_float() {
+        let f_x = SimdFloat4::load_x(15.0);
+        expect_simd_float_eq!(f_x, 15.0, 0.0, 0.0, 0.0);
+
+        let f1 = SimdFloat4::load1(15.0);
+        expect_simd_float_eq!(f1, 15.0, 15.0, 15.0, 15.0);
+
+        let f4 = SimdFloat4::load(1.0, -1.0, 2.0, -3.0);
+        expect_simd_float_eq!(f4, 1.0, -1.0, 2.0, -3.0);
+    }
+}
