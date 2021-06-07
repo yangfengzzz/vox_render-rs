@@ -176,7 +176,7 @@ pub fn invert(_m: &SoaFloat4x4, _invertible: &mut Option<SimdInt4>) -> SoaFloat4
     let det =
         cols[0].x * b0x + cols[0].y * b1x + cols[0].z * b2x + cols[0].w * b3x;
     let invertible = det.cmp_ne(SimdFloat4::load(0.0, 0.0, 0.0, 0.0));
-    debug_assert!((_invertible.is_none() || invertible.are_all_true()) && "Matrix is not invertible".parse().unwrap());
+    debug_assert!((_invertible.is_none() || invertible.are_all_true()) && "Matrix is not invertible".parse().unwrap_or(true));
     if _invertible.is_some() {
         *_invertible = Some(invertible);
     }

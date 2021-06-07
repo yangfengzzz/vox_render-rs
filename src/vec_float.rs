@@ -532,7 +532,7 @@ pub fn length_sqr2(_v: &Float2) -> f32 {
 #[inline]
 pub fn normalize4(_v: &Float4) -> Float4 {
     let len2 = _v.x * _v.x + _v.y * _v.y + _v.z * _v.z + _v.w * _v.w;
-    debug_assert!(len2 != 0.0 && "_v is not normalizable".parse().unwrap());
+    debug_assert!(len2 != 0.0 && "_v is not normalizable".parse().unwrap_or(true));
     let len = f32::sqrt(len2);
     return Float4::new(_v.x / len, _v.y / len, _v.z / len, _v.w / len);
 }
@@ -540,7 +540,7 @@ pub fn normalize4(_v: &Float4) -> Float4 {
 #[inline]
 pub fn normalize3(_v: &Float3) -> Float3 {
     let len2 = _v.x * _v.x + _v.y * _v.y + _v.z * _v.z;
-    debug_assert!(len2 != 0.0 && "_v is not normalizable".parse().unwrap());
+    debug_assert!(len2 != 0.0 && "_v is not normalizable".parse().unwrap_or(true));
     let len = f32::sqrt(len2);
     return Float3::new(_v.x / len, _v.y / len, _v.z / len);
 }
@@ -548,7 +548,7 @@ pub fn normalize3(_v: &Float3) -> Float3 {
 #[inline]
 pub fn normalize2(_v: &Float2) -> Float2 {
     let len2 = _v.x * _v.x + _v.y * _v.y;
-    debug_assert!(len2 != 0.0 && "_v is not normalizable".parse().unwrap());
+    debug_assert!(len2 != 0.0 && "_v is not normalizable".parse().unwrap_or(true));
     let len = f32::sqrt(len2);
     return Float2::new(_v.x / len, _v.y / len);
 }
@@ -578,7 +578,7 @@ pub fn is_normalized2(_v: &Float2) -> bool {
 // Otherwise returns _safer.
 #[inline]
 pub fn normalize_safe4(_v: &Float4, _safer: &Float4) -> Float4 {
-    debug_assert!(is_normalized4(_safer) && "_safer is not normalized".parse().unwrap());
+    debug_assert!(is_normalized4(_safer) && "_safer is not normalized".parse().unwrap_or(true));
     let len2 = _v.x * _v.x + _v.y * _v.y + _v.z * _v.z + _v.w * _v.w;
     if len2 <= 0.0 {
         return _safer.clone();
@@ -589,7 +589,7 @@ pub fn normalize_safe4(_v: &Float4, _safer: &Float4) -> Float4 {
 
 #[inline]
 pub fn normalize_safe3(_v: &Float3, _safer: &Float3) -> Float3 {
-    debug_assert!(is_normalized3(_safer) && "_safer is not normalized".parse().unwrap());
+    debug_assert!(is_normalized3(_safer) && "_safer is not normalized".parse().unwrap_or(true));
     let len2 = _v.x * _v.x + _v.y * _v.y + _v.z * _v.z;
     if len2 <= 0.0 {
         return _safer.clone();
@@ -600,7 +600,7 @@ pub fn normalize_safe3(_v: &Float3, _safer: &Float3) -> Float3 {
 
 #[inline]
 pub fn normalize_safe2(_v: &Float2, _safer: &Float2) -> Float2 {
-    debug_assert!(is_normalized2(_safer) && "_safer is not normalized".parse().unwrap());
+    debug_assert!(is_normalized2(_safer) && "_safer is not normalized".parse().unwrap_or(true));
     let len2 = _v.x * _v.x + _v.y * _v.y;
     if len2 <= 0.0 {
         return _safer.clone();

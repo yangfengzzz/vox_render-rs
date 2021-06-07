@@ -757,7 +757,7 @@ pub fn length_sqr2(_v: &SoaFloat2) -> SimdFloat4 {
 pub fn normalize4(_v: &SoaFloat4) -> SoaFloat4 {
     let len2 = _v.x * _v.x + _v.y * _v.y + _v.z * _v.z + _v.w * _v.w;
     debug_assert!(len2.cmp_ne(SimdFloat4::load(0.0, 0.0, 0.0, 0.0)).are_all_true()
-        && "_v is not normalizable".parse().unwrap());
+        && "_v is not normalizable".parse().unwrap_or(true));
 
     let inv_len = SimdFloat4::load(1.0, 1.0, 1.0, 1.0) / len2.sqrt();
     return SoaFloat4::load(
@@ -769,7 +769,7 @@ pub fn normalize4(_v: &SoaFloat4) -> SoaFloat4 {
 pub fn normalize3(_v: &SoaFloat3) -> SoaFloat3 {
     let len2 = _v.x * _v.x + _v.y * _v.y + _v.z * _v.z;
     debug_assert!(len2.cmp_ne(SimdFloat4::load(0.0, 0.0, 0.0, 0.0)).are_all_true()
-        && "_v is not normalizable".parse().unwrap());
+        && "_v is not normalizable".parse().unwrap_or(true));
 
     let inv_len = SimdFloat4::load(1.0, 1.0, 1.0, 1.0) / len2.sqrt();
     return SoaFloat3::load(_v.x * inv_len, _v.y * inv_len, _v.z * inv_len);
@@ -778,7 +778,7 @@ pub fn normalize3(_v: &SoaFloat3) -> SoaFloat3 {
 pub fn normalize2(_v: &SoaFloat2) -> SoaFloat2 {
     let len2 = _v.x * _v.x + _v.y * _v.y;
     debug_assert!(len2.cmp_ne(SimdFloat4::load(0.0, 0.0, 0.0, 0.0)).are_all_true()
-        && "_v is not normalizable".parse().unwrap());
+        && "_v is not normalizable".parse().unwrap_or(true));
 
     let inv_len = SimdFloat4::load(1.0, 1.0, 1.0, 1.0) / len2.sqrt();
     return SoaFloat2::load(_v.x * inv_len, _v.y * inv_len);
@@ -835,7 +835,7 @@ pub fn is_normalized_est2(_v: &SoaFloat2) -> SimdInt4 {
 // Returns the normalized vector _v if the norm of _v is not 0.
 // Otherwise returns _safer.
 pub fn normalize_safe4(_v: &SoaFloat4, _safer: &SoaFloat4) -> SoaFloat4 {
-    debug_assert!(is_normalized_est4(_safer).are_all_true() && "_safer is not normalized".parse().unwrap());
+    debug_assert!(is_normalized_est4(_safer).are_all_true() && "_safer is not normalized".parse().unwrap_or(true));
     let len2 = _v.x * _v.x + _v.y * _v.y + _v.z * _v.z + _v.w * _v.w;
     let b = len2.cmp_ne(SimdFloat4::load(0.0, 0.0, 0.0, 0.0));
     let inv_len = SimdFloat4::load(1.0, 1.0, 1.0, 1.0) / len2.sqrt();
@@ -847,7 +847,7 @@ pub fn normalize_safe4(_v: &SoaFloat4, _safer: &SoaFloat4) -> SoaFloat4 {
 }
 
 pub fn normalize_safe3(_v: &SoaFloat3, _safer: &SoaFloat3) -> SoaFloat3 {
-    debug_assert!(is_normalized_est3(_safer).are_all_true() && "_safer is not normalized".parse().unwrap());
+    debug_assert!(is_normalized_est3(_safer).are_all_true() && "_safer is not normalized".parse().unwrap_or(true));
 
     let len2 = _v.x * _v.x + _v.y * _v.y + _v.z * _v.z;
     let b = len2.cmp_ne(SimdFloat4::load(0.0, 0.0, 0.0, 0.0));
@@ -858,7 +858,7 @@ pub fn normalize_safe3(_v: &SoaFloat3, _safer: &SoaFloat3) -> SoaFloat3 {
 }
 
 pub fn normalize_safe2(_v: &SoaFloat2, _safer: &SoaFloat2) -> SoaFloat2 {
-    debug_assert!(is_normalized_est2(_safer).are_all_true() && "_safer is not normalized".parse().unwrap());
+    debug_assert!(is_normalized_est2(_safer).are_all_true() && "_safer is not normalized".parse().unwrap_or(true));
     let len2 = _v.x * _v.x + _v.y * _v.y;
     let b = len2.cmp_ne(SimdFloat4::load(0.0, 0.0, 0.0, 0.0));
     let inv_len = SimdFloat4::load(1.0, 1.0, 1.0, 1.0) / len2.sqrt();

@@ -25,7 +25,7 @@ impl SimdQuaternion {
     #[inline]
     pub fn from_axis_angle(_axis: SimdFloat4,
                            _angle: SimdFloat4) -> SimdQuaternion {
-        debug_assert!(_axis.is_normalized_est3().are_all_true1() && "axis is not normalized.".parse().unwrap());
+        debug_assert!(_axis.is_normalized_est3().are_all_true1() && "axis is not normalized.".parse().unwrap_or(true));
         let half_angle = _angle * SimdFloat4::load1(0.5);
         let half_sin = (half_angle).sin_x();
         let half_cos = (half_angle).cos_x();
@@ -43,10 +43,10 @@ impl SimdQuaternion {
         let one = SimdFloat4::one();
         let half = SimdFloat4::load1(0.5);
 
-        debug_assert!(_axis.is_normalized_est3().are_all_true1() && "axis is not normalized.".parse().unwrap());
+        debug_assert!(_axis.is_normalized_est3().are_all_true1() && "axis is not normalized.".parse().unwrap_or(true));
         debug_assert!(SimdInt4::are_all_true1(&SimdInt4::and(&SimdFloat4::cmp_ge(&_cos, -one),
                                                              SimdFloat4::cmp_le(&_cos, one))) &&
-            "cos is not in [-1,1] range.".parse().unwrap());
+            "cos is not in [-1,1] range.".parse().unwrap_or(true));
 
         let half_cos2 = (one + _cos) * half;
         let half_sin2 = one - half_cos2;
@@ -97,7 +97,7 @@ impl SimdQuaternion {
         // http://lolengine.net/blog/2014/02/24/quaternion-from-two-vectors-final
         debug_assert!(SimdInt4::are_all_true1(
             &SimdInt4::and(&SimdFloat4::is_normalized_est3(&_from), SimdFloat4::is_normalized_est3(&_to))) &&
-            "Input vectors must be normalized.".parse().unwrap());
+            "Input vectors must be normalized.".parse().unwrap_or(true));
 
         let real_part = SimdFloat4::x_axis() + _from.dot3(_to);
         return if real_part.get_x() < 1.0e-6 {
@@ -215,7 +215,7 @@ impl SimdQuaternion {
     // Assumes quaternion _q is normalized.
     #[inline]
     pub fn to_axis_angle(&self) -> SimdFloat4 {
-        debug_assert!(self.xyzw.is_normalized_est4().are_all_true1() && "self is not normalized.".parse().unwrap());
+        debug_assert!(self.xyzw.is_normalized_est4().are_all_true1() && "self is not normalized.".parse().unwrap_or(true));
         let x_axis = SimdFloat4::x_axis();
         let clamped_w = SimdFloat4::clamp(&-x_axis, self.xyzw.splat_w(), x_axis);
         let half_angle = clamped_w.acos_x();

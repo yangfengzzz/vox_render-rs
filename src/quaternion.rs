@@ -46,7 +46,7 @@ impl Quaternion {
     // _angle.x is the angle in radian.
     #[inline]
     pub fn from_axis_angle(_axis: &Float3, _angle: f32) -> Quaternion {
-        debug_assert!(is_normalized3(_axis) && "axis is not normalized.".parse().unwrap());
+        debug_assert!(is_normalized3(_axis) && "axis is not normalized.".parse().unwrap_or(true));
         let half_angle = _angle * 0.5;
         let half_sin = f32::sin(half_angle);
         let half_cos = f32::cos(half_angle);
@@ -60,8 +60,8 @@ impl Quaternion {
     // _angle.x is the angle cosine in radian, it must be within [-1,1] range.
     #[inline]
     pub fn from_axis_cos_angle(_axis: &Float3, _cos: f32) -> Quaternion {
-        debug_assert!(is_normalized3(_axis) && "axis is not normalized.".parse().unwrap());
-        debug_assert!(_cos >= -1.0 && _cos <= 1.0 && "cos is not in [-1,1] range.".parse().unwrap());
+        debug_assert!(is_normalized3(_axis) && "axis is not normalized.".parse().unwrap_or(true));
+        debug_assert!(_cos >= -1.0 && _cos <= 1.0 && "cos is not in [-1,1] range.".parse().unwrap_or(true));
 
         let half_cos2 = (1.0 + _cos) * 0.5;
         let half_sin = f32::sqrt(1.0 - half_cos2);
@@ -122,7 +122,7 @@ impl Quaternion {
     #[inline]
     pub fn from_unit_vectors(_from: &Float3, _to: &Float3) -> Quaternion {
         debug_assert!(is_normalized3(_from) && is_normalized3(_to) &&
-            "Input vectors must be normalized.".parse().unwrap());
+            "Input vectors must be normalized.".parse().unwrap_or(true));
 
         // http://lolengine.net/blog/2014/02/24/quaternion-from-two-vectors-final
         let real_part = 1.0 + dot3(_from, _to);
@@ -216,7 +216,7 @@ pub fn is_normalized(_q: &Quaternion) -> bool {
 #[inline]
 pub fn normalize(_q: &Quaternion) -> Quaternion {
     let sq_len = _q.x * _q.x + _q.y * _q.y + _q.z * _q.z + _q.w * _q.w;
-    debug_assert!(sq_len != 0.0 && "_q is not normalizable".parse().unwrap());
+    debug_assert!(sq_len != 0.0 && "_q is not normalizable".parse().unwrap_or(true));
 
     let inv_len = 1.0 / f32::sqrt(sq_len);
     return Quaternion::new(_q.x * inv_len, _q.y * inv_len, _q.z * inv_len,
@@ -227,7 +227,7 @@ pub fn normalize(_q: &Quaternion) -> Quaternion {
 // Otherwise returns _safer.
 #[inline]
 pub fn normalize_safe(_q: &Quaternion, _safer: &Quaternion) -> Quaternion {
-    debug_assert!(is_normalized(_safer) && "_safer is not normalized".parse().unwrap());
+    debug_assert!(is_normalized(_safer) && "_safer is not normalized".parse().unwrap_or(true));
     let sq_len = _q.x * _q.x + _q.y * _q.y + _q.z * _q.z + _q.w * _q.w;
     if sq_len == 0.0 {
         return _safer.clone();
