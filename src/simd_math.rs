@@ -3602,7 +3602,6 @@ mod tests {
         expect_simd_float_eq!(f4, 1.0, -1.0, 2.0, -3.0);
     }
 
-    #[test]
     fn load_float_ptr() {
         todo!()
     }
@@ -3633,7 +3632,6 @@ mod tests {
         expect_simd_float_eq!(a.set_i(b, 3), 1.0, 2.0, 3.0, 5.0);
     }
 
-    #[test]
     fn store_float_ptr() {
         todo!()
     }
@@ -3901,7 +3899,279 @@ mod tests {
     }
 
     #[test]
+    #[allow(overflowing_literals)]
     fn compare_float() {
+        let a = SimdFloat4::load(0.5, 1.0, 2.0, 3.0);
+        let b = SimdFloat4::load(4.0, 1.0, -6.0, 7.0);
+        let c = SimdFloat4::load(4.0, 5.0, 6.0, 7.0);
 
+        let min = a.min(b);
+        expect_simd_float_eq!(min, 0.5, 1.0, -6.0, 3.0);
+
+        let max = a.max(b);
+        expect_simd_float_eq!(max, 4.0, 1.0, 2.0, 7.0);
+
+        let min0 = b.min0();
+        expect_simd_float_eq!(min0, 0.0, 0.0, -6.0, 0.0);
+
+        let max0 = b.max0();
+        expect_simd_float_eq!(max0, 4.0, 1.0, 0.0, 7.0);
+
+        expect_simd_float_eq!(SimdFloat4::load(-12.0, 2.0, 9.0, 3.0).clamp(a, c), 0.5, 2.0, 6.0, 3.0);
+
+        let eq1 = a.cmp_eq(b);
+        expect_simd_int_eq!(eq1, 0, 0xffffffff, 0, 0);
+
+        let eq2 = a.cmp_eq(a);
+        expect_simd_int_eq!(eq2, 0xffffffff, 0xffffffff, 0xffffffff, 0xffffffff);
+
+        let neq1 = a.cmp_ne(b);
+        expect_simd_int_eq!(neq1, 0xffffffff, 0, 0xffffffff, 0xffffffff);
+
+        let neq2 = a.cmp_ne(a);
+        expect_simd_int_eq!(neq2, 0, 0, 0, 0);
+
+        let lt = a.cmp_lt(b);
+        expect_simd_int_eq!(lt, 0xffffffff, 0, 0, 0xffffffff);
+
+        let le = a.cmp_le(b);
+        expect_simd_int_eq!(le, 0xffffffff, 0xffffffff, 0, 0xffffffff);
+
+        let gt = a.cmp_gt(b);
+        expect_simd_int_eq!(gt, 0, 0, 0xffffffff, 0);
+
+        let ge = a.cmp_ge(b);
+        expect_simd_int_eq!(ge, 0, 0xffffffff, 0xffffffff, 0);
+    }
+
+    #[test]
+    fn lerp_float() {
+        let a = SimdFloat4::load(0.0, 1.0, 2.0, 4.0);
+        let b = SimdFloat4::load(0.0, -1.0, -2.0, -4.0);
+        let zero = SimdFloat4::load1(0.0);
+        let one = SimdFloat4::load1(1.0);
+
+        let lerp0 = a.lerp(b, zero);
+        expect_simd_float_eq!(lerp0, 0.0, 1.0, 2.0, 4.0);
+
+        let lerp1 = a.lerp(b, one);
+        expect_simd_float_eq!(lerp1, 0.0, -1.0, -2.0, -4.0);
+
+        let lhalf = a.lerp(b, SimdFloat4::load1(0.5));
+        expect_simd_float_eq!(lhalf, 0.0, 0.0, 0.0, 0.0);
+
+        let lmixed = a.lerp(b, SimdFloat4::load(0.0, -1.0, 0.5, 2.0));
+        expect_simd_float_eq!(lmixed, 0.0, 3.0, 0.0, -12.0);
+    }
+
+    #[test]
+    fn trigonometry_float() {
+        use crate::math_constant::*;
+        let angle = SimdFloat4::load(K_PI, K_PI / 6.0, -K_PI_2, 5.0 * K_PI_2);
+        let cos = SimdFloat4::load(-1.0, 0.86602539, 0.0, 0.0);
+        let sin = SimdFloat4::load(0.0, 0.5, -1.0, 1.0);
+
+        let angle_tan = SimdFloat4::load(0.0, K_PI / 6.0, -K_PI / 3.0, 9.0 * K_PI / 4.0);
+        let tan = SimdFloat4::load(0.0, 0.57735, -1.73205, 1.0);
+
+        expect_simd_float_eq!(angle.cos(), -1.0, 0.86602539, 0.0, 0.0);
+        expect_simd_float_eq!((angle + SimdFloat4::load1(K2PI)).cos(), -1.0, 0.86602539, 0.0, 0.0);
+        expect_simd_float_eq!((angle + SimdFloat4::load1(K2PI * 12.0)).cos(), -1.0, 0.86602539, 0.0, 0.0);
+        expect_simd_float_eq!((angle + SimdFloat4::load1(K2PI * 24.0)).cos(), -1.0, 0.86602539, 0.0, 0.0);
+
+        expect_simd_float_eq!(angle.cos_x(), -1.0, K_PI / 6.0, -K_PI_2, 5.0 * K_PI_2);
+        expect_simd_float_eq!((angle + SimdFloat4::load_x(K2PI)).cos_x(), -1.0, K_PI / 6.0, -K_PI_2, 5.0 * K_PI_2);
+        expect_simd_float_eq!((angle + SimdFloat4::load_x(K2PI * 12.0)).cos_x(), -1.0, K_PI / 6.0, -K_PI_2, 5.0 * K_PI_2);
+        expect_simd_float_eq!((angle + SimdFloat4::load_x(K2PI * 24.0)).cos_x(), -1.0, K_PI / 6.0, -K_PI_2, 5.0 * K_PI_2);
+
+        expect_simd_float_eq!(angle.sin(), 0.0, 0.5, -1.0, 1.0);
+        expect_simd_float_eq!((angle + SimdFloat4::load1(K2PI)).sin(), 0.0, 0.5, -1.0, 1.0);
+        expect_simd_float_eq!((angle + SimdFloat4::load1(K2PI * 12.0)).sin(), 0.0, 0.5, -1.0, 1.0);
+        expect_simd_float_eq!((angle + SimdFloat4::load1(K2PI * 24.0)).sin(), 0.0, 0.5, -1.0, 1.0);
+
+        expect_simd_float_eq!(angle.sin_x(), 0.0, K_PI / 6.0, -K_PI_2, 5.0 * K_PI_2);
+        expect_simd_float_eq!((angle + SimdFloat4::load_x(K2PI)).sin_x(), 0.0, K_PI / 6.0, -K_PI_2, 5.0 * K_PI_2);
+        expect_simd_float_eq!((angle + SimdFloat4::load_x(K2PI * 12.0)).sin_x(), 0.0, K_PI / 6.0, -K_PI_2, 5.0 * K_PI_2);
+        expect_simd_float_eq!((angle + SimdFloat4::load_x(K2PI * 24.0)).sin_x(), 0.0, K_PI / 6.0, -K_PI_2, 5.0 * K_PI_2);
+
+        expect_simd_float_eq!(cos.acos(), K_PI, K_PI / 6.0, K_PI_2, K_PI_2);
+        expect_simd_float_eq!(cos.acos_x() , K_PI, 0.86602539, 0.0, 0.0);
+
+        expect_simd_float_eq!(sin.asin(), 0.0, K_PI / 6.0, -K_PI_2, K_PI_2);
+        expect_simd_float_eq!(sin.asin_x(), 0.0, 0.5, -1.0, 1.0);
+
+        expect_simd_float_eq!(angle_tan.tan(), 0.0, 0.57735, -1.73205, 1.0);
+        expect_simd_float_eq!(angle_tan.tan_x(), 0.0, K_PI / 6.0, -K_PI / 3.0, 9.0 * K_PI / 4.0);
+
+        expect_simd_float_eq!(tan.atan(), 0.0, K_PI / 6.0, -K_PI / 3.0, K_PI / 4.0);
+        expect_simd_float_eq!(tan.atan_x(), 0.0, 0.57735, -1.73205, 1.0);
+    }
+
+    union FloatCastU32 {
+        f: f32,
+        i: u32,
+    }
+
+    union FloatCastI32 {
+        f: f32,
+        i: i32,
+    }
+
+    #[test]
+    #[allow(overflowing_literals)]
+    fn logical_float() {
+        let a = SimdFloat4::load(0.0, 1.0, 2.0, 3.0);
+        let b = SimdFloat4::load(1.0, -1.0, -3.0, -4.0);
+        let mbool = SimdInt4::load(0xffffffff, 0, 0, 0xffffffff);
+        let mbit = SimdInt4::load(0xffffffff, 0, 0x80000000, 0x7fffffff);
+        let mfloat = SimdFloat4::load(1.0, 0.0, -0.0, 3.0);
+
+        let select = SimdFloat4::select(mbool, a, b);
+        expect_simd_float_eq!(select, 0.0, -1.0, -3.0, 3.0);
+
+        let andm = b.and_fi(mbit);
+        expect_simd_float_eq!(andm, 1.0, 0.0, 0.0, 4.0);
+
+        let andnm = b.and_not(mbit);
+        expect_simd_float_eq!(andnm, 0.0, -1.0, 3.0, -0.0);
+
+        let andf = b.and_ff(mfloat);
+        expect_simd_float_eq!(andf, 1.0, 0.0, -0.0, 2.0);
+
+        let orm = a.or_fi(mbit);
+        unsafe {
+            let orx = FloatCastU32 { f: orm.get_x() };
+            assert_eq!(orx.i, 0xffffffff);
+        }
+        assert_eq!(orm.get_y(), 1.0);
+        assert_eq!(orm.get_z(), -2.0);
+        unsafe {
+            let orw = FloatCastI32 { f: orm.get_w() };
+            assert_eq!(orw.i, 0x7fffffff);
+        }
+
+        let ormf = a.or_ff(mfloat);
+        expect_simd_float_eq!(ormf, 1.0, 1.0, -2.0, 3.0);
+
+        let xorm = a.xor_fi(mbit);
+        unsafe {
+            let orx = FloatCastU32 { f: xorm.get_x() };
+            assert_eq!(orx.i, 0xffffffff);
+        }
+        assert_eq!(xorm.get_y(), 1.0);
+        assert_eq!(xorm.get_z(), -2.0);
+        unsafe {
+            let orw = FloatCastI32 { f: xorm.get_w() };
+            assert_eq!(orw.i, 0x3fbfffff);
+        }
+
+        let xormf = a.xor_ff(mfloat);
+        expect_simd_float_eq!(xormf, 1.0, 1.0, -2.0, 0.0);
+    }
+
+    #[test]
+    fn half() {
+        // 0
+        assert_eq!(float_to_half(0.0), 0);
+        assert_eq!(half_to_float(0), 0.0);
+        assert_eq!(float_to_half(-0.0), 0x8000);
+        assert_eq!(half_to_float(0x8000), -0.0);
+        assert_eq!(float_to_half(f32::MIN_POSITIVE), 0);
+
+        // 1
+        assert_eq!(float_to_half(1.0), 0x3c00);
+        assert_eq!(half_to_float(0x3c00), 1.0);
+        assert_eq!(float_to_half(-1.0), 0xbc00);
+        assert_eq!(half_to_float(0xbc00), -1.0);
+
+        // Bounds
+        assert_eq!(float_to_half(65504.0), 0x7bff);
+        assert_eq!(float_to_half(-65504.0), 0xfbff);
+
+        // Min, Max, Infinity
+        assert_eq!(float_to_half(10e-16), 0);
+        assert_eq!(float_to_half(10e+16), 0x7c00);
+        assert_eq!(half_to_float(0x7c00), f32::INFINITY);
+        assert_eq!(float_to_half(f32::MAX), 0x7c00);
+        assert_eq!(float_to_half(f32::INFINITY), 0x7c00);
+        assert_eq!(float_to_half(-10e+16), 0xfc00);
+        assert_eq!(float_to_half(-f32::INFINITY), 0xfc00);
+        assert_eq!(float_to_half(-f32::MAX), 0xfc00);
+        assert_eq!(half_to_float(0xfc00), -f32::INFINITY);
+
+        // Nan
+        assert_eq!(float_to_half(f32::NAN), 0x7e00);
+        // According to the IEEE standard, NaN values have the odd property that
+        // comparisons involving them are always false
+        assert_eq!(half_to_float(0x7e00) == half_to_float(0x7e00), false);
+
+        // Random tries in range [10e-4,10e4].
+        let mut pow = -4.0;
+        while pow < 4.0 {
+            let max = 10.0_f32.powf(pow);
+            // Expect a 1/1000 precision over floats.
+            let precision = max / 1000.0;
+
+            let n = 1000;
+            for i in 0..n {
+                let frand = max * (2.0 * i as f32 / n as f32 - 1.0);
+
+                let h = float_to_half(frand);
+                let f = half_to_float(h);
+                expect_near!(frand, f, precision);
+            }
+            pow += 1.0;
+        }
+    }
+
+    #[test]
+    fn simd_half() {
+        // 0
+        expect_simd_int_eq!(SimdInt4::new(float_to_half_simd(SimdFloat4::load(0.0, -0.0, f32::MIN_POSITIVE, f32::MIN_POSITIVE).data)), 0, 0x00008000, 0, 0);
+        expect_simd_float_eq!(SimdFloat4::new(half_to_float_simd(SimdInt4::load(0, 0x00008000, 0, 0).data)), 0.0, -0.0, 0.0, 0.0);
+
+        // 1
+        expect_simd_int_eq!(SimdInt4::new(float_to_half_simd(SimdFloat4::load(1.0, -1.0, 0.0, -0.0).data)), 0x00003c00, 0x0000bc00, 0, 0x00008000);
+        expect_simd_float_eq!(SimdFloat4::new(half_to_float_simd(SimdInt4::load(0x3c00, 0xbc00, 0, 0x00008000).data)), 1.0, -1.0, 0.0, -0.0);
+
+        // Bounds
+        expect_simd_int_eq!(SimdInt4::new(float_to_half_simd(SimdFloat4::load(65504.0, -65504.0, 65604.0, -65604.0).data)), 0x00007bff, 0x0000fbff, 0x00007c00, 0x0000fc00);
+
+        // Min, Max, Infinity
+        expect_simd_int_eq!(SimdInt4::new(float_to_half_simd(SimdFloat4::load(10e-16, 10e+16, f32::MAX, f32::INFINITY).data)), 0, 0x00007c00, 0x00007c00, 0x00007c00);
+        expect_simd_int_eq!(SimdInt4::new(float_to_half_simd(SimdFloat4::load(-10e-16, -10e+16, -f32::MAX, -f32::INFINITY).data)), 0x00008000, 0x0000fc00, 0x0000fc00, 0x0000fc00);
+
+        // Nan
+        expect_simd_int_eq!(SimdInt4::new(float_to_half_simd(SimdFloat4::load(f32::NAN, f32::NAN, 0.0, 0.0).data)), 0x00007e00, 0x00007e00, 0, 0);
+
+        // Inf and NAN
+        let infnan = SimdFloat4::new(half_to_float_simd(SimdInt4::load(0x00007c00, 0x0000fc00, 0x00007e00, 0).data));
+        assert_eq!(infnan.get_x(), f32::INFINITY);
+        assert_eq!(infnan.get_y(), -f32::INFINITY);
+        assert_eq!(infnan.get_z() == infnan.get_z(), false);
+
+        // Random tries in range [10e-4,10e4].
+        let mut pow = -4.0;
+        while pow < 4.0 {
+            let max = 10.0_f32.powf(pow);
+            // Expect a 1/1000 precision over floats.
+            let precision = max / 1000.0;
+
+            let n = 1000;
+            for i in 0..n {
+                let frand = SimdFloat4::load(
+                    max * (0.5 * i as f32 / n as f32 - 0.25), max * (1.0 * i as f32 / n as f32 - 0.5),
+                    max * (1.5 * i as f32 / n as f32 - 0.75), max * (2.0 * i as f32 / n as f32 - 1.0));
+
+                let h = SimdInt4::new(float_to_half_simd(frand.data));
+                let f = SimdFloat4::new(half_to_float_simd(h.data));
+
+                expect_near!(frand.get_x(), f.get_x(), precision);
+                expect_near!(frand.get_y(), f.get_y(), precision);
+                expect_near!(frand.get_z(), f.get_z(), precision);
+                expect_near!(frand.get_w(), f.get_w(), precision);
+            }
+            pow += 1.0;
+        }
     }
 }
