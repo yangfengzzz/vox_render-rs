@@ -532,58 +532,65 @@ impl SimdFloat4 {
     }
 
     #[inline]
+    pub fn swizzle3210(&self) -> SimdFloat4 {
+        unsafe {
+            return SimdFloat4::new(ozz_shuffle_ps1!(self.data, _mm_shuffle!(0, 1, 2, 3)));
+        }
+    }
+
+    #[inline]
     pub fn swizzle3332(&self) -> SimdFloat4 {
         unsafe {
-            return SimdFloat4::new(ozz_shuffle_ps1!(self.data, _mm_shuffle!(3, 3, 3, 2)));
+            return SimdFloat4::new(ozz_shuffle_ps1!(self.data, _mm_shuffle!(2, 3, 3, 3)));
         }
     }
 
     #[inline]
     pub fn swizzle3330(&self) -> SimdFloat4 {
         unsafe {
-            return SimdFloat4::new(ozz_shuffle_ps1!(self.data, _mm_shuffle!(3, 3, 3, 0)));
+            return SimdFloat4::new(ozz_shuffle_ps1!(self.data, _mm_shuffle!(0, 3, 3, 3)));
         }
     }
 
     #[inline]
     pub fn swizzle0122(&self) -> SimdFloat4 {
         unsafe {
-            return SimdFloat4::new(ozz_shuffle_ps1!(self.data, _mm_shuffle!(0, 1, 2, 2)));
+            return SimdFloat4::new(ozz_shuffle_ps1!(self.data, _mm_shuffle!(2, 2, 1, 0)));
         }
     }
 
     #[inline]
     pub fn swizzle0120(&self) -> SimdFloat4 {
         unsafe {
-            return SimdFloat4::new(ozz_shuffle_ps1!(self.data, _mm_shuffle!(0, 1, 2, 0)));
+            return SimdFloat4::new(ozz_shuffle_ps1!(self.data, _mm_shuffle!(0, 2, 1, 0)));
         }
     }
 
     #[inline]
     pub fn swizzle1201(&self) -> SimdFloat4 {
         unsafe {
-            return SimdFloat4::new(ozz_shuffle_ps1!(self.data, _mm_shuffle!(1, 2, 0, 1)));
+            return SimdFloat4::new(ozz_shuffle_ps1!(self.data, _mm_shuffle!(1, 0, 2, 1)));
         }
     }
 
     #[inline]
     pub fn swizzle2011(&self) -> SimdFloat4 {
         unsafe {
-            return SimdFloat4::new(ozz_shuffle_ps1!(self.data, _mm_shuffle!(2, 0, 1, 1)));
+            return SimdFloat4::new(ozz_shuffle_ps1!(self.data, _mm_shuffle!(1, 1, 0, 2)));
         }
     }
 
     #[inline]
     pub fn swizzle2013(&self) -> SimdFloat4 {
         unsafe {
-            return SimdFloat4::new(ozz_shuffle_ps1!(self.data, _mm_shuffle!(2, 0, 1, 3)));
+            return SimdFloat4::new(ozz_shuffle_ps1!(self.data, _mm_shuffle!(3, 1, 0, 2)));
         }
     }
 
     #[inline]
     pub fn swizzle1203(&self) -> SimdFloat4 {
         unsafe {
-            return SimdFloat4::new(ozz_shuffle_ps1!(self.data, _mm_shuffle!(1, 2, 0, 3)));
+            return SimdFloat4::new(ozz_shuffle_ps1!(self.data, _mm_shuffle!(3, 0, 2, 1)));
         }
     }
 
@@ -1159,7 +1166,7 @@ impl SimdFloat4 {
         unsafe {
             let sq_len;
             ozz_sse_dot2_f!(self.data, self.data, sq_len);
-            debug_assert!(_mm_cvtss_f32(sq_len) != 0.0 && "self is not normalizable".parse().unwrap());
+            debug_assert!(_mm_cvtss_f32(sq_len) != 0.0 && "self is not normalizable".parse().unwrap_or(true));
             let inv_len = _mm_div_ss(SimdFloat4::one().data, _mm_sqrt_ss(sq_len));
             let inv_lenxxxx = ozz_sse_splat_f!(inv_len, 0);
             let norm = _mm_mul_ps(self.data, inv_lenxxxx);
@@ -1176,7 +1183,7 @@ impl SimdFloat4 {
         unsafe {
             let sq_len;
             ozz_sse_dot3_f!(self.data, self.data, sq_len);
-            debug_assert!(_mm_cvtss_f32(sq_len) != 0.0 && "self is not normalizable".parse().unwrap());
+            debug_assert!(_mm_cvtss_f32(sq_len) != 0.0 && "self is not normalizable".parse().unwrap_or(true));
             let inv_len = _mm_div_ss(SimdFloat4::one().data, _mm_sqrt_ss(sq_len));
             let vwxyz = ozz_shuffle_ps1!(self.data, _mm_shuffle!(0, 1, 2, 3));
             let inv_lenxxxx = ozz_sse_splat_f!(inv_len, 0);
@@ -1192,7 +1199,7 @@ impl SimdFloat4 {
         unsafe {
             let sq_len;
             ozz_sse_dot4_f!(self.data, self.data, sq_len);
-            debug_assert!(_mm_cvtss_f32(sq_len) != 0.0 && "self is not normalizable".parse().unwrap());
+            debug_assert!(_mm_cvtss_f32(sq_len) != 0.0 && "self is not normalizable".parse().unwrap_or(true));
             let inv_len = _mm_div_ss(SimdFloat4::one().data, _mm_sqrt_ss(sq_len));
             let inv_lenxxxx = ozz_sse_splat_f!(inv_len, 0);
             return SimdFloat4::new(_mm_mul_ps(self.data, inv_lenxxxx));
@@ -1208,7 +1215,7 @@ impl SimdFloat4 {
         unsafe {
             let sq_len;
             ozz_sse_dot2_f!(self.data, self.data, sq_len);
-            debug_assert!(_mm_cvtss_f32(sq_len) != 0.0 && "self is not normalizable".parse().unwrap());
+            debug_assert!(_mm_cvtss_f32(sq_len) != 0.0 && "self is not normalizable".parse().unwrap_or(true));
             let inv_len = _mm_rsqrt_ss(sq_len);
             let inv_lenxxxx = ozz_sse_splat_f!(inv_len, 0);
             let norm = _mm_mul_ps(self.data, inv_lenxxxx);
@@ -1225,7 +1232,7 @@ impl SimdFloat4 {
         unsafe {
             let sq_len;
             ozz_sse_dot3_f!(self.data, self.data, sq_len);
-            debug_assert!(_mm_cvtss_f32(sq_len) != 0.0 && "self is not normalizable".parse().unwrap());
+            debug_assert!(_mm_cvtss_f32(sq_len) != 0.0 && "self is not normalizable".parse().unwrap_or(true));
             let inv_len = _mm_rsqrt_ss(sq_len);
             let vwxyz = ozz_shuffle_ps1!(self.data, _mm_shuffle!(0, 1, 2, 3));
             let inv_lenxxxx = ozz_sse_splat_f!(inv_len, 0);
@@ -1241,7 +1248,7 @@ impl SimdFloat4 {
         unsafe {
             let sq_len;
             ozz_sse_dot4_f!(self.data, self.data, sq_len);
-            debug_assert!(_mm_cvtss_f32(sq_len) != 0.0 && "self is not normalizable".parse().unwrap());
+            debug_assert!(_mm_cvtss_f32(sq_len) != 0.0 && "self is not normalizable".parse().unwrap_or(true));
             let inv_len = _mm_rsqrt_ss(sq_len);
             let inv_lenxxxx = ozz_sse_splat_f!(inv_len, 0);
             return SimdFloat4::new(_mm_mul_ps(self.data, inv_lenxxxx));
@@ -1955,21 +1962,21 @@ impl SimdInt4 {
     // r.z = _z
     // r.w = _w
     #[inline]
-    pub fn load_i32(_x: i32, _y: i32, _z: i32, _w: i32) -> SimdInt4 {
+    pub fn load(_x: i32, _y: i32, _z: i32, _w: i32) -> SimdInt4 {
         unsafe {
             return SimdInt4::new(_mm_set_epi32(_w, _z, _y, _x));
         }
     }
 
     #[inline]
-    pub fn load_x_i32(_x: i32) -> SimdInt4 {
+    pub fn load_x(_x: i32) -> SimdInt4 {
         unsafe {
             return SimdInt4::new(_mm_set_epi32(0, 0, 0, _x));
         }
     }
 
     #[inline]
-    pub fn load1_i32(_x: i32) -> SimdInt4 {
+    pub fn load1(_x: i32) -> SimdInt4 {
         unsafe {
             return SimdInt4::new(_mm_set1_epi32(_x));
         }
@@ -3065,7 +3072,7 @@ impl Float4x4 {
             det = _mm_add_ss(ozz_shuffle_ps1!(det, 0xB1), det);
             let invertible = SimdFloat4::cmp_ne(&SimdFloat4::new(det), SimdFloat4::zero());
             debug_assert!((_invertible.is_none() || SimdInt4::are_all_true1(&invertible)) &&
-                "Matrix is not invertible".parse().unwrap());
+                "Matrix is not invertible".parse().unwrap_or(true));
             if _invertible.is_some() {
                 _invertible = Some(invertible);
             }
@@ -3584,7 +3591,7 @@ mod tests {
     use crate::*;
 
     #[test]
-    fn test_load_float() {
+    fn load_float() {
         let f_x = SimdFloat4::load_x(15.0);
         expect_simd_float_eq!(f_x, 15.0, 0.0, 0.0, 0.0);
 
@@ -3593,5 +3600,308 @@ mod tests {
 
         let f4 = SimdFloat4::load(1.0, -1.0, 2.0, -3.0);
         expect_simd_float_eq!(f4, 1.0, -1.0, 2.0, -3.0);
+    }
+
+    #[test]
+    fn load_float_ptr() {
+        todo!()
+    }
+
+    #[test]
+    fn get_float() {
+        let f = SimdFloat4::load(1.0, 2.0, 3.0, 4.0);
+
+        assert_eq!(f.get_x(), 1.0);
+        assert_eq!(f.get_y(), 2.0);
+        assert_eq!(f.get_z(), 3.0);
+        assert_eq!(f.get_w(), 4.0);
+    }
+
+    #[test]
+    fn set_float() {
+        let a = SimdFloat4::load(1.0, 2.0, 3.0, 4.0);
+        let b = SimdFloat4::load(5.0, 6.0, 7.0, 8.0);
+
+        expect_simd_float_eq!(a.set_x(b), 5.0, 2.0, 3.0, 4.0);
+        expect_simd_float_eq!(a.set_y(b), 1.0, 5.0, 3.0, 4.0);
+        expect_simd_float_eq!(a.set_z(b), 1.0, 2.0, 5.0, 4.0);
+        expect_simd_float_eq!(a.set_w(b), 1.0, 2.0, 3.0, 5.0);
+
+        expect_simd_float_eq!(a.set_i(b, 0), 5.0, 2.0, 3.0, 4.0);
+        expect_simd_float_eq!(a.set_i(b, 1), 1.0, 5.0, 3.0, 4.0);
+        expect_simd_float_eq!(a.set_i(b, 2), 1.0, 2.0, 5.0, 4.0);
+        expect_simd_float_eq!(a.set_i(b, 3), 1.0, 2.0, 3.0, 5.0);
+    }
+
+    #[test]
+    fn store_float_ptr() {
+        todo!()
+    }
+
+    #[test]
+    fn constant_float() {
+        let zero = SimdFloat4::zero();
+        expect_simd_float_eq!(zero, 0.0, 0.0, 0.0, 0.0);
+
+        let one = SimdFloat4::one();
+        expect_simd_float_eq!(one, 1.0, 1.0, 1.0, 1.0);
+
+        let x_axis = SimdFloat4::x_axis();
+        expect_simd_float_eq!(x_axis, 1.0, 0.0, 0.0, 0.0);
+
+        let y_axis = SimdFloat4::y_axis();
+        expect_simd_float_eq!(y_axis, 0.0, 1.0, 0.0, 0.0);
+
+        let z_axis = SimdFloat4::z_axis();
+        expect_simd_float_eq!(z_axis, 0.0, 0.0, 1.0, 0.0);
+
+        let w_axis = SimdFloat4::w_axis();
+        expect_simd_float_eq!(w_axis, 0.0, 0.0, 0.0, 1.0);
+    }
+
+    #[test]
+    fn splat_float() {
+        let f = SimdFloat4::load(1.0, -1.0, 2.0, -3.0);
+
+        let x = f.splat_x();
+        expect_simd_float_eq!(x, 1.0, 1.0, 1.0, 1.0);
+
+        let y = f.splat_y();
+        expect_simd_float_eq!(y, -1.0, -1.0, -1.0, -1.0);
+
+        let z = f.splat_z();
+        expect_simd_float_eq!(z, 2.0, 2.0, 2.0, 2.0);
+
+        let w = f.splat_w();
+        expect_simd_float_eq!(w, -3.0, -3.0, -3.0, -3.0);
+
+        let s3210 = f.swizzle3210();
+        expect_simd_float_eq!(s3210, -3.0, 2.0, -1.0, 1.0);
+
+        let s0123 = f.swizzle0123();
+        expect_simd_float_eq!(s0123, 1.0, -1.0, 2.0, -3.0);
+
+        let s0011 = f.swizzle0011();
+        expect_simd_float_eq!(s0011, 1.0, 1.0, -1.0, -1.0);
+
+        let s2233 = f.swizzle2233();
+        expect_simd_float_eq!(s2233, 2.0, 2.0, -3.0, -3.0);
+
+        let s0101 = f.swizzle0101();
+        expect_simd_float_eq!(s0101, 1.0, -1.0, 1.0, -1.0);
+
+        let s2323 = f.swizzle2323();
+        expect_simd_float_eq!(s2323, 2.0, -3.0, 2.0, -3.0);
+    }
+
+    #[test]
+    fn from_int() {
+        let i = SimdInt4::load(0, 46, -93, 9926429);
+        expect_simd_float_eq!(SimdFloat4::from_int(i), 0.0, 46.0, -93.0, 9926429.0);
+    }
+
+    #[test]
+    #[allow(overflowing_literals)]
+    fn arithmetic_float() {
+        let a = SimdFloat4::load(0.5, 1.0, 2.0, 3.0);
+        let b = SimdFloat4::load(4.0, 5.0, -6.0, 0.0);
+        let c = SimdFloat4::load(-8.0, 9.0, 10.0, 11.0);
+
+        let add = a + b;
+        expect_simd_float_eq!(add, 4.5, 6.0, -4.0, 3.0);
+
+        let sub = a - b;
+        expect_simd_float_eq!(sub, -3.5, -4.0, 8.0, 3.0);
+
+        let neg = -b;
+        expect_simd_float_eq!(neg, -4.0, -5.0, 6.0, -0.0);
+
+        let mul = a * b;
+        expect_simd_float_eq!(mul, 2.0, 5.0, -12.0, 0.0);
+
+        let div = a / b;
+        expect_simd_float3_eq!(div, 0.5 / 4.0, 1.0 / 5.0, -2.0 / 6.0);
+
+        let madd = SimdFloat4::madd(&a, b, c);
+        expect_simd_float_eq!(madd, -6.0, 14.0, -2.0, 11.0);
+
+        let msub = SimdFloat4::msub(&a, b, c);
+        expect_simd_float_eq!(msub, 10.0, -4.0, -22.0, -11.0);
+
+        let nmadd = SimdFloat4::nmadd(&a, b, c);
+        expect_simd_float_eq!(nmadd, -10.0, 4.0, 22.0, 11.0);
+
+        let nmsub = SimdFloat4::nmsub(&a, b, c);
+        expect_simd_float_eq!(nmsub, 6.0, -14.0, 2.0, -11.0);
+
+        let divx = SimdFloat4::div_x(&a, b);
+        expect_simd_float_eq!(divx, 0.5 / 4.0, 1.0, 2.0, 3.0);
+
+        let hadd2 = SimdFloat4::hadd2(&a);
+        expect_simd_float_eq!(hadd2, 1.5, 1.0, 2.0, 3.0);
+
+        let hadd3 = SimdFloat4::hadd3(&a);
+        expect_simd_float_eq!(hadd3, 3.5, 1.0, 2.0, 3.0);
+
+        let hadd4 = SimdFloat4::hadd4(&a);
+        assert_eq!(hadd4.get_x(), 6.5);
+
+        let dot2 = SimdFloat4::dot2(&a, b);
+        assert_eq!(dot2.get_x(), 7.0);
+
+        let dot3 = SimdFloat4::dot3(&a, b);
+        assert_eq!(dot3.get_x(), -5.0);
+
+        let dot4 = SimdFloat4::dot4(&a, b);
+        assert_eq!(dot4.get_x(), -5.0);
+
+        let cross =
+            SimdFloat4::load(1.0, -2.0, 3.0, 46.0).cross3(
+                SimdFloat4::load(4.0, 5.0, 6.0, 27.0));
+        assert_eq!(cross.get_x(), -27.0);
+        assert_eq!(cross.get_y(), 6.0);
+        assert_eq!(cross.get_z(), 13.0);
+
+        let rcp = b.rcp_est();
+        expect_simd_float3_eq_est!(rcp, 1.0 / 4.0, 1.0 / 5.0, -1.0 / 6.0);
+
+        let rcpnr = b.rcp_est_nr();
+        expect_simd_float3_eq!(rcpnr, 1.0 / 4.0, 1.0 / 5.0, -1.0 / 6.0);
+
+        let rcpxnr = b.rcp_est_xnr();
+        expect_near!(rcpxnr.get_x(), 1.0 / 4.0, f32::EPSILON);
+
+        let rcpx = b.rcp_est_x();
+        expect_simd_float_eq_est!(rcpx, 1.0 / 4.0, 5.0, -6.0, 0.0);
+
+        let sqrt = a.sqrt();
+        expect_simd_float_eq!(sqrt, 0.7071068, 1.0, 1.4142135, 1.7320508);
+
+        let sqrtx = b.sqrt_x();
+        expect_simd_float_eq!(sqrtx, 2.0, 5.0, -6.0, 0.0);
+
+        let rsqrt = b.rsqrt_est();
+        expect_simd_float2_eq_est!(rsqrt, 1.0 / 2.0, 1.0 / 2.23606798);
+
+        let rsqrtnr = b.rsqrt_est_nr();
+        expect_simd_float2_eq_est!(rsqrtnr, 1.0 / 2.0, 1.0 / 2.23606798);
+
+        let rsqrtx = a.rsqrt_est_x();
+        expect_simd_float_eq_est!(rsqrtx, 1.0 / 0.7071068, 1.0, 2.0, 3.0);
+
+        let rsqrtxnr = a.rsqrt_est_xnr();
+        assert_eq!(rsqrtxnr.get_x(), 1.0 / 0.7071068);
+
+        let abs = b.abs();
+        expect_simd_float_eq!(abs, 4.0, 5.0, 6.0, 0.0);
+
+        let sign = b.sign();
+        expect_simd_int_eq!(sign, 0, 0, 0x80000000, 0);
+    }
+
+    #[test]
+    fn length_float() {
+        let f = SimdFloat4::load(1.0, 2.0, 4.0, 8.0);
+
+        let len2 = f.length2();
+        assert_eq!(len2.get_x(), 2.236068);
+
+        let len3 = f.length3();
+        assert_eq!(len3.get_x(), 4.5825758);
+
+        let len4 = f.length4();
+        assert_eq!(len4.get_x(), 9.2195444);
+
+        let len2sqr = f.length2sqr();
+        assert_eq!(len2sqr.get_x(), 5.0);
+
+        let len3sqr = f.length3sqr();
+        assert_eq!(len3sqr.get_x(), 21.0);
+
+        let len4sqr = f.length4sqr();
+        assert_eq!(len4sqr.get_x(), 85.0);
+    }
+
+    #[test]
+    #[allow(overflowing_literals)]
+    fn normalize_float() {
+        let f = SimdFloat4::load(1.0, 2.0, 4.0, 8.0);
+        let unit = SimdFloat4::x_axis();
+        let zero = SimdFloat4::zero();
+
+        expect_simd_int_eq!(f.is_normalized2(), 0, 0, 0, 0);
+        let norm2 = f.normalize2();
+        expect_simd_float_eq!(norm2, 0.44721359, 0.89442718, 4.0, 8.0);
+        expect_simd_int_eq!(norm2.is_normalized2(), 0xffffffff, 0, 0, 0);
+
+        let norm_est2 = f.normalize_est2();
+        expect_simd_float_eq_est!(norm_est2, 0.44721359, 0.89442718, 4.0, 8.0);
+        expect_simd_int_eq!(norm_est2.is_normalized_est2(), 0xffffffff, 0, 0, 0);
+
+        // EXPECT_ASSERTION(ozz::math::Normalize2(zero), "_v is not normalizable");
+        // EXPECT_ASSERTION(ozz::math::NormalizeEst2(zero), "_v is not normalizable");
+
+        expect_simd_int_eq!(f.is_normalized3(), 0, 0, 0, 0);
+        let norm3 = f.normalize3();
+        expect_simd_float_eq!(norm3, 0.21821788, 0.43643576, 0.87287152, 8.0);
+        expect_simd_int_eq!(norm3.is_normalized3(), 0xffffffff, 0, 0, 0);
+
+        let norm_est3 = f.normalize_est3();
+        expect_simd_float_eq_est!(norm_est3, 0.21821788, 0.43643576, 0.87287152, 8.0);
+        expect_simd_int_eq!(norm_est3.is_normalized_est3(), 0xffffffff, 0, 0,0);
+
+        // EXPECT_ASSERTION(ozz::math::Normalize3(zero), "_v is not normalizable");
+        // EXPECT_ASSERTION(ozz::math::NormalizeEst3(zero), "_v is not normalizable");
+
+        expect_simd_int_eq!(f.is_normalized4(), 0, 0, 0, 0);
+        let norm4 = f.normalize4();
+        expect_simd_float_eq!(norm4, 0.1084652, 0.2169304, 0.4338609, 0.86772186);
+        expect_simd_int_eq!(norm4.is_normalized4(), 0xffffffff, 0, 0, 0);
+
+        let norm_est4 = f.normalize_est4();
+        expect_simd_float_eq_est!(norm_est4, 0.1084652, 0.2169304, 0.4338609,
+                                0.86772186);
+        expect_simd_int_eq!(norm_est4.is_normalized_est4(), 0xffffffff, 0, 0, 0);
+
+        // EXPECT_ASSERTION(ozz::math::Normalize4(zero), "_v is not normalizable");
+        // EXPECT_ASSERTION(ozz::math::NormalizeEst4(zero), "_v is not normalizable");
+
+        let safe2 = f.normalize_safe2(unit);
+        expect_simd_float_eq!(safe2, 0.4472136, 0.8944272, 4.0, 8.0);
+        expect_simd_int_eq!(safe2.is_normalized2(), 0xffffffff, 0, 0, 0);
+        let safer2 = zero.normalize_safe2(unit);
+        expect_simd_float_eq!(safer2, 1.0, 0.0, 0.0, 0.0);
+        let safe_est2 = f.normalize_safe_est2(unit);
+        expect_simd_float_eq_est!(safe_est2, 0.4472136, 0.8944272, 4.0, 8.0);
+        expect_simd_int_eq!(safe2.is_normalized_est2(), 0xffffffff, 0, 0, 0);
+        let safer_est2 = zero.normalize_safe_est2(unit);
+        expect_simd_float_eq_est!(safer_est2, 1.0, 0.0, 0.0, 0.0);
+
+        let safe3 = f.normalize_safe3(unit);
+        expect_simd_float_eq!(safe3, 0.21821788, 0.43643576, 0.87287152, 8.0);
+        expect_simd_int_eq!(safe3.is_normalized3(), 0xffffffff, 0, 0, 0);
+        let safer3 = zero.normalize_safe3(unit);
+        expect_simd_float_eq!(safer3, 1.0, 0.0, 0.0, 0.0);
+        let safe_est3 = f.normalize_safe_est3(unit);
+        expect_simd_float_eq_est!(safe_est3, 0.21821788, 0.43643576, 0.87287152, 8.0);
+        expect_simd_int_eq!(safe_est3.is_normalized_est3(), 0xffffffff, 0, 0, 0);
+        let safer_est3 = zero.normalize_safe_est3(unit);
+        expect_simd_float_eq_est!(safer_est3, 1.0, 0.0, 0.0, 0.0);
+
+        let safe4 = f.normalize_safe4(unit);
+        expect_simd_float_eq!(safe4, 0.1084652, 0.2169305, 0.433861, 0.8677219);
+        expect_simd_int_eq!(safe4.is_normalized4(), 0xffffffff, 0, 0, 0);
+        let safer4 = zero.normalize_safe4(unit);
+        expect_simd_float_eq!(safer4, 1.0, 0.0, 0.0, 0.0);
+        let safe_est4 = f.normalize_safe_est4(unit);
+        expect_simd_float_eq_est!(safe_est4, 0.1084652, 0.2169305, 0.433861, 0.8677219);
+        expect_simd_int_eq!(safe_est4.is_normalized_est4(), 0xffffffff, 0, 0, 0);
+        let safer_est4 = zero.normalize_safe_est4(unit);
+        expect_simd_float_eq_est!(safer_est4, 1.0, 0.0, 0.0, 0.0);
+    }
+
+    #[test]
+    fn compare_float() {
+
     }
 }
