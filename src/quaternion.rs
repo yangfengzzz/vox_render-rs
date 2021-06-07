@@ -155,7 +155,7 @@ impl PartialEq for Quaternion {
 }
 
 // Returns the conjugate of _q. This is the same as the inverse if _q is
-// normalized. Otherwise the magnitude of the inverse is 1.f/|_q|.
+// normalized. Otherwise the magnitude of the inverse is 1.0/|_q|.
 #[inline]
 pub fn conjugate(_q: &Quaternion) -> Quaternion {
     return Quaternion::new(-_q.x, -_q.y, -_q.z, _q.w);
@@ -356,7 +356,7 @@ pub fn slerp(_a: &Quaternion, _b: &Quaternion, _f: f32) -> Quaternion {
 #[inline]
 pub fn transform_vector(_q: &Quaternion, _v: &Float3) -> Float3 {
     // http://www.neil.dantam.name/note/dantam-quaternion.pdf
-    // _v + 2.f * cross(_q.xyz, cross(_q.xyz, _v) + _q.w * _v);
+    // _v + 2.0 * cross(_q.xyz, cross(_q.xyz, _v) + _q.w * _v);
     let a = Float3::new(_q.y * _v.z - _q.z * _v.y + _v.x * _q.w,
                         _q.z * _v.x - _q.x * _v.z + _v.y * _q.w,
                         _q.x * _v.y - _q.y * _v.x + _v.z * _q.w);
@@ -365,3 +365,59 @@ pub fn transform_vector(_q: &Quaternion, _v: &Float3) -> Float3 {
     return Float3::new(_v.x + b.x + b.x, _v.y + b.y + b.y, _v.z + b.z + b.z);
 }
 
+//--------------------------------------------------------------------------------------------------
+//--------------------------------------------------------------------------------------------------
+//--------------------------------------------------------------------------------------------------
+#[cfg(test)]
+mod ozz_math {
+    use crate::quaternion::*;
+    use crate::math_test_helper::*;
+    use crate::*;
+    use crate::vec_float::Float3;
+
+    #[test]
+    fn quaternion_constant() {
+        expect_quaternion_eq!(Quaternion::identity(), 0.0, 0.0, 0.0, 1.0);
+    }
+
+    #[test]
+    fn quaternion_axis_angle() {
+        // Expect assertions from invalid inputs
+        // EXPECT_ASSERTION(Quaternion::FromAxisAngle(Float3::zero(), 0.0),
+        //                  "axis is not normalized");
+        // EXPECT_ASSERTION(ToAxisAngle(Quaternion(0.0, 0.0, 0.0, 2.0)), "IsNormalized");
+
+        // Identity
+        expect_quaternion_eq!(Quaternion::from_axis_angle(&Float3::y_axis(), 0.0), 0.0,
+                             0.0, 0.0, 1.0);
+        expect_float4_eq!(to_axis_angle(&Quaternion::identity()), 1.0, 0.0, 0.0, 0.0);
+
+        // Other axis angles
+        expect_quaternion_eq!(
+            Quaternion::from_axis_angle(&Float3::y_axis(), crate::math_constant::K_PI_2), 0.0, 0.70710677, 0.0, 0.70710677);
+        expect_float4_eq!(to_axis_angle(&Quaternion::new(0.0, 0.70710677, 0.0, 0.70710677)),
+                         0.0, 1.0, 0.0, crate::math_constant::K_PI_2);
+
+        expect_quaternion_eq!(
+            Quaternion::from_axis_angle(&Float3::y_axis(), -crate::math_constant::K_PI_2), 0.0,
+            -0.70710677, 0.0, 0.70710677);
+        expect_quaternion_eq!(
+            Quaternion::from_axis_angle(&-Float3::y_axis(), crate::math_constant::K_PI_2), 0.0,
+            -0.70710677, 0.0, 0.70710677);
+        expect_float4_eq!(to_axis_angle(&Quaternion::new(0.0, -0.70710677, 0.0, 0.70710677)),
+                         0.0, -1.0, 0.0, crate::math_constant::K_PI_2);
+
+        expect_quaternion_eq!(
+            Quaternion::from_axis_angle(&Float3::y_axis(), 3.0 * crate::math_constant::K_PI_4), 0.0, 0.923879504, 0.0, 0.382683426);
+        expect_float4_eq!(
+            to_axis_angle(&Quaternion::new(0.0, 0.923879504, 0.0, 0.382683426)), 0.0, 1.0,
+            0.0, 3.0 * crate::math_constant::K_PI_4);
+
+        expect_quaternion_eq!(
+            Quaternion::from_axis_angle(&Float3::new(0.819865, 0.033034, -0.571604), 1.123),
+            0.4365425, 0.017589169, -0.30435428, 0.84645736);
+        expect_float4_eq!(
+            to_axis_angle(&Quaternion::new(0.4365425, 0.017589169, -0.30435428, 0.84645736)),
+            0.819865, 0.033034, -0.571604, 1.123);
+    }
+}
