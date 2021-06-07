@@ -63,9 +63,9 @@ macro_rules! expect_float4_eq {
 macro_rules! expect_float3_eq {
     ($expected:expr, $_x:expr, $_y:expr, $_z:expr) => {
         {
-            expect_float_near($expected.x, $_x);
-            expect_float_near($expected.y, $_y);
-            expect_float_near($expected.z, $_z);
+            expect_float_near($expected.x, $_x, None);
+            expect_float_near($expected.y, $_y, None);
+            expect_float_near($expected.z, $_z, None);
         }
     };
 }
@@ -76,8 +76,8 @@ macro_rules! expect_float3_eq {
 macro_rules! expect_float2_eq {
     ($expected:expr, $_x:expr, $_y:expr) => {
         {
-            expect_float_near($expected.x, $_x);
-            expect_float_near($expected.y, $_y);
+            expect_float_near($expected.x, $_x, None);
+            expect_float_near($expected.y, $_y, None);
         }
     };
 }
