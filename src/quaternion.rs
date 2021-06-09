@@ -9,7 +9,7 @@
 use crate::vec_float::*;
 use std::ops::{Add, Mul, Neg};
 
-#[derive(Clone)]
+#[derive(Clone, Copy)]
 pub struct Quaternion {
     pub x: f32,
     pub y: f32,
@@ -385,7 +385,7 @@ mod ozz_math {
         // Expect assertions from invalid inputs
         // EXPECT_ASSERTION(Quaternion::FromAxisAngle(Float3::zero(), 0.0),
         //                  "axis is not normalized");
-        // EXPECT_ASSERTION(ToAxisAngle(Quaternion(0.0, 0.0, 0.0, 2.0)), "IsNormalized");
+        // EXPECT_ASSERTION(ToAxisAngle(Quaternion(0.0, 0.0, 0.0, 2.0)), "is_normalized");
 
         // Identity
         expect_quaternion_eq!(Quaternion::from_axis_angle(&Float3::y_axis(), 0.0), 0.0,
@@ -419,5 +419,299 @@ mod ozz_math {
         expect_float4_eq!(
             to_axis_angle(&Quaternion::new(0.4365425, 0.017589169, -0.30435428, 0.84645736)),
             0.819865, 0.033034, -0.571604, 1.123);
+    }
+
+    #[test]
+    fn quaternion_axis_cos_angle() {
+        // Identity
+        expect_quaternion_eq!(Quaternion::from_axis_cos_angle(&Float3::y_axis(), 1.0), 0.0,
+                             0.0, 0.0, 1.0);
+
+        // Other axis angles
+        expect_quaternion_eq!(Quaternion::from_axis_cos_angle(&Float3::y_axis(), f32::cos(crate::math_constant::K_PI_2)),
+                             0.0, 0.70710677, 0.0, 0.70710677);
+        expect_quaternion_eq!(Quaternion::from_axis_cos_angle(&-Float3::y_axis(), f32::cos(crate::math_constant::K_PI_2)),
+                             0.0, -0.70710677, 0.0, 0.70710677);
+
+        expect_quaternion_eq!(Quaternion::from_axis_cos_angle(&Float3::y_axis(), f32::cos(3.0 * crate::math_constant::K_PI_4)),
+                             0.0, 0.923879504, 0.0, 0.382683426);
+
+        expect_quaternion_eq!(Quaternion::from_axis_cos_angle(&Float3::new(0.819865, 0.033034, -0.571604), f32::cos(1.123)),
+                            0.4365425, 0.017589169, -0.30435428, 0.84645736);
+    }
+
+    #[test]
+    fn quaternion_quaternion_euler() {
+        // Identity
+        expect_quaternion_eq!(Quaternion::from_euler(0.0, 0.0, 0.0), 0.0, 0.0, 0.0, 1.0);
+        expect_float3_eq!(to_euler(&Quaternion::identity()), 0.0, 0.0, 0.0);
+
+        // Heading
+        expect_quaternion_eq!(Quaternion::from_euler(crate::math_constant::K_PI_2, 0.0, 0.0), 0.0, 0.70710677, 0.0,0.70710677);
+        expect_float3_eq!(to_euler(&Quaternion::new(0.0,0.70710677, 0.0,0.70710677)), crate::math_constant::K_PI_2, 0.0, 0.0);
+
+        // Elevation
+        expect_quaternion_eq!(Quaternion::from_euler(0.0, crate::math_constant::K_PI_2, 0.0), 0.0, 0.0,0.70710677,0.70710677);
+        expect_float3_eq!(to_euler(&Quaternion::new(0.0, 0.0,0.70710677,0.70710677)), 0.0, crate::math_constant::K_PI_2, 0.0);
+
+        // Bank
+        expect_quaternion_eq!(Quaternion::from_euler(0.0, 0.0, crate::math_constant::K_PI_2), 0.70710677, 0.0, 0.0,0.70710677);
+        expect_float3_eq!(to_euler(&Quaternion::new(0.70710677, 0.0, 0.0,0.70710677)), 0.0, 0.0, crate::math_constant::K_PI_2);
+
+        // Any rotation
+        expect_quaternion_eq!(Quaternion::from_euler(crate::math_constant::K_PI / 4.0, -crate::math_constant::K_PI / 6.0, crate::math_constant::K_PI_2),
+                            0.56098551,0.092295974, -0.43045932,0.70105737);
+        expect_float3_eq!(to_euler(&Quaternion::new(0.56098551,0.092295974, -0.43045932,0.70105737)),
+                            crate::math_constant::K_PI / 4.0, -crate::math_constant::K_PI / 6.0, crate::math_constant::K_PI_2);
+    }
+
+    #[test]
+    fn quaternion_from_vectors() {
+        // Returns identity for a 0 length vector
+        expect_quaternion_eq!(
+            Quaternion::from_vectors(&Float3::zero(), &Float3::x_axis()), 0.0, 0.0, 0.0, 1.0);
+
+        // pi/2 around y
+        expect_quaternion_eq!(
+            Quaternion::from_vectors(&Float3::z_axis(), &Float3::x_axis()), 0.0, 0.707106769, 0.0, 0.707106769);
+
+        // Non unit pi/2 around y
+        expect_quaternion_eq!(
+            Quaternion::from_vectors(&(Float3::z_axis() * 7.0), &Float3::x_axis()), 0.0, 0.707106769, 0.0, 0.707106769);
+
+        // Minus pi/2 around y
+        expect_quaternion_eq!(
+            Quaternion::from_vectors(&Float3::x_axis(), &Float3::z_axis()), 0.0, -0.707106769, 0.0, 0.707106769);
+
+        // pi/2 around x
+        expect_quaternion_eq!(
+            Quaternion::from_vectors(&Float3::y_axis(), &Float3::z_axis()), 0.707106769, 0.0, 0.0, 0.707106769);
+
+        // Non unit pi/2 around x
+        expect_quaternion_eq!(
+            Quaternion::from_vectors(&(Float3::y_axis() * 9.0), &(Float3::z_axis() * 13.0)), 0.707106769, 0.0, 0.0, 0.707106769);
+
+        // pi/2 around z
+        expect_quaternion_eq!(
+            Quaternion::from_vectors(&Float3::x_axis(), &Float3::y_axis()), 0.0, 0.0, 0.707106769, 0.707106769);
+
+        // pi/2 around z also
+        expect_quaternion_eq!(
+            Quaternion::from_vectors(&Float3::new(0.707106769, 0.707106769, 0.0),
+                                    &Float3::new(-0.707106769, 0.707106769, 0.0)),
+            0.0, 0.0, 0.707106769, 0.707106769);
+
+        // Aligned vectors
+        expect_quaternion_eq!(
+            Quaternion::from_vectors(&Float3::x_axis(), &Float3::x_axis()), 0.0, 0.0, 0.0, 1.0);
+
+        // Non-unit aligned vectors
+        expect_quaternion_eq!(
+            Quaternion::from_vectors(&Float3::x_axis(), &(Float3::x_axis() * 2.0)), 0.0, 0.0, 0.0, 1.0);
+
+        // Opposed vectors
+        expect_quaternion_eq!(
+            Quaternion::from_vectors(&Float3::x_axis(), &-Float3::x_axis()), 0.0, 1.0, 0.0, 0.0);
+        expect_quaternion_eq!(
+            Quaternion::from_vectors(&-Float3::x_axis(), &Float3::x_axis()), 0.0, -1.0, 0.0, 0.0);
+        expect_quaternion_eq!(
+            Quaternion::from_vectors(&Float3::y_axis(), &-Float3::y_axis()), 0.0, 0.0, 1.0, 0.0);
+        expect_quaternion_eq!(
+            Quaternion::from_vectors(&-Float3::y_axis(), &Float3::y_axis()), 0.0, 0.0, -1.0, 0.0);
+        expect_quaternion_eq!(
+            Quaternion::from_vectors(&Float3::z_axis(), &-Float3::z_axis()), 0.0, -1.0, 0.0, 0.0);
+        expect_quaternion_eq!(
+            Quaternion::from_vectors(&-Float3::z_axis(), &Float3::z_axis()), 0.0, 1.0, 0.0, 0.0);
+        expect_quaternion_eq!(
+            Quaternion::from_vectors(&Float3::new(0.707106769, 0.707106769, 0.0),
+                                    &-Float3::new(0.707106769, 0.707106769, 0.0)),
+            -0.707106769, 0.707106769, 0.0, 0.0);
+        expect_quaternion_eq!(
+            Quaternion::from_vectors(&Float3::new(0.0, 0.707106769, 0.707106769),
+                                    &-Float3::new(0.0, 0.707106769, 0.707106769)),
+            0.0, -0.707106769, 0.707106769, 0.0);
+
+        // Non-unit opposed vectors
+        expect_quaternion_eq!(
+            Quaternion::from_vectors(&Float3::new(2.0, 2.0, 2.0), &-Float3::new(2.0, 2.0, 2.0)),
+            0.0, -0.707106769, 0.707106769, 0.0);
+    }
+
+    #[test]
+    fn quaternion_from_unit_vectors() {
+        // pi/2 around y
+        expect_quaternion_eq!(
+            Quaternion::from_unit_vectors(&Float3::z_axis(), &Float3::x_axis()), 0.0, 0.707106769, 0.0, 0.707106769);
+
+        // Minus pi/2 around y
+        expect_quaternion_eq!(
+            Quaternion::from_unit_vectors(&Float3::x_axis(), &Float3::z_axis()), 0.0, -0.707106769, 0.0, 0.707106769);
+
+        // pi/2 around x
+        expect_quaternion_eq!(
+            Quaternion::from_unit_vectors(&Float3::y_axis(), &Float3::z_axis()), 0.707106769, 0.0, 0.0, 0.707106769);
+
+        // pi/2 around z
+        expect_quaternion_eq!(
+            Quaternion::from_unit_vectors(&Float3::x_axis(), &Float3::y_axis()), 0.0, 0.0, 0.707106769, 0.707106769);
+
+        // pi/2 around z also
+        expect_quaternion_eq!(
+            Quaternion::from_unit_vectors(&Float3::new(0.707106769, 0.707106769, 0.0),
+                                        &Float3::new(-0.707106769, 0.707106769, 0.0)),
+            0.0, 0.0, 0.707106769, 0.707106769);
+
+        // Aligned vectors
+        expect_quaternion_eq!(
+            Quaternion::from_unit_vectors(&Float3::x_axis(), &Float3::x_axis()), 0.0, 0.0, 0.0, 1.0);
+
+        // Opposed vectors
+        expect_quaternion_eq!(
+            Quaternion::from_unit_vectors(&Float3::x_axis(), &-Float3::x_axis()), 0.0, 1.0, 0.0, 0.0);
+        expect_quaternion_eq!(
+            Quaternion::from_unit_vectors(&-Float3::x_axis(), &Float3::x_axis()), 0.0, -1.0, 0.0, 0.0);
+        expect_quaternion_eq!(
+            Quaternion::from_unit_vectors(&Float3::y_axis(), &-Float3::y_axis()), 0.0, 0.0, 1.0, 0.0);
+        expect_quaternion_eq!(
+            Quaternion::from_unit_vectors(&-Float3::y_axis(), &Float3::y_axis()), 0.0, 0.0, -1.0, 0.0);
+        expect_quaternion_eq!(
+            Quaternion::from_unit_vectors(&Float3::z_axis(), &-Float3::z_axis()), 0.0, -1.0, 0.0, 0.0);
+        expect_quaternion_eq!(
+            Quaternion::from_unit_vectors(&-Float3::z_axis(), &Float3::z_axis()), 0.0, 1.0, 0.0, 0.0);
+        expect_quaternion_eq!(
+            Quaternion::from_unit_vectors(&Float3::new(0.707106769, 0.707106769, 0.0),
+                                        &-Float3::new(0.707106769, 0.707106769, 0.0)),
+            -0.707106769, 0.707106769, 0.0, 0.0);
+        expect_quaternion_eq!(
+            Quaternion::from_unit_vectors(&Float3::new(0.0, 0.707106769, 0.707106769),
+                                        &-Float3::new(0.0, 0.707106769, 0.707106769)),
+            0.0, -0.707106769, 0.707106769, 0.0);
+    }
+
+    #[test]
+    fn quaternion_compare() {
+        assert_eq!(Quaternion::identity() == Quaternion::new(0.0, 0.0, 0.0, 1.0), true);
+        assert_eq!(Quaternion::identity() != Quaternion::new(1.0, 0.0, 0.0, 0.0), true);
+        assert_eq!(compare(&Quaternion::identity(), &Quaternion::identity(), f32::cos(0.5 * 0.0)), true);
+        assert_eq!(compare(&Quaternion::identity(),
+                           &Quaternion::from_euler(0.0, 0.0, crate::math_constant::K_PI / 100.0),
+                           f32::cos(0.5 * crate::math_constant::K_PI / 50.0)), true);
+        assert_eq!(compare(&Quaternion::identity(),
+                           &-Quaternion::from_euler(0.0, 0.0, crate::math_constant::K_PI / 100.0),
+                           f32::cos(0.5 * crate::math_constant::K_PI / 50.0)), true);
+        assert_eq!(compare(&Quaternion::identity(),
+                           &Quaternion::from_euler(0.0, 0.0, crate::math_constant::K_PI / 100.0),
+                           f32::cos(0.5 * crate::math_constant::K_PI / 200.0)), false);
+    }
+
+    #[test]
+    fn quaternion_arithmetic() {
+        let a = Quaternion::new(0.70710677, 0.0, 0.0, 0.70710677);
+        let b = Quaternion::new(0.0, 0.70710677, 0.0, 0.70710677);
+        let c = Quaternion::new(0.0, 0.70710677, 0.0, -0.70710677);
+        let denorm = Quaternion::new(1.414212, 0.0, 0.0, 1.414212);
+
+        assert_eq!(is_normalized(&a), true);
+        assert_eq!(is_normalized(&b), true);
+        assert_eq!(is_normalized(&c), true);
+        assert_eq!(is_normalized(&denorm), false);
+
+        let conjugate = conjugate(&a);
+        expect_quaternion_eq!(conjugate, -a.x, -a.y, -a.z, a.w);
+        assert_eq!(is_normalized(&conjugate), true);
+
+        let negate = -a;
+        expect_quaternion_eq!(negate, -a.x, -a.y, -a.z, -a.w);
+        assert_eq!(is_normalized(&negate), true);
+
+        let add = a + b;
+        expect_quaternion_eq!(add, 0.70710677, 0.70710677, 0.0, 1.41421354);
+
+        let mul0 = a * conjugate;
+        expect_quaternion_eq!(mul0, 0.0, 0.0, 0.0, 1.0);
+        assert_eq!(is_normalized(&mul0), true);
+
+        let muls = a * 2.0;
+        expect_quaternion_eq!(muls, 1.41421354, 0.0, 0.0, 1.41421354);
+
+        let mul1 = conjugate * a;
+        expect_quaternion_eq!(mul1, 0.0, 0.0, 0.0, 1.0);
+        assert_eq!(is_normalized(&mul1), true);
+
+        let q1234 = Quaternion::new(1.0, 2.0, 3.0, 4.0);
+        let q5678 = Quaternion::new(5.0, 6.0, 7.0, 8.0);
+        let mul12345678 = q1234 * q5678;
+        expect_quaternion_eq!(mul12345678, 24.0, 48.0, 48.0, -6.0);
+
+        // EXPECT_ASSERTION(Normalize(Quaternion(0.0, 0.0, 0.0, 0.0)),
+        //                  "is not normalizable");
+        let normalize = normalize(&denorm);
+        assert_eq!(is_normalized(&normalize), true);
+        expect_quaternion_eq!(normalize, 0.7071068, 0.0, 0.0, 0.7071068);
+
+        // EXPECT_ASSERTION(NormalizeSafe(denorm, Quaternion(0.0, 0.0, 0.0, 0.0)),
+        //                  "_safer is not normalized");
+        let normalize_safe = normalize_safe(&denorm, &Quaternion::identity());
+        assert_eq!(is_normalized(&normalize_safe), true);
+        expect_quaternion_eq!(normalize_safe, 0.7071068, 0.0, 0.0, 0.7071068);
+
+        let normalize_safer = normalize_safe(&Quaternion::new(0.0, 0.0, 0.0, 0.0), &Quaternion::identity());
+        assert_eq!(is_normalized(normalize_safer), true);
+        expect_quaternion_eq!(normalize_safer, 0.0, 0.0, 0.0, 1.0);
+
+        let lerp_0 = lerp(&a, &b, 0.0);
+        expect_quaternion_eq!(lerp_0, a.x, a.y, a.z, a.w);
+
+        let lerp_1 = lerp(&a, &b, 1.0);
+        expect_quaternion_eq!(lerp_1, b.x, b.y, b.z, b.w);
+
+        let lerp_0_2 = lerp(&a, &b, 0.2);
+        expect_quaternion_eq!(lerp_0_2, 0.5656853, 0.1414213, 0.0, 0.7071068);
+
+        let nlerp_0 = nlerp(&a, &b, 0.0);
+        assert_eq!(is_normalized(&nlerp_0), true);
+        expect_quaternion_eq!(nlerp_0, a.x, a.y, a.z, a.w);
+
+        let nlerp_1 = nlerp(&a, &b, 1.0);
+        assert_eq!(is_normalized(&nlerp_1), true);
+        expect_quaternion_eq!(nlerp_1, b.x, b.y, b.z, b.w);
+
+        let nlerp_0_2 = nlerp(&a, &b, 0.2);
+        assert_eq!(is_normalized(&nlerp_0_2), true);
+        expect_quaternion_eq!(nlerp_0_2, 0.6172133, 0.1543033, 0.0, 0.7715167);
+
+        // EXPECT_ASSERTION(slerp(denorm, b, 0.0), "is_normalized\\(_a\\)");
+        // EXPECT_ASSERTION(slerp(a, denorm, 0.0), "is_normalized\\(_b\\)");
+
+        let slerp_0 = slerp(&a, &b, 0.0);
+        assert_eq!(is_normalized(&slerp_0), true);
+        expect_quaternion_eq!(slerp_0, a.x, a.y, a.z, a.w);
+
+        let slerp_c_0 = slerp(&a, &c, 0.0);
+        assert_eq!(is_normalized(&slerp_c_0), true);
+        expect_quaternion_eq!(slerp_c_0, a.x, a.y, a.z, a.w);
+
+        let slerp_c_1 = slerp(&a, &c, 1.0);
+        assert_eq!(is_normalized(&slerp_c_1), true);
+        expect_quaternion_eq!(slerp_c_1, c.x, c.y, c.z, c.w);
+
+        let slerp_c_0_6 = slerp(&a, &c, 0.6);
+        assert_eq!(is_normalized(&slerp_c_0_6), true);
+        expect_quaternion_eq!(slerp_c_0_6, 0.6067752, 0.7765344, 0.0, -0.1697592);
+
+        let slerp_1 = slerp(&a, &b, 1.0);
+        assert_eq!(is_normalized(&slerp_1), true);
+        expect_quaternion_eq!(slerp_1, b.x, b.y, b.z, b.w);
+
+        let slerp_0_2 = slerp(&a, &b, 0.2);
+        assert_eq!(is_normalized(&slerp_0_2), true);
+        expect_quaternion_eq!(slerp_0_2, 0.6067752, 0.1697592, 0.0, 0.7765344);
+
+        let slerp_0_7 = slerp(&a, &b, 0.7);
+        assert_eq!(is_normalized(&slerp_0_7), true);
+        expect_quaternion_eq!(slerp_0_7, 0.2523113, 0.5463429, 0.0, 0.798654);
+
+        let dot = dot(&a, &b);
+        assert_eq!(dot, 0.5);
     }
 }
