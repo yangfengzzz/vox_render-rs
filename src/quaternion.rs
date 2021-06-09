@@ -114,7 +114,7 @@ impl Quaternion {
             let cross = cross(_from, _to);
             quat = Quaternion::new(cross.x, cross.y, cross.z, real_part);
         }
-        return normalize(&quat);
+        return quat.normalize();
     }
 
     // Returns the quaternion that will rotate vector _from into vector _to,
@@ -136,7 +136,7 @@ impl Quaternion {
             };
         } else {
             let cross = cross(_from, _to);
-            return normalize(&Quaternion::new(cross.x, cross.y, cross.z, real_part));
+            return Quaternion::new(cross.x, cross.y, cross.z, real_part).normalize();
         }
     }
 
@@ -152,13 +152,6 @@ impl PartialEq for Quaternion {
     fn eq(&self, other: &Self) -> bool {
         return self.x == other.x && self.y == other.y && self.z == other.z && self.w == other.w;
     }
-}
-
-// Returns the conjugate of _q. This is the same as the inverse if _q is
-// normalized. Otherwise the magnitude of the inverse is 1.0/|_q|.
-#[inline]
-pub fn conjugate(_q: &Quaternion) -> Quaternion {
-    return Quaternion::new(-_q.x, -_q.y, -_q.z, _q.w);
 }
 
 impl Add for Quaternion {
@@ -196,173 +189,181 @@ impl Neg for Quaternion {
     }
 }
 
-// Returns true if the angle between _a and _b is less than _tolerance.
-#[inline]
-pub fn compare(_a: &Quaternion, _b: &Quaternion,
-               _cos_half_tolerance: f32) -> bool {
-    // Computes w component of a-1 * b.
-    let cos_half_angle = _a.x * _b.x + _a.y * _b.y + _a.z * _b.z + _a.w * _b.w;
-    return f32::abs(cos_half_angle) >= _cos_half_tolerance;
-}
-
-// Returns true if _q is a normalized quaternion.
-#[inline]
-pub fn is_normalized(_q: &Quaternion) -> bool {
-    let sq_len = _q.x * _q.x + _q.y * _q.y + _q.z * _q.z + _q.w * _q.w;
-    return f32::abs(sq_len - 1.0) < crate::math_constant::K_NORMALIZATION_TOLERANCE_SQ;
-}
-
-// Returns the normalized quaternion _q.
-#[inline]
-pub fn normalize(_q: &Quaternion) -> Quaternion {
-    let sq_len = _q.x * _q.x + _q.y * _q.y + _q.z * _q.z + _q.w * _q.w;
-    debug_assert!(sq_len != 0.0 && "_q is not normalizable".parse().unwrap_or(true));
-
-    let inv_len = 1.0 / f32::sqrt(sq_len);
-    return Quaternion::new(_q.x * inv_len, _q.y * inv_len, _q.z * inv_len,
-                           _q.w * inv_len);
-}
-
-// Returns the normalized quaternion _q if the norm of _q is not 0.
-// Otherwise returns _safer.
-#[inline]
-pub fn normalize_safe(_q: &Quaternion, _safer: &Quaternion) -> Quaternion {
-    debug_assert!(is_normalized(_safer) && "_safer is not normalized".parse().unwrap_or(true));
-    let sq_len = _q.x * _q.x + _q.y * _q.y + _q.z * _q.z + _q.w * _q.w;
-    if sq_len == 0.0 {
-        return _safer.clone();
-    }
-    let inv_len = 1.0 / f32::sqrt(sq_len);
-    return Quaternion::new(_q.x * inv_len, _q.y * inv_len, _q.z * inv_len,
-                           _q.w * inv_len);
-}
-
-// Returns to an axis angle representation of quaternion _q.
-// Assumes quaternion _q is normalized.
-#[inline]
-pub fn to_axis_angle(_q: &Quaternion) -> Float4 {
-    debug_assert!(is_normalized(_q));
-    let clamped_w = f32::clamp(-1.0, _q.w, 1.0);
-    let angle = 2.0 * f32::acos(clamped_w);
-    let s = f32::sqrt(1.0 - clamped_w * clamped_w);
-
-    // Assuming quaternion normalized then s always positive.
-    return if s < 0.001 {  // Tests to avoid divide by zero.
-        // If s close to zero then direction of axis is not important.
-        Float4::new(1.0, 0.0, 0.0, angle)
-    } else {
-        // normalize axis
-        let inv_s = 1.0 / s;
-        Float4::new(_q.x * inv_s, _q.y * inv_s, _q.z * inv_s, angle)
-    };
-}
-
-// Returns to an Euler representation of quaternion _q.
-// Quaternion _q does not require to be normalized.
-#[inline]
-pub fn to_euler(_q: &Quaternion) -> Float3 {
-    let sqw = _q.w * _q.w;
-    let sqx = _q.x * _q.x;
-    let sqy = _q.y * _q.y;
-    let sqz = _q.z * _q.z;
-    // If normalized is one, otherwise is correction factor.
-    let unit = sqx + sqy + sqz + sqw;
-    let test = _q.x * _q.y + _q.z * _q.w;
-    let mut euler = Float3::new_default();
-    if test > 0.499 * unit {  // Singularity at north pole
-        euler.x = 2.0 * f32::atan2(_q.x, _q.w);
-        euler.y = crate::math_constant::K_PI_2;
-        euler.z = 0.0;
-    } else if test < -0.499 * unit {  // Singularity at south pole
-        euler.x = -2.0 * f32::atan2(_q.x, _q.w);
-        euler.y = -crate::math_constant::K_PI_2;
-        euler.z = 0.0;
-    } else {
-        euler.x = f32::atan2(2.0 * _q.y * _q.w - 2.0 * _q.x * _q.z,
-                             sqx - sqy - sqz + sqw);
-        euler.y = f32::asin(2.0 * test / unit);
-        euler.z = f32::atan2(2.0 * _q.x * _q.w - 2.0 * _q.y * _q.z,
-                             -sqx + sqy - sqz + sqw);
-    }
-    return euler;
-}
-
-
-// Returns the dot product of _a and _b.
-#[inline]
-pub fn dot(_a: &Quaternion, _b: &Quaternion) -> f32 {
-    return _a.x * _b.x + _a.y * _b.y + _a.z * _b.z + _a.w * _b.w;
-}
-
-
-// Returns the linear interpolation of quaternion _a and _b with coefficient
-// _f.
-#[inline]
-pub fn lerp(_a: &Quaternion, _b: &Quaternion, _f: f32) -> Quaternion {
-    return Quaternion::new((_b.x - _a.x) * _f + _a.x, (_b.y - _a.y) * _f + _a.y,
-                           (_b.z - _a.z) * _f + _a.z, (_b.w - _a.w) * _f + _a.w);
-}
-
-// Returns the linear interpolation of quaternion _a and _b with coefficient
-// _f. _a and _n must be from the same hemisphere (aka dot(_a, _b) >= 0).
-#[inline]
-pub fn nlerp(_a: &Quaternion, _b: &Quaternion, _f: f32) -> Quaternion {
-    let lerp = Float4::new((_b.x - _a.x) * _f + _a.x, (_b.y - _a.y) * _f + _a.y,
-                           (_b.z - _a.z) * _f + _a.z, (_b.w - _a.w) * _f + _a.w);
-    let sq_len =
-        lerp.x * lerp.x + lerp.y * lerp.y + lerp.z * lerp.z + lerp.w * lerp.w;
-    let inv_len = 1.0 / f32::sqrt(sq_len);
-    return Quaternion::new(lerp.x * inv_len, lerp.y * inv_len, lerp.z * inv_len,
-                           lerp.w * inv_len);
-}
-
-// Returns the spherical interpolation of quaternion _a and _b with
-// coefficient _f.
-#[inline]
-pub fn slerp(_a: &Quaternion, _b: &Quaternion, _f: f32) -> Quaternion {
-    debug_assert!(is_normalized(_a));
-    debug_assert!(is_normalized(_b));
-    // Calculate angle between them.
-    let cos_half_theta = _a.x * _b.x + _a.y * _b.y + _a.z * _b.z + _a.w * _b.w;
-
-    // If _a=_b or _a=-_b then theta = 0 and we can return _a.
-    if f32::abs(cos_half_theta) >= 0.999 {
-        return _a.clone();
+//--------------------------------------------------------------------------------------------------
+impl Quaternion {
+    // Returns the conjugate of self. This is the same as the inverse if self is
+    // normalized. Otherwise the magnitude of the inverse is 1.0/|self|.
+    #[inline]
+    pub fn conjugate(&self) -> Quaternion {
+        return Quaternion::new(-self.x, -self.y, -self.z, self.w);
     }
 
-    // Calculate temporary values.
-    let half_theta = f32::acos(cos_half_theta);
-    let sin_half_theta = f32::sqrt(1.0 - cos_half_theta * cos_half_theta);
-
-    // If theta = pi then result is not fully defined, we could rotate around
-    // any axis normal to _a or _b.
-    if sin_half_theta < 0.001 {
-        return Quaternion::new((_a.x + _b.x) * 0.5, (_a.y + _b.y) * 0.5,
-                               (_a.z + _b.z) * 0.5, (_a.w + _b.w) * 0.5);
+    // Returns true if the angle between _a and _b is less than _tolerance.
+    #[inline]
+    pub fn compare(&self, _b: &Quaternion,
+                   _cos_half_tolerance: f32) -> bool {
+        // Computes w component of a-1 * b.
+        let cos_half_angle = self.x * _b.x + self.y * _b.y + self.z * _b.z + self.w * _b.w;
+        return f32::abs(cos_half_angle) >= _cos_half_tolerance;
     }
 
-    let ratio_a = f32::sin((1.0 - _f) * half_theta) / sin_half_theta;
-    let ratio_b = f32::sin(_f * half_theta) / sin_half_theta;
+    // Returns true if self is a normalized quaternion.
+    #[inline]
+    pub fn is_normalized(&self) -> bool {
+        let sq_len = self.x * self.x + self.y * self.y + self.z * self.z + self.w * self.w;
+        return f32::abs(sq_len - 1.0) < crate::math_constant::K_NORMALIZATION_TOLERANCE_SQ;
+    }
 
-    // Calculate Quaternion.
-    return Quaternion::new(
-        ratio_a * _a.x + ratio_b * _b.x, ratio_a * _a.y + ratio_b * _b.y,
-        ratio_a * _a.z + ratio_b * _b.z, ratio_a * _a.w + ratio_b * _b.w);
-}
+    // Returns the normalized quaternion self.
+    #[inline]
+    pub fn normalize(&self) -> Quaternion {
+        let sq_len = self.x * self.x + self.y * self.y + self.z * self.z + self.w * self.w;
+        debug_assert!(sq_len != 0.0 && "self is not normalizable".parse().unwrap_or(true));
 
-// Computes the transformation of a Quaternion and a vector _v.
-// This is equivalent to carrying out the quaternion multiplications:
-// _q.conjugate() * (*this) * _q
-#[inline]
-pub fn transform_vector(_q: &Quaternion, _v: &Float3) -> Float3 {
-    // http://www.neil.dantam.name/note/dantam-quaternion.pdf
-    // _v + 2.0 * cross(_q.xyz, cross(_q.xyz, _v) + _q.w * _v);
-    let a = Float3::new(_q.y * _v.z - _q.z * _v.y + _v.x * _q.w,
-                        _q.z * _v.x - _q.x * _v.z + _v.y * _q.w,
-                        _q.x * _v.y - _q.y * _v.x + _v.z * _q.w);
-    let b = Float3::new(_q.y * a.z - _q.z * a.y, _q.z * a.x - _q.x * a.z,
-                        _q.x * a.y - _q.y * a.x);
-    return Float3::new(_v.x + b.x + b.x, _v.y + b.y + b.y, _v.z + b.z + b.z);
+        let inv_len = 1.0 / f32::sqrt(sq_len);
+        return Quaternion::new(self.x * inv_len, self.y * inv_len, self.z * inv_len,
+                               self.w * inv_len);
+    }
+
+    // Returns the normalized quaternion self if the norm of self is not 0.
+    // Otherwise returns _safer.
+    #[inline]
+    pub fn normalize_safe(&self, _safer: &Quaternion) -> Quaternion {
+        debug_assert!(_safer.is_normalized() && "_safer is not normalized".parse().unwrap_or(true));
+        let sq_len = self.x * self.x + self.y * self.y + self.z * self.z + self.w * self.w;
+        if sq_len == 0.0 {
+            return _safer.clone();
+        }
+        let inv_len = 1.0 / f32::sqrt(sq_len);
+        return Quaternion::new(self.x * inv_len, self.y * inv_len, self.z * inv_len,
+                               self.w * inv_len);
+    }
+
+    // Returns to an axis angle representation of quaternion self.
+    // Assumes quaternion self is normalized.
+    #[inline]
+    pub fn to_axis_angle(&self) -> Float4 {
+        debug_assert!(self.is_normalized());
+        let clamped_w = f32::clamp(-1.0, self.w, 1.0);
+        let angle = 2.0 * f32::acos(clamped_w);
+        let s = f32::sqrt(1.0 - clamped_w * clamped_w);
+
+        // Assuming quaternion normalized then s always positive.
+        return if s < 0.001 {  // Tests to avoid divide by zero.
+            // If s close to zero then direction of axis is not important.
+            Float4::new(1.0, 0.0, 0.0, angle)
+        } else {
+            // normalize axis
+            let inv_s = 1.0 / s;
+            Float4::new(self.x * inv_s, self.y * inv_s, self.z * inv_s, angle)
+        };
+    }
+
+    // Returns to an Euler representation of quaternion self.
+    // Quaternion self does not require to be normalized.
+    #[inline]
+    pub fn to_euler(&self) -> Float3 {
+        let sqw = self.w * self.w;
+        let sqx = self.x * self.x;
+        let sqy = self.y * self.y;
+        let sqz = self.z * self.z;
+        // If normalized is one, otherwise is correction factor.
+        let unit = sqx + sqy + sqz + sqw;
+        let test = self.x * self.y + self.z * self.w;
+        let mut euler = Float3::new_default();
+        if test > 0.499 * unit {  // Singularity at north pole
+            euler.x = 2.0 * f32::atan2(self.x, self.w);
+            euler.y = crate::math_constant::K_PI_2;
+            euler.z = 0.0;
+        } else if test < -0.499 * unit {  // Singularity at south pole
+            euler.x = -2.0 * f32::atan2(self.x, self.w);
+            euler.y = -crate::math_constant::K_PI_2;
+            euler.z = 0.0;
+        } else {
+            euler.x = f32::atan2(2.0 * self.y * self.w - 2.0 * self.x * self.z,
+                                 sqx - sqy - sqz + sqw);
+            euler.y = f32::asin(2.0 * test / unit);
+            euler.z = f32::atan2(2.0 * self.x * self.w - 2.0 * self.y * self.z,
+                                 -sqx + sqy - sqz + sqw);
+        }
+        return euler;
+    }
+
+
+    // Returns the dot product of self and _b.
+    #[inline]
+    pub fn dot(&self, _b: &Quaternion) -> f32 {
+        return self.x * _b.x + self.y * _b.y + self.z * _b.z + self.w * _b.w;
+    }
+
+
+    // Returns the linear interpolation of quaternion self and _b with coefficient _f.
+    #[inline]
+    pub fn lerp(&self, _b: &Quaternion, _f: f32) -> Quaternion {
+        return Quaternion::new((_b.x - self.x) * _f + self.x, (_b.y - self.y) * _f + self.y,
+                               (_b.z - self.z) * _f + self.z, (_b.w - self.w) * _f + self.w);
+    }
+
+    // Returns the linear interpolation of quaternion self and _b with coefficient
+    // _f. self and _n must be from the same hemisphere (aka dot(self, _b) >= 0).
+    #[inline]
+    pub fn nlerp(&self, _b: &Quaternion, _f: f32) -> Quaternion {
+        let lerp = Float4::new((_b.x - self.x) * _f + self.x, (_b.y - self.y) * _f + self.y,
+                               (_b.z - self.z) * _f + self.z, (_b.w - self.w) * _f + self.w);
+        let sq_len =
+            lerp.x * lerp.x + lerp.y * lerp.y + lerp.z * lerp.z + lerp.w * lerp.w;
+        let inv_len = 1.0 / f32::sqrt(sq_len);
+        return Quaternion::new(lerp.x * inv_len, lerp.y * inv_len, lerp.z * inv_len,
+                               lerp.w * inv_len);
+    }
+
+    // Returns the spherical interpolation of quaternion self and _b with coefficient _f.
+    #[inline]
+    pub fn slerp(&self, _b: &Quaternion, _f: f32) -> Quaternion {
+        debug_assert!(self.is_normalized());
+        debug_assert!(_b.is_normalized());
+        // Calculate angle between them.
+        let cos_half_theta = self.x * _b.x + self.y * _b.y + self.z * _b.z + self.w * _b.w;
+
+        // If self=_b or self=-_b then theta = 0 and we can return self.
+        if f32::abs(cos_half_theta) >= 0.999 {
+            return self.clone();
+        }
+
+        // Calculate temporary values.
+        let half_theta = f32::acos(cos_half_theta);
+        let sin_half_theta = f32::sqrt(1.0 - cos_half_theta * cos_half_theta);
+
+        // If theta = pi then result is not fully defined, we could rotate around
+        // any axis normal to self or _b.
+        if sin_half_theta < 0.001 {
+            return Quaternion::new((self.x + _b.x) * 0.5, (self.y + _b.y) * 0.5,
+                                   (self.z + _b.z) * 0.5, (self.w + _b.w) * 0.5);
+        }
+
+        let ratio_a = f32::sin((1.0 - _f) * half_theta) / sin_half_theta;
+        let ratio_b = f32::sin(_f * half_theta) / sin_half_theta;
+
+        // Calculate Quaternion.
+        return Quaternion::new(
+            ratio_a * self.x + ratio_b * _b.x, ratio_a * self.y + ratio_b * _b.y,
+            ratio_a * self.z + ratio_b * _b.z, ratio_a * self.w + ratio_b * _b.w);
+    }
+
+    // Computes the transformation of a Quaternion and a vector _v.
+    // This is equivalent to carrying out the quaternion multiplications:
+    // self.conjugate() * (*this) * self
+    #[inline]
+    pub fn transform_vector(&self, _v: &Float3) -> Float3 {
+        // http://www.neil.dantam.name/note/dantam-quaternion.pdf
+        // _v + 2.0 * cross(self.xyz, cross(self.xyz, _v) + self.w * _v);
+        let a = Float3::new(self.y * _v.z - self.z * _v.y + _v.x * self.w,
+                            self.z * _v.x - self.x * _v.z + _v.y * self.w,
+                            self.x * _v.y - self.y * _v.x + _v.z * self.w);
+        let b = Float3::new(self.y * a.z - self.z * a.y, self.z * a.x - self.x * a.z,
+                            self.x * a.y - self.y * a.x);
+        return Float3::new(_v.x + b.x + b.x, _v.y + b.y + b.y, _v.z + b.z + b.z);
+    }
 }
 
 //--------------------------------------------------------------------------------------------------
@@ -390,12 +391,12 @@ mod ozz_math {
         // Identity
         expect_quaternion_eq!(Quaternion::from_axis_angle(&Float3::y_axis(), 0.0), 0.0,
                              0.0, 0.0, 1.0);
-        expect_float4_eq!(to_axis_angle(&Quaternion::identity()), 1.0, 0.0, 0.0, 0.0);
+        expect_float4_eq!(Quaternion::identity().to_axis_angle(), 1.0, 0.0, 0.0, 0.0);
 
         // Other axis angles
         expect_quaternion_eq!(
             Quaternion::from_axis_angle(&Float3::y_axis(), crate::math_constant::K_PI_2), 0.0, 0.70710677, 0.0, 0.70710677);
-        expect_float4_eq!(to_axis_angle(&Quaternion::new(0.0, 0.70710677, 0.0, 0.70710677)),
+        expect_float4_eq!(Quaternion::new(0.0, 0.70710677, 0.0, 0.70710677).to_axis_angle(),
                          0.0, 1.0, 0.0, crate::math_constant::K_PI_2);
 
         expect_quaternion_eq!(
@@ -404,20 +405,20 @@ mod ozz_math {
         expect_quaternion_eq!(
             Quaternion::from_axis_angle(&-Float3::y_axis(), crate::math_constant::K_PI_2), 0.0,
             -0.70710677, 0.0, 0.70710677);
-        expect_float4_eq!(to_axis_angle(&Quaternion::new(0.0, -0.70710677, 0.0, 0.70710677)),
+        expect_float4_eq!(Quaternion::new(0.0, -0.70710677, 0.0, 0.70710677).to_axis_angle(),
                          0.0, -1.0, 0.0, crate::math_constant::K_PI_2);
 
         expect_quaternion_eq!(
             Quaternion::from_axis_angle(&Float3::y_axis(), 3.0 * crate::math_constant::K_PI_4), 0.0, 0.923879504, 0.0, 0.382683426);
         expect_float4_eq!(
-            to_axis_angle(&Quaternion::new(0.0, 0.923879504, 0.0, 0.382683426)), 0.0, 1.0,
+            Quaternion::new(0.0, 0.923879504, 0.0, 0.382683426).to_axis_angle(), 0.0, 1.0,
             0.0, 3.0 * crate::math_constant::K_PI_4);
 
         expect_quaternion_eq!(
             Quaternion::from_axis_angle(&Float3::new(0.819865, 0.033034, -0.571604), 1.123),
             0.4365425, 0.017589169, -0.30435428, 0.84645736);
         expect_float4_eq!(
-            to_axis_angle(&Quaternion::new(0.4365425, 0.017589169, -0.30435428, 0.84645736)),
+            Quaternion::new(0.4365425, 0.017589169, -0.30435428, 0.84645736).to_axis_angle(),
             0.819865, 0.033034, -0.571604, 1.123);
     }
 
@@ -444,24 +445,24 @@ mod ozz_math {
     fn quaternion_quaternion_euler() {
         // Identity
         expect_quaternion_eq!(Quaternion::from_euler(0.0, 0.0, 0.0), 0.0, 0.0, 0.0, 1.0);
-        expect_float3_eq!(to_euler(&Quaternion::identity()), 0.0, 0.0, 0.0);
+        expect_float3_eq!(Quaternion::identity().to_euler(), 0.0, 0.0, 0.0);
 
         // Heading
         expect_quaternion_eq!(Quaternion::from_euler(crate::math_constant::K_PI_2, 0.0, 0.0), 0.0, 0.70710677, 0.0,0.70710677);
-        expect_float3_eq!(to_euler(&Quaternion::new(0.0,0.70710677, 0.0,0.70710677)), crate::math_constant::K_PI_2, 0.0, 0.0);
+        expect_float3_eq!(Quaternion::new(0.0,0.70710677, 0.0,0.70710677).to_euler(), crate::math_constant::K_PI_2, 0.0, 0.0);
 
         // Elevation
         expect_quaternion_eq!(Quaternion::from_euler(0.0, crate::math_constant::K_PI_2, 0.0), 0.0, 0.0,0.70710677,0.70710677);
-        expect_float3_eq!(to_euler(&Quaternion::new(0.0, 0.0,0.70710677,0.70710677)), 0.0, crate::math_constant::K_PI_2, 0.0);
+        expect_float3_eq!(Quaternion::new(0.0, 0.0,0.70710677,0.70710677).to_euler(), 0.0, crate::math_constant::K_PI_2, 0.0);
 
         // Bank
         expect_quaternion_eq!(Quaternion::from_euler(0.0, 0.0, crate::math_constant::K_PI_2), 0.70710677, 0.0, 0.0,0.70710677);
-        expect_float3_eq!(to_euler(&Quaternion::new(0.70710677, 0.0, 0.0,0.70710677)), 0.0, 0.0, crate::math_constant::K_PI_2);
+        expect_float3_eq!(Quaternion::new(0.70710677, 0.0, 0.0,0.70710677).to_euler(), 0.0, 0.0, crate::math_constant::K_PI_2);
 
         // Any rotation
         expect_quaternion_eq!(Quaternion::from_euler(crate::math_constant::K_PI / 4.0, -crate::math_constant::K_PI / 6.0, crate::math_constant::K_PI_2),
                             0.56098551,0.092295974, -0.43045932,0.70105737);
-        expect_float3_eq!(to_euler(&Quaternion::new(0.56098551,0.092295974, -0.43045932,0.70105737)),
+        expect_float3_eq!(Quaternion::new(0.56098551,0.092295974, -0.43045932,0.70105737).to_euler(),
                             crate::math_constant::K_PI / 4.0, -crate::math_constant::K_PI / 6.0, crate::math_constant::K_PI_2);
     }
 
@@ -592,16 +593,16 @@ mod ozz_math {
     fn quaternion_compare() {
         assert_eq!(Quaternion::identity() == Quaternion::new(0.0, 0.0, 0.0, 1.0), true);
         assert_eq!(Quaternion::identity() != Quaternion::new(1.0, 0.0, 0.0, 0.0), true);
-        assert_eq!(compare(&Quaternion::identity(), &Quaternion::identity(), f32::cos(0.5 * 0.0)), true);
-        assert_eq!(compare(&Quaternion::identity(),
-                           &Quaternion::from_euler(0.0, 0.0, crate::math_constant::K_PI / 100.0),
-                           f32::cos(0.5 * crate::math_constant::K_PI / 50.0)), true);
-        assert_eq!(compare(&Quaternion::identity(),
-                           &-Quaternion::from_euler(0.0, 0.0, crate::math_constant::K_PI / 100.0),
-                           f32::cos(0.5 * crate::math_constant::K_PI / 50.0)), true);
-        assert_eq!(compare(&Quaternion::identity(),
-                           &Quaternion::from_euler(0.0, 0.0, crate::math_constant::K_PI / 100.0),
-                           f32::cos(0.5 * crate::math_constant::K_PI / 200.0)), false);
+        assert_eq!(Quaternion::compare(&Quaternion::identity(), &Quaternion::identity(), f32::cos(0.5 * 0.0)), true);
+        assert_eq!(Quaternion::compare(&Quaternion::identity(),
+                                       &Quaternion::from_euler(0.0, 0.0, crate::math_constant::K_PI / 100.0),
+                                       f32::cos(0.5 * crate::math_constant::K_PI / 50.0)), true);
+        assert_eq!(Quaternion::compare(&Quaternion::identity(),
+                                       &-Quaternion::from_euler(0.0, 0.0, crate::math_constant::K_PI / 100.0),
+                                       f32::cos(0.5 * crate::math_constant::K_PI / 50.0)), true);
+        assert_eq!(Quaternion::compare(&Quaternion::identity(),
+                                       &Quaternion::from_euler(0.0, 0.0, crate::math_constant::K_PI / 100.0),
+                                       f32::cos(0.5 * crate::math_constant::K_PI / 200.0)), false);
     }
 
     #[test]
@@ -611,32 +612,32 @@ mod ozz_math {
         let c = Quaternion::new(0.0, 0.70710677, 0.0, -0.70710677);
         let denorm = Quaternion::new(1.414212, 0.0, 0.0, 1.414212);
 
-        assert_eq!(is_normalized(&a), true);
-        assert_eq!(is_normalized(&b), true);
-        assert_eq!(is_normalized(&c), true);
-        assert_eq!(is_normalized(&denorm), false);
+        assert_eq!(a.is_normalized(), true);
+        assert_eq!(b.is_normalized(), true);
+        assert_eq!(c.is_normalized(), true);
+        assert_eq!(denorm.is_normalized(), false);
 
-        let conjugate = conjugate(&a);
+        let conjugate = a.conjugate();
         expect_quaternion_eq!(conjugate, -a.x, -a.y, -a.z, a.w);
-        assert_eq!(is_normalized(&conjugate), true);
+        assert_eq!(conjugate.is_normalized(), true);
 
         let negate = -a;
         expect_quaternion_eq!(negate, -a.x, -a.y, -a.z, -a.w);
-        assert_eq!(is_normalized(&negate), true);
+        assert_eq!(negate.is_normalized(), true);
 
         let add = a + b;
         expect_quaternion_eq!(add, 0.70710677, 0.70710677, 0.0, 1.41421354);
 
         let mul0 = a * conjugate;
         expect_quaternion_eq!(mul0, 0.0, 0.0, 0.0, 1.0);
-        assert_eq!(is_normalized(&mul0), true);
+        assert_eq!(mul0.is_normalized(), true);
 
         let muls = a * 2.0;
         expect_quaternion_eq!(muls, 1.41421354, 0.0, 0.0, 1.41421354);
 
         let mul1 = conjugate * a;
         expect_quaternion_eq!(mul1, 0.0, 0.0, 0.0, 1.0);
-        assert_eq!(is_normalized(&mul1), true);
+        assert_eq!(mul1.is_normalized(), true);
 
         let q1234 = Quaternion::new(1.0, 2.0, 3.0, 4.0);
         let q5678 = Quaternion::new(5.0, 6.0, 7.0, 8.0);
@@ -645,73 +646,94 @@ mod ozz_math {
 
         // EXPECT_ASSERTION(Normalize(Quaternion(0.0, 0.0, 0.0, 0.0)),
         //                  "is not normalizable");
-        let normalize = normalize(&denorm);
-        assert_eq!(is_normalized(&normalize), true);
+        let normalize = denorm.normalize();
+        assert_eq!(normalize.is_normalized(), true);
         expect_quaternion_eq!(normalize, 0.7071068, 0.0, 0.0, 0.7071068);
 
         // EXPECT_ASSERTION(NormalizeSafe(denorm, Quaternion(0.0, 0.0, 0.0, 0.0)),
         //                  "_safer is not normalized");
-        let normalize_safe = normalize_safe(&denorm, &Quaternion::identity());
-        assert_eq!(is_normalized(&normalize_safe), true);
+        let normalize_safe = denorm.normalize_safe(&Quaternion::identity());
+        assert_eq!(normalize_safe.is_normalized(), true);
         expect_quaternion_eq!(normalize_safe, 0.7071068, 0.0, 0.0, 0.7071068);
 
-        let normalize_safer = normalize_safe(&Quaternion::new(0.0, 0.0, 0.0, 0.0), &Quaternion::identity());
-        assert_eq!(is_normalized(normalize_safer), true);
+        let normalize_safer = Quaternion::new(0.0, 0.0, 0.0, 0.0).normalize_safe(&Quaternion::identity());
+        assert_eq!(normalize_safer.is_normalized(), true);
         expect_quaternion_eq!(normalize_safer, 0.0, 0.0, 0.0, 1.0);
 
-        let lerp_0 = lerp(&a, &b, 0.0);
+        let lerp_0 = Quaternion::lerp(&a, &b, 0.0);
         expect_quaternion_eq!(lerp_0, a.x, a.y, a.z, a.w);
 
-        let lerp_1 = lerp(&a, &b, 1.0);
+        let lerp_1 = Quaternion::lerp(&a, &b, 1.0);
         expect_quaternion_eq!(lerp_1, b.x, b.y, b.z, b.w);
 
-        let lerp_0_2 = lerp(&a, &b, 0.2);
+        let lerp_0_2 = Quaternion::lerp(&a, &b, 0.2);
         expect_quaternion_eq!(lerp_0_2, 0.5656853, 0.1414213, 0.0, 0.7071068);
 
-        let nlerp_0 = nlerp(&a, &b, 0.0);
-        assert_eq!(is_normalized(&nlerp_0), true);
+        let nlerp_0 = Quaternion::nlerp(&a, &b, 0.0);
+        assert_eq!(nlerp_0.is_normalized(), true);
         expect_quaternion_eq!(nlerp_0, a.x, a.y, a.z, a.w);
 
-        let nlerp_1 = nlerp(&a, &b, 1.0);
-        assert_eq!(is_normalized(&nlerp_1), true);
+        let nlerp_1 = Quaternion::nlerp(&a, &b, 1.0);
+        assert_eq!(nlerp_1.is_normalized(), true);
         expect_quaternion_eq!(nlerp_1, b.x, b.y, b.z, b.w);
 
-        let nlerp_0_2 = nlerp(&a, &b, 0.2);
-        assert_eq!(is_normalized(&nlerp_0_2), true);
+        let nlerp_0_2 = Quaternion::nlerp(&a, &b, 0.2);
+        assert_eq!(nlerp_0_2.is_normalized(), true);
         expect_quaternion_eq!(nlerp_0_2, 0.6172133, 0.1543033, 0.0, 0.7715167);
 
         // EXPECT_ASSERTION(slerp(denorm, b, 0.0), "is_normalized\\(_a\\)");
         // EXPECT_ASSERTION(slerp(a, denorm, 0.0), "is_normalized\\(_b\\)");
 
-        let slerp_0 = slerp(&a, &b, 0.0);
-        assert_eq!(is_normalized(&slerp_0), true);
+        let slerp_0 = Quaternion::slerp(&a, &b, 0.0);
+        assert_eq!(slerp_0.is_normalized(), true);
         expect_quaternion_eq!(slerp_0, a.x, a.y, a.z, a.w);
 
-        let slerp_c_0 = slerp(&a, &c, 0.0);
-        assert_eq!(is_normalized(&slerp_c_0), true);
+        let slerp_c_0 = Quaternion::slerp(&a, &c, 0.0);
+        assert_eq!(slerp_c_0.is_normalized(), true);
         expect_quaternion_eq!(slerp_c_0, a.x, a.y, a.z, a.w);
 
-        let slerp_c_1 = slerp(&a, &c, 1.0);
-        assert_eq!(is_normalized(&slerp_c_1), true);
+        let slerp_c_1 = Quaternion::slerp(&a, &c, 1.0);
+        assert_eq!(slerp_c_1.is_normalized(), true);
         expect_quaternion_eq!(slerp_c_1, c.x, c.y, c.z, c.w);
 
-        let slerp_c_0_6 = slerp(&a, &c, 0.6);
-        assert_eq!(is_normalized(&slerp_c_0_6), true);
+        let slerp_c_0_6 = Quaternion::slerp(&a, &c, 0.6);
+        assert_eq!(slerp_c_0_6.is_normalized(), true);
         expect_quaternion_eq!(slerp_c_0_6, 0.6067752, 0.7765344, 0.0, -0.1697592);
 
-        let slerp_1 = slerp(&a, &b, 1.0);
-        assert_eq!(is_normalized(&slerp_1), true);
+        let slerp_1 = Quaternion::slerp(&a, &b, 1.0);
+        assert_eq!(slerp_1.is_normalized(), true);
         expect_quaternion_eq!(slerp_1, b.x, b.y, b.z, b.w);
 
-        let slerp_0_2 = slerp(&a, &b, 0.2);
-        assert_eq!(is_normalized(&slerp_0_2), true);
+        let slerp_0_2 = Quaternion::slerp(&a, &b, 0.2);
+        assert_eq!(slerp_0_2.is_normalized(), true);
         expect_quaternion_eq!(slerp_0_2, 0.6067752, 0.1697592, 0.0, 0.7765344);
 
-        let slerp_0_7 = slerp(&a, &b, 0.7);
-        assert_eq!(is_normalized(&slerp_0_7), true);
+        let slerp_0_7 = Quaternion::slerp(&a, &b, 0.7);
+        assert_eq!(slerp_0_7.is_normalized(), true);
         expect_quaternion_eq!(slerp_0_7, 0.2523113, 0.5463429, 0.0, 0.798654);
 
-        let dot = dot(&a, &b);
-        assert_eq!(dot, 0.5);
+        let dot = Quaternion::dot(&a, &b);
+        expect_near!(dot, 0.5, f32::EPSILON);
+    }
+
+    #[test]
+    fn quaternion_transform_vector() {
+        // 0 length
+        expect_float3_eq!(Quaternion::from_axis_angle(&Float3::y_axis(), 0.0).transform_vector(&Float3::zero()),
+                         0.0, 0.0, 0.0);
+
+        // Unit length
+        expect_float3_eq!(Quaternion::from_axis_angle(&Float3::y_axis(), 0.0).transform_vector(&Float3::z_axis()),
+                         0.0, 0.0, 1.0);
+        expect_float3_eq!(Quaternion::from_axis_angle(&Float3::y_axis(), crate::math_constant::K_PI_2).transform_vector(&Float3::y_axis()),
+                         0.0, 1.0, 0.0);
+        expect_float3_eq!(Quaternion::from_axis_angle(&Float3::y_axis(), crate::math_constant::K_PI_2).transform_vector(&Float3::x_axis()),
+                         0.0, 0.0, -1.0);
+        expect_float3_eq!(Quaternion::from_axis_angle(&Float3::y_axis(), crate::math_constant::K_PI_2).transform_vector(&Float3::z_axis()),
+                         1.0, 0.0, 0.0);
+
+        // Non unit
+        expect_float3_eq!(Quaternion::from_axis_angle(&Float3::z_axis(), crate::math_constant::K_PI_2).transform_vector(&(Float3::x_axis() * 2.0)),
+                         0.0, 2.0, 0.0);
     }
 }
