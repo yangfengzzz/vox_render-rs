@@ -100,3 +100,43 @@ impl RectFloat {
     // Gets the rectangle y coordinate of the top rectangle side.
     pub fn top(&self) -> f32 { return self.bottom + self.height; }
 }
+
+//--------------------------------------------------------------------------------------------------
+//--------------------------------------------------------------------------------------------------
+//--------------------------------------------------------------------------------------------------
+#[cfg(test)]
+mod ozz_math {
+    use crate::rect::*;
+
+    #[test]
+    fn rect_int() {
+        let rect = RectInt::new(10, 20, 30, 40);
+
+        assert_eq!(rect.right(), 40);
+        assert_eq!(rect.top(), 60);
+
+        assert_eq!(rect.is_inside(10, 20), true);
+        assert_eq!(rect.is_inside(39, 59), true);
+
+        assert_eq!(rect.is_inside(9, 20), false);
+        assert_eq!(rect.is_inside(10, 19), false);
+        assert_eq!(rect.is_inside(40, 59), false);
+        assert_eq!(rect.is_inside(39, 60), false);
+    }
+
+    #[test]
+    fn rect_float() {
+        let rect = RectFloat::new(10.0, 20.0, 30.0, 40.0);
+
+        assert_eq!(rect.right(), 40.0);
+        assert_eq!(rect.top(), 60.0);
+
+        assert_eq!(rect.is_inside(10.0, 20.0), true);
+        assert_eq!(rect.is_inside(39.0, 59.0), true);
+
+        assert_eq!(rect.is_inside(9.0, 20.0), false);
+        assert_eq!(rect.is_inside(10.0, 19.0), false);
+        assert_eq!(rect.is_inside(40.0, 59.0), false);
+        assert_eq!(rect.is_inside(39.0, 60.0), false);
+    }
+}

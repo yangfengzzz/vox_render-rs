@@ -2744,6 +2744,7 @@ impl Mul for SimdInt4 {
 // | m.cols[0].y m.cols[1].y m.cols[2].y m.cols[3].y | * {v.y}
 // | m.cols[0].z m.cols[1].y m.cols[2].y m.cols[3].y |   {v.z}
 // [ m.cols[0].w m.cols[1].w m.cols[2].w m.cols[3].w ]   {v.1}
+#[derive(Copy, Clone)]
 pub struct Float4x4 {
     // Matrix columns.
     pub cols: [SimdFloat4; 4],
@@ -3000,7 +3001,7 @@ impl Float4x4 {
     // invertible. If _invertible is nullptr, then an assert is triggered in case the
     // matrix isn't invertible.
     #[inline]
-    pub fn invert(&self, mut _invertible: Option<SimdInt4>) -> Float4x4 {
+    pub fn invert(&self, _invertible: &mut Option<SimdInt4>) -> Float4x4 {
         unsafe {
             let _t0 =
                 _mm_shuffle_ps(self.cols[0].data, self.cols[1].data, _mm_shuffle!(1, 0, 1, 0));
@@ -3071,10 +3072,10 @@ impl Float4x4 {
             det = _mm_add_ps(ozz_shuffle_ps1!(det, 0x4E), det);
             det = _mm_add_ss(ozz_shuffle_ps1!(det, 0xB1), det);
             let invertible = SimdFloat4::cmp_ne(&SimdFloat4::new(det), SimdFloat4::zero());
-            debug_assert!((_invertible.is_none() || SimdInt4::are_all_true1(&invertible)) &&
+            debug_assert!((_invertible.is_some() || SimdInt4::are_all_true1(&invertible)) &&
                 "Matrix is not invertible".parse().unwrap_or(true));
             if _invertible.is_some() {
-                _invertible = Some(invertible);
+                *_invertible = Some(invertible);
             }
             tmp1 = ozz_sse_select_f!(invertible.data, SimdFloat4::rcp_est_nr(&SimdFloat4::new(det)).data, SimdFloat4::zero().data);
             det = ozz_nmaddx!(det, _mm_mul_ss(tmp1, tmp1), _mm_add_ss(tmp1, tmp1));
@@ -4175,3 +4176,113 @@ mod tests {
         }
     }
 }
+
+//--------------------------------------------------------------------------------------------------
+//--------------------------------------------------------------------------------------------------
+//--------------------------------------------------------------------------------------------------
+#[cfg(test)]
+mod ozz_simd_math {
+    use crate::simd_math::*;
+    use crate::math_test_helper::*;
+    use crate::*;
+
+    #[test]
+    fn float4x4constant() {
+        let identity = Float4x4::identity();
+        expect_float4x4_eq!(identity, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0,
+                           1.0, 0.0, 0.0, 0.0, 0.0, 1.0);
+    }
+
+    #[test]
+    fn float4x4arithmetic() {
+        let m0 = Float4x4 {
+            cols: [SimdFloat4::load(0.0, 1.0, 2.0, 3.0),
+                SimdFloat4::load(4.0, 5.0, 6.0, 7.0),
+                SimdFloat4::load(8.0, 9.0, 10.0, 11.0),
+                SimdFloat4::load(12.0, 13.0, 14.0, 15.0)]
+        };
+        let m1 = Float4x4 {
+            cols: [SimdFloat4::load(-0.0, -1.0, -2.0, -3.0),
+                SimdFloat4::load(-4.0, -5.0, -6.0, -7.0),
+                SimdFloat4::load(-8.0, -9.0, -10.0, -11.0),
+                SimdFloat4::load(-12.0, -13.0, -14.0, -15.0)]
+        };
+        let m2 = Float4x4 {
+            cols: [SimdFloat4::load(0.0, -1.0, 2.0, 3.0),
+                SimdFloat4::load(-4.0, 5.0, 6.0, -7.0),
+                SimdFloat4::load(8.0, -9.0, -10.0, 11.0),
+                SimdFloat4::load(-12.0, 13.0, -14.0, 15.0)]
+        };
+        let v = SimdFloat4::load(-0.0, -1.0, -2.0, -3.0);
+
+        let mul_vector = m0 * v;
+        expect_simd_float_eq!(mul_vector, -56.0, -62.0, -68.0, -74.0);
+
+        let transform_point = m0.transform_point(v);
+        expect_simd_float_eq!(transform_point, -8.0, -10.0, -12.0, -14.0);
+
+        let transform_vector = m0.transform_vector(v);
+        expect_simd_float_eq!(transform_vector, -20.0, -23.0, -26.0, -29.0);
+
+        let mul_mat = m0 * m1;
+        expect_float4x4_eq!(mul_mat, -56.0, -62.0, -68.0, -74.0, -152.0, -174.0,
+                           -196.0, -218.0, -248.0, -286.0, -324.0, -362.0, -344.0,
+                           -398.0, -452.0, -506.0);
+
+        let add_mat = m0 + m1;
+        expect_float4x4_eq!(add_mat, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0,
+                           0.0, 0.0, 0.0, 0.0, 0.0, 0.0);
+
+        let sub_mat = m0 - m1;
+        expect_float4x4_eq!(sub_mat, 0.0, 2.0, 4.0, 6.0, 8.0, 10.0, 12.0, 14.0, 16.0,
+                           18.0, 20.0, 22.0, 24.0, 26.0, 28.0, 30.0);
+
+        let transpose = m0.transpose();
+        expect_float4x4_eq!(transpose, 0.0, 4.0, 8.0, 12.0, 1.0, 5.0, 9.0, 13.0, 2.0,
+                           6.0, 10.0, 14.0, 3.0, 7.0, 11.0, 15.0);
+
+        // Invertible
+        let invert_ident = Float4x4::identity().invert(&mut None);
+        expect_float4x4_eq!(invert_ident, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0,
+                           0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0);
+
+        let invert = m2.invert(&mut None);
+        expect_float4x4_eq!(invert, 0.216667, 2.75, 1.6, 0.066666, 0.2, 2.5, 1.4,
+                           0.1, 0.25, 0.5, 0.25, 0.0, 0.233333, 0.5, 0.3, 0.03333);
+
+        let invert_mul = m2 * invert;
+        expect_float4x4_eq!(invert_mul, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0,
+                           0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0);
+
+        let mut invertible: Option<SimdInt4> = Some(SimdInt4::zero());
+        expect_float4x4_eq!(m2.invert(&mut invertible), 0.216667, 2.75, 1.6, 0.066666,
+                           0.2, 2.5, 1.4, 0.1, 0.25, 0.5, 0.25, 0.0, 0.233333, 0.5,
+                           0.3, 0.03333);
+        assert_eq!(invertible.unwrap().are_all_true(), true);
+
+        // Non invertible
+        // EXPECT_ASSERTION(Invert(m0), "Matrix is not invertible");
+
+        let mut not_invertible: Option<SimdInt4> = Some(SimdInt4::zero());
+        expect_float4x4_eq!(m0.invert(&mut not_invertible), 0.0, 0.0, 0.0, 0.0, 0.0, 0.0,
+                           0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0);
+        assert_eq!(not_invertible.unwrap().are_all_true1(), false);
+    }
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
