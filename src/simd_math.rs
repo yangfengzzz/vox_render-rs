@@ -3586,7 +3586,7 @@ pub fn half_to_float_simd(_h: __m128i) -> __m128 {
 //--------------------------------------------------------------------------------------------------
 //--------------------------------------------------------------------------------------------------
 #[cfg(test)]
-mod tests {
+mod ozz_simd_math {
     use crate::simd_math::*;
     use crate::math_test_helper::*;
     use crate::*;
@@ -4175,17 +4175,10 @@ mod tests {
             pow += 1.0;
         }
     }
-}
 
-//--------------------------------------------------------------------------------------------------
-//--------------------------------------------------------------------------------------------------
-//--------------------------------------------------------------------------------------------------
-#[cfg(test)]
-mod ozz_simd_math {
-    use crate::simd_math::*;
-    use crate::math_test_helper::*;
-    use crate::*;
-
+    //----------------------------------------------------------------------------------------------
+    //----------------------------------------------------------------------------------------------
+    //----------------------------------------------------------------------------------------------
     #[test]
     fn float4x4constant() {
         let identity = Float4x4::identity();
@@ -4646,6 +4639,131 @@ mod ozz_simd_math {
                             1.0);
         expect_simd_float_eq!(rotate, 0.0, 0.0, 0.0, 1.0);
         expect_simd_float_eq!(scale, 0.000907520065, 0.000959928846, 0.0159599986, 1.0);
+    }
+
+    //----------------------------------------------------------------------------------------------
+    //----------------------------------------------------------------------------------------------
+    //----------------------------------------------------------------------------------------------
+    #[test]
+    #[allow(overflowing_literals)]
+    fn load_int() {
+        let i_x = SimdInt4::load_x(15);
+        expect_simd_int_eq!(i_x, 15, 0, 0, 0);
+
+        let i1 = SimdInt4::load1(15);
+        expect_simd_int_eq!(i1, 15, 15, 15, 15);
+
+        let i4 = SimdInt4::load(1, -1, 2, -3);
+        expect_simd_int_eq!(i4, 1, -1, 2, -3);
+
+        let it_x = SimdInt4::load_x_bool(true);
+        expect_simd_int_eq!(it_x, 0xffffffff, 0, 0, 0);
+
+        let if_x = SimdInt4::load_x_bool(false);
+        expect_simd_int_eq!(if_x, 0, 0, 0, 0);
+
+        let it1 = SimdInt4::load1_bool(true);
+        expect_simd_int_eq!(it1, 0xffffffff, 0xffffffff, 0xffffffff, 0xffffffff);
+
+        let if1 = SimdInt4::load1_bool(false);
+        expect_simd_int_eq!(if1, 0, 0, 0, 0);
+
+        let ibttff = SimdInt4::load_bool(true, true, false, false);
+        expect_simd_int_eq!(ibttff, 0xffffffff, 0xffffffff, 0, 0);
+
+        let ibftft = SimdInt4::load_bool(false, true, false, true);
+        expect_simd_int_eq!(ibftft, 0, 0xffffffff, 0, 0xffffffff);
+    }
+
+    #[test]
+    fn get_int() {
+        let i = SimdInt4::load(1, 2, 3, 4);
+
+        assert_eq!(i.get_x(), 1);
+        assert_eq!(i.get_y(), 2);
+        assert_eq!(i.get_z(), 3);
+        assert_eq!(i.get_w(), 4);
+    }
+
+    #[test]
+    fn set_int() {
+        let a = SimdInt4::load(1, 2, 3, 4);
+        let b = SimdInt4::load(5, 6, 7, 8);
+
+        expect_simd_int_eq!(a.set_x(b), 5, 2, 3, 4);
+        expect_simd_int_eq!(a.set_y(b), 1, 5, 3, 4);
+        expect_simd_int_eq!(a.set_z(b), 1, 2, 5, 4);
+        expect_simd_int_eq!(a.set_w(b), 1, 2, 3, 5);
+
+        // EXPECT_ASSERTION(ozz::math::SetI(a, b, 4), "Invalid index, out of range.");
+        expect_simd_int_eq!(a.set_i(b, 0), 5, 2, 3, 4);
+        expect_simd_int_eq!(a.set_i(b, 1), 1, 5, 3, 4);
+        expect_simd_int_eq!(a.set_i(b, 2), 1, 2, 5, 4);
+        expect_simd_int_eq!(a.set_i(b, 3), 1, 2, 3, 5);
+    }
+    
+    #[test]
+    #[allow(overflowing_literals)]
+    fn constant_int() {
+        let zero = SimdInt4::zero();
+        expect_simd_int_eq!(zero, 0, 0, 0, 0);
+
+        let one = SimdInt4::one();
+        expect_simd_int_eq!(one, 1, 1, 1, 1);
+
+        let x_axis = SimdInt4::x_axis();
+        expect_simd_int_eq!(x_axis, 1, 0, 0, 0);
+
+        let y_axis = SimdInt4::y_axis();
+        expect_simd_int_eq!(y_axis, 0, 1, 0, 0);
+
+        let z_axis = SimdInt4::z_axis();
+        expect_simd_int_eq!(z_axis, 0, 0, 1, 0);
+
+        let w_axis = SimdInt4::w_axis();
+        expect_simd_int_eq!(w_axis, 0, 0, 0, 1);
+
+        let all_true = SimdInt4::all_true();
+        expect_simd_int_eq!(all_true, 0xffffffff, 0xffffffff, 0xffffffff, 0xffffffff);
+
+        let all_false = SimdInt4::all_false();
+        expect_simd_int_eq!(all_false, 0, 0, 0, 0);
+
+        let mask_sign = SimdInt4::mask_sign();
+        expect_simd_int_eq!(mask_sign, 0x80000000, 0x80000000, 0x80000000, 0x80000000);
+
+        let mask_sign_xyz = SimdInt4::mask_sign_xyz();
+        expect_simd_int_eq!(mask_sign_xyz, 0x80000000, 0x80000000, 0x80000000,
+                          0x00000000);
+
+        let mask_sign_w = SimdInt4::mask_sign_w();
+        expect_simd_int_eq!(mask_sign_w, 0x00000000, 0x00000000, 0x00000000,
+                          0x80000000);
+
+        let mask_not_sign = SimdInt4::mask_not_sign();
+        expect_simd_int_eq!(mask_not_sign, 0x7fffffff, 0x7fffffff, 0x7fffffff,
+                          0x7fffffff);
+
+        let mask_ffff = SimdInt4::mask_ffff();
+        expect_simd_int_eq!(mask_ffff, 0xffffffff, 0xffffffff, 0xffffffff, 0xffffffff);
+
+        let mask_0000 = SimdInt4::mask_0000();
+        expect_simd_int_eq!(mask_0000, 0, 0, 0, 0);
+
+        let mask_fff0 = SimdInt4::mask_fff0();
+        expect_simd_int_eq!(mask_fff0, 0xffffffff, 0xffffffff, 0xffffffff, 0);
+
+        let mask_f000 = SimdInt4::mask_f000();
+        expect_simd_int_eq!(mask_f000, 0xffffffff, 0, 0, 0);
+
+        let mask_0f00 = SimdInt4::mask_0f00();
+        expect_simd_int_eq!(mask_0f00, 0, 0xffffffff, 0, 0);
+
+        let mask_00f0 = SimdInt4::mask_00f0();
+        expect_simd_int_eq!(mask_00f0, 0, 0, 0xffffffff, 0);
+
+        let mask_000f = SimdInt4::mask_000f();
+        expect_simd_int_eq!(mask_000f, 0, 0, 0, 0xffffffff);
     }
 }
 
