@@ -145,7 +145,7 @@ impl Mul for SimdQuaternion {
         let p2 =
             self.xyzw.swizzle0120() * rhs.xyzw.swizzle3330();
         let p13 = self.xyzw.swizzle1201().madd(rhs.xyzw.swizzle2011(), p1);
-        let p24 = self.xyzw.swizzle2013().madd(rhs.xyzw.swizzle1203(), p2);
+        let p24 = self.xyzw.swizzle2013().nmadd(rhs.xyzw.swizzle1203(), p2);
         return SimdQuaternion { xyzw: (p13 + p24).xor_fi(SimdInt4::mask_sign_w()) };
     }
 }
@@ -337,6 +337,242 @@ mod ozz_simd_math {
         expect_simd_int_eq!(norm_safer_est.is_normalized_est(), 0xffffffff, 0, 0, 0);
         expect_simd_quaternion_eq_est!(norm_safer_est, 0.0, 0.70710677, 0.0,
                                      0.70710677);
+    }
+
+    #[test]
+    fn quaternion_from_vectors() {
+        // Returns identity for a 0 length vector
+        expect_simd_quaternion_eq!(
+            SimdQuaternion::from_vectors(SimdFloat4::zero(),
+                                         SimdFloat4::x_axis()),
+            0.0, 0.0, 0.0, 1.0);
+
+        // pi/2 around y
+        expect_simd_quaternion_eq!(
+            SimdQuaternion::from_vectors(SimdFloat4::z_axis(),
+                                         SimdFloat4::x_axis()),
+            0.0, 0.707106769, 0.0, 0.707106769);
+
+        // Non unit pi/2 around y
+        expect_simd_quaternion_eq!(
+            SimdQuaternion::from_vectors(SimdFloat4::z_axis(),
+                                         SimdFloat4::x_axis() *
+                                            SimdFloat4::load1(27.0)),
+            0.0, 0.707106769, 0.0, 0.707106769);
+
+        // Minus pi/2 around y
+        expect_simd_quaternion_eq!(
+            SimdQuaternion::from_vectors(SimdFloat4::x_axis(),
+                                         SimdFloat4::z_axis()),
+            0.0, -0.707106769, 0.0, 0.707106769);
+
+        // pi/2 around x
+        expect_simd_quaternion_eq!(
+            SimdQuaternion::from_vectors(SimdFloat4::y_axis(),
+                                         SimdFloat4::z_axis()),
+            0.707106769, 0.0, 0.0, 0.707106769);
+
+        // pi/2 around z
+        expect_simd_quaternion_eq!(
+            SimdQuaternion::from_vectors(SimdFloat4::x_axis(),
+                                         SimdFloat4::y_axis()),
+            0.0, 0.0, 0.707106769, 0.707106769);
+
+        // pi/2 around z also
+        expect_simd_quaternion_eq!(
+            SimdQuaternion::from_vectors(
+                SimdFloat4::load(0.707106769, 0.707106769, 0.0, 99.0),
+                SimdFloat4::load(-0.707106769, 0.707106769, 0.0, 93.0)),
+            0.0, 0.0, 0.707106769, 0.707106769);
+
+        // Non unit pi/2 around z also
+        expect_simd_quaternion_eq!(
+            SimdQuaternion::from_vectors(
+                SimdFloat4::load(0.707106769, 0.707106769, 0.0, 99.0) *
+                    SimdFloat4::load1(9.0),
+                SimdFloat4::load(-0.707106769, 0.707106769, 0.0, 93.0) *
+                    SimdFloat4::load1(46.0)),
+            0.0, 0.0, 0.707106769, 0.707106769);
+
+        // Non-unit pi/2 around z
+        expect_simd_quaternion_eq!(
+            SimdQuaternion::from_vectors(SimdFloat4::x_axis(),
+                                        SimdFloat4::y_axis() *
+                                            SimdFloat4::load1(2.0)),
+            0.0, 0.0, 0.707106769, 0.707106769);
+
+        // Aligned vectors
+        expect_simd_quaternion_eq!(
+            SimdQuaternion::from_vectors(SimdFloat4::x_axis(),
+                                         SimdFloat4::x_axis()),
+            0.0, 0.0, 0.0, 1.0);
+
+        // Non-unit aligned vectors
+        expect_simd_quaternion_eq!(
+            SimdQuaternion::from_vectors(SimdFloat4::x_axis(),
+                                         SimdFloat4::x_axis() *
+                                             SimdFloat4::load1(2.0)),
+            0.0, 0.0, 0.0, 1.0);
+
+        // Opposed vectors
+        expect_simd_quaternion_eq!(
+            SimdQuaternion::from_vectors(SimdFloat4::x_axis(),
+                                         -SimdFloat4::x_axis()),
+            0.0, 1.0, 0.0, 0.0);
+        expect_simd_quaternion_eq!(
+            SimdQuaternion::from_vectors(-SimdFloat4::x_axis(),
+                                         SimdFloat4::x_axis()),
+            0.0, -1.0, 0.0, 0.0);
+        expect_simd_quaternion_eq!(
+            SimdQuaternion::from_vectors(SimdFloat4::y_axis(),
+                                         -SimdFloat4::y_axis()),
+            0.0, 0.0, 1.0, 0.0);
+        expect_simd_quaternion_eq!(
+            SimdQuaternion::from_vectors(-SimdFloat4::y_axis(),
+                                         SimdFloat4::y_axis()),
+            0.0, 0.0, -1.0, 0.0);
+        expect_simd_quaternion_eq!(
+            SimdQuaternion::from_vectors(SimdFloat4::z_axis(),
+                                         -SimdFloat4::z_axis()),
+            0.0, -1.0, 0.0, 0.0);
+        expect_simd_quaternion_eq!(
+            SimdQuaternion::from_vectors(-SimdFloat4::z_axis(),
+                                         SimdFloat4::z_axis()),
+            0.0, 1.0, 0.0, 0.0);
+        expect_simd_quaternion_eq!(
+            SimdQuaternion::from_vectors(
+                SimdFloat4::load(0.707106769, 0.707106769, 0.0, 93.0),
+                -SimdFloat4::load(0.707106769, 0.707106769, 0.0, 99.0)),
+            -0.707106769, 0.707106769, 0.0, 0.0);
+        expect_simd_quaternion_eq!(
+            SimdQuaternion::from_vectors(
+                SimdFloat4::load(0.0, 0.707106769, 0.707106769, 93.0),
+                -SimdFloat4::load(0.0, 0.707106769, 0.707106769, 99.0)),
+            0.0, -0.707106769, 0.707106769, 0.0);
+
+        // Non-unit opposed vectors
+        expect_simd_quaternion_eq!(
+            SimdQuaternion::from_vectors(
+                SimdFloat4::load(2.0, 2.0, 2.0, 0.0),
+                SimdFloat4::load(-2.0, -2.0, -2.0, 0.0)),
+            0.0, -0.707106769, 0.707106769, 0.0);
+    }
+
+    #[test]
+    fn quaternion_from_unit_vectors() {
+        // // assert 0 length vectors
+        // EXPECT_ASSERTION(
+        //     SimdQuaternion::from_unit_vectors(SimdFloat4::zero(),
+        //                                       SimdFloat4::x_axis()),
+        //     "Input vectors must be normalized.");
+        // EXPECT_ASSERTION(
+        //     SimdQuaternion::from_unit_vectors(SimdFloat4::x_axis(),
+        //                                       SimdFloat4::zero()),
+        //     "Input vectors must be normalized.");
+        // // assert non unit vectors
+        // EXPECT_ASSERTION(
+        //     SimdQuaternion::from_unit_vectors(
+        //         SimdFloat4::x_axis() * SimdFloat4::Load1(2.0),
+        //         SimdFloat4::x_axis()),
+        //     "Input vectors must be normalized.");
+        // EXPECT_ASSERTION(
+        //     SimdQuaternion::from_unit_vectors(SimdFloat4::x_axis(),
+        //                                       SimdFloat4::x_axis() *
+        //                                           SimdFloat4::Load1(.5f)),
+        //     "Input vectors must be normalized.");
+
+        // pi/2 around y
+        expect_simd_quaternion_eq!(
+            SimdQuaternion::from_unit_vectors(SimdFloat4::z_axis(),
+                                              SimdFloat4::x_axis()),
+            0.0, 0.707106769, 0.0, 0.707106769);
+
+        // Minus pi/2 around y
+        expect_simd_quaternion_eq!(
+            SimdQuaternion::from_unit_vectors(SimdFloat4::x_axis(),
+                                              SimdFloat4::z_axis()),
+            0.0, -0.707106769, 0.0, 0.707106769);
+
+        // pi/2 around x
+        expect_simd_quaternion_eq!(
+            SimdQuaternion::from_unit_vectors(SimdFloat4::y_axis(),
+                                              SimdFloat4::z_axis()),
+            0.707106769, 0.0, 0.0, 0.707106769);
+
+        // pi/2 around z
+        expect_simd_quaternion_eq!(
+            SimdQuaternion::from_unit_vectors(SimdFloat4::x_axis(),
+                                              SimdFloat4::y_axis()),
+            0.0, 0.0, 0.707106769, 0.707106769);
+
+        // pi/2 around z also
+        expect_simd_quaternion_eq!(
+            SimdQuaternion::from_unit_vectors(
+                SimdFloat4::load(0.707106769, 0.707106769, 0.0, 99.0),
+                SimdFloat4::load(-0.707106769, 0.707106769, 0.0, 93.0)),
+            0.0, 0.0, 0.707106769, 0.707106769);
+
+        // Aligned vectors
+        expect_simd_quaternion_eq!(
+            SimdQuaternion::from_unit_vectors(SimdFloat4::x_axis(),
+                                              SimdFloat4::x_axis()),
+            0.0, 0.0, 0.0, 1.0);
+
+        // Opposed vectors
+        expect_simd_quaternion_eq!(
+            SimdQuaternion::from_unit_vectors(SimdFloat4::x_axis(),
+                                              -SimdFloat4::x_axis()),
+            0.0, 1.0, 0.0, 0.0);
+        expect_simd_quaternion_eq!(
+            SimdQuaternion::from_unit_vectors(-SimdFloat4::x_axis(),
+                                              SimdFloat4::x_axis()),
+            0.0, -1.0, 0.0, 0.0);
+        expect_simd_quaternion_eq!(
+            SimdQuaternion::from_unit_vectors(SimdFloat4::y_axis(),
+                                              -SimdFloat4::y_axis()),
+            0.0, 0.0, 1.0, 0.0);
+        expect_simd_quaternion_eq!(
+            SimdQuaternion::from_unit_vectors(-SimdFloat4::y_axis(),
+                                              SimdFloat4::y_axis()),
+            0.0, 0.0, -1.0, 0.0);
+        expect_simd_quaternion_eq!(
+            SimdQuaternion::from_unit_vectors(SimdFloat4::z_axis(),
+                                              -SimdFloat4::z_axis()),
+            0.0, -1.0, 0.0, 0.0);
+        expect_simd_quaternion_eq!(
+            SimdQuaternion::from_unit_vectors(-SimdFloat4::z_axis(),
+                                              SimdFloat4::z_axis()),
+            0.0, 1.0, 0.0, 0.0);
+        expect_simd_quaternion_eq!(
+            SimdQuaternion::from_unit_vectors(
+                SimdFloat4::load(0.707106769, 0.707106769, 0.0, 93.0),
+                -SimdFloat4::load(0.707106769, 0.707106769, 0.0, 99.0)),
+            -0.707106769, 0.707106769, 0.0, 0.0);
+        expect_simd_quaternion_eq!(
+            SimdQuaternion::from_unit_vectors(
+                SimdFloat4::load(0.0, 0.707106769, 0.707106769, 93.0),
+                -SimdFloat4::load(0.0, 0.707106769, 0.707106769, 99.0)),
+            0.0, -0.707106769, 0.707106769, 0.0);
+    }
+
+    #[test]
+    fn quaternion_axis_angle() {
+        // // Expect assertions from invalid inputs
+        // EXPECT_ASSERTION(
+        //     SimdQuaternion::from_axis_angle(SimdFloat4::zero(),
+        //                                   SimdFloat4::zero()),
+        //     "axis is not normalized.");
+        //
+        // let unorm = SimdQuaternion{xyzw: SimdFloat4::load(0.0, 0.0, 0.0, 2.0)};
+        //
+        // EXPECT_ASSERTION(unorm.to_axis_angle(), "_q is not normalized.");
+
+        // Identity
+        expect_simd_quaternion_eq!(
+            SimdQuaternion::from_axis_angle(SimdFloat4::x_axis(),
+                                          SimdFloat4::zero()),
+            0.0, 0.0, 0.0, 1.0);
+        expect_simd_float_eq!(SimdQuaternion::identity().to_axis_angle(), 1.0, 0.0, 0.0, 0.0);
     }
 }
 
