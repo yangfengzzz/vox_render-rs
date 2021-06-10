@@ -4268,6 +4268,136 @@ mod ozz_simd_math {
                            0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0);
         assert_eq!(not_invertible.unwrap().are_all_true1(), false);
     }
+
+    #[test]
+    fn float4x4normal() {
+        let not_orthogonal = Float4x4 {
+            cols:
+            [SimdFloat4::load(1.0, 0.0, 0.0, 0.0),
+                SimdFloat4::load(1.0, 0.0, 0.0, 0.0),
+                SimdFloat4::load(0.0, 0.0, 1.0, 0.0),
+                SimdFloat4::load(0.0, 0.0, 0.0, 1.0)]
+        };
+
+        assert_eq!(not_orthogonal.is_normalized().are_all_true3(), true);
+        assert_eq!(Float4x4::scaling(SimdFloat4::load(1.0, -1.0, 1.0, 0.0)).is_normalized().are_all_true3(), true);
+        assert_eq!(Float4x4::scaling(SimdFloat4::load(1.0, 46.0, 1.0, 0.0)).is_normalized().are_all_true3(), false);
+        assert_eq!(Float4x4::identity().is_normalized().are_all_true3(), true);
+        assert_eq!(Float4x4::from_axis_angle(SimdFloat4::x_axis(),
+                                             SimdFloat4::load_x(1.24)).is_normalized().are_all_true3(), true);
+        assert_eq!(Float4x4::translation(
+            SimdFloat4::load(46.0, 0.0, 0.0, 1.0)).is_normalized().are_all_true3(), true);
+    }
+
+    #[test]
+    fn float4x4orthogonal() {
+        let zero = Float4x4 {
+            cols: [SimdFloat4::load(0.0, 0.0, 0.0, 0.0),
+                SimdFloat4::load(0.0, 1.0, 0.0, 0.0),
+                SimdFloat4::load(0.0, 0.0, 1.0, 0.0),
+                SimdFloat4::load(0.0, 0.0, 0.0, 1.0)]
+        };
+        let not_orthogonal = Float4x4 {
+            cols:
+            [SimdFloat4::load(1.0, 0.0, 0.0, 0.0),
+                SimdFloat4::load(1.0, 0.0, 0.0, 0.0),
+                SimdFloat4::load(0.0, 0.0, 1.0, 0.0),
+                SimdFloat4::load(0.0, 0.0, 0.0, 1.0)]
+        };
+
+        assert_eq!(not_orthogonal.is_orthogonal().are_all_true1(), false);
+        assert_eq!(zero.is_orthogonal().are_all_true1(), false);
+
+        let reflexion1x =
+            Float4x4::scaling(SimdFloat4::load(-1.0, 1.0, 1.0, 0.0));
+        assert_eq!(reflexion1x.is_orthogonal().are_all_true1(), false);
+        let reflexion1y =
+            Float4x4::scaling(SimdFloat4::load(1.0, -1.0, 1.0, 0.0));
+        assert_eq!(reflexion1y.is_orthogonal().are_all_true1(), false);
+        let reflexion1z =
+            Float4x4::scaling(SimdFloat4::load(1.0, 1.0, -1.0, 0.0));
+        assert_eq!(reflexion1z.is_orthogonal().are_all_true1(), false);
+        let reflexion2x =
+            Float4x4::scaling(SimdFloat4::load(1.0, -1.0, -1.0, 0.0));
+        assert_eq!(reflexion2x.is_orthogonal().are_all_true1(), true);
+        let reflexion2y =
+            Float4x4::scaling(SimdFloat4::load(-1.0, 1.0, -1.0, 0.0));
+        assert_eq!(reflexion2y.is_orthogonal().are_all_true1(), true);
+        let reflexion2z =
+            Float4x4::scaling(SimdFloat4::load(-1.0, -1.0, 1.0, 0.0));
+        assert_eq!(reflexion2z.is_orthogonal().are_all_true1(), true);
+        let reflexion3 =
+            Float4x4::scaling(SimdFloat4::load(-1.0, -1.0, -1.0, 0.0));
+        assert_eq!(reflexion3.is_orthogonal().are_all_true1(), false);
+
+        assert_eq!(Float4x4::identity().is_orthogonal().are_all_true1(), true);
+        assert_eq!(Float4x4::translation(
+            SimdFloat4::load(46.0, 0.0, 0.0, 1.0)).is_orthogonal().are_all_true1(), true);
+        assert_eq!(Float4x4::from_axis_angle(SimdFloat4::x_axis(),
+                                             SimdFloat4::load_x(1.24)).is_orthogonal().are_all_true1(), true);
+    }
+
+    #[test]
+    fn float4x4translate() {
+        let v = SimdFloat4::load(-1.0, 1.0, 2.0, 3.0);
+        let m0 = Float4x4 {
+            cols: [SimdFloat4::load(0.0, 1.0, 2.0, 3.0),
+                SimdFloat4::load(4.0, 5.0, 6.0, 7.0),
+                SimdFloat4::load(8.0, 9.0, 10.0, 11.0),
+                SimdFloat4::load(12.0, 13.0, 14.0, 15.0)]
+        };
+
+        let translation = Float4x4::translation(v);
+        expect_float4x4_eq!(translation, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0,
+                           0.0, 1.0, 0.0, -1.0, 1.0, 2.0, 1.0);
+
+        let translate_mul = m0 * translation;
+        expect_float4x4_eq!(translate_mul, 0.0, 1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0,
+                           9.0, 10.0, 11.0, 32.0, 35.0, 38.0, 41.0);
+
+        let translate = m0.translate(v);
+        expect_float4x4_eq!(translate, 0.0, 1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0,
+                           9.0, 10.0, 11.0, 32.0, 35.0, 38.0, 41.0);
+    }
+
+    #[test]
+    fn float4x4scale() {
+        let v = SimdFloat4::load(-1.0, 1.0, 2.0, 3.0);
+        let m0 = Float4x4 {
+            cols: [SimdFloat4::load(0.0, 1.0, 2.0, 3.0),
+                SimdFloat4::load(4.0, 5.0, 6.0, 7.0),
+                SimdFloat4::load(8.0, 9.0, 10.0, 11.0),
+                SimdFloat4::load(12.0, 13.0, 14.0, 15.0)]
+        };
+
+        let scaling = Float4x4::scaling(v);
+        expect_float4x4_eq!(scaling, -1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0,
+                           2.0, 0.0, 0.0, 0.0, 0.0, 1.0);
+
+        let scale_mul = m0 * scaling;
+        expect_float4x4_eq!(scale_mul, 0.0, -1.0, -2.0, -3.0, 4.0, 5.0, 6.0, 7.0, 16.0,
+                           18.0, 20.0, 22.0, 12.0, 13.0, 14.0, 15.0);
+
+        let scale = m0.scale(v);
+        expect_float4x4_eq!(scale, 0.0, -1.0, -2.0, -3.0, 4.0, 5.0, 6.0, 7.0, 16.0,
+                           18.0, 20.0, 22.0, 12.0, 13.0, 14.0, 15.0);
+    }
+
+    #[test]
+    fn float4x4column_multiply() {
+        let v = SimdFloat4::load(-1.0, -2.0, -3.0, -4.0);
+        let m0 = Float4x4 {
+            cols: [SimdFloat4::load(0.0, 1.0, 2.0, 3.0),
+                SimdFloat4::load(4.0, 5.0, 6.0, 7.0),
+                SimdFloat4::load(8.0, 9.0, 10.0, 11.0),
+                SimdFloat4::load(12.0, 13.0, 14.0, 15.0)]
+        };
+
+        let column_multiply = m0.column_multiply(v);
+        expect_float4x4_eq!(column_multiply, 0.0, -2.0, -6.0, -12.0, -4.0, -10.0,
+                           -18.0, -28.0, -8.0, -18.0, -30.0, -44.0, -12.0, -26.0,
+                           -42.0, -60.0);
+    }
 }
 
 
