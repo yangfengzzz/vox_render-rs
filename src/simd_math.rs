@@ -4523,12 +4523,129 @@ mod ozz_simd_math {
         let mut rotate = SimdFloat4::zero();
         let mut scale = SimdFloat4::zero();
 
-        assert_eq!(Float4x4::scaling(SimdFloat4::load(0.0, 0.0, 1.0, 0.0)).to_affine(
-            &mut translate, &mut rotate, &mut scale), false);
-        assert_eq!(Float4x4::scaling(SimdFloat4::load(1.0, 0.0, 0.0, 0.0)).to_affine(
-            &mut translate, &mut rotate, &mut scale), false);
-        assert_eq!(Float4x4::scaling(SimdFloat4::load(0.0, 1.0, 0.0, 0.0)).to_affine(
-            &mut translate, &mut rotate, &mut scale), false);
+        assert_eq!(Float4x4::scaling(SimdFloat4::load(0.0, 0.0, 1.0, 0.0)).
+            to_affine(&mut translate, &mut rotate, &mut scale), false);
+        assert_eq!(Float4x4::scaling(SimdFloat4::load(1.0, 0.0, 0.0, 0.0)).
+            to_affine(&mut translate, &mut rotate, &mut scale), false);
+        assert_eq!(Float4x4::scaling(SimdFloat4::load(0.0, 1.0, 0.0, 0.0)).
+            to_affine(&mut translate, &mut rotate, &mut scale), false);
+
+        assert_eq!(Float4x4::identity().
+            to_affine(&mut translate, &mut rotate, &mut scale), true);
+        expect_simd_float_eq!(translate, 0.0, 0.0, 0.0, 1.0);
+        expect_simd_float_eq!(rotate, 0.0, 0.0, 0.0, 1.0);
+        expect_simd_float_eq!(scale, 1.0, 1.0, 1.0, 1.0);
+
+        assert_eq!(
+            Float4x4::scaling(SimdFloat4::load(0.0, 1.0, 1.0, 0.0)).
+                to_affine(&mut translate, &mut rotate, &mut scale), true);
+        expect_simd_float_eq!(translate, 0.0, 0.0, 0.0, 1.0);
+        expect_simd_float_eq!(rotate, 0.0, 0.0, 0.0, 1.0);
+        expect_simd_float_eq!(scale, 0.0, 1.0, 1.0, 1.0);
+
+        assert_eq!(
+            Float4x4::scaling(SimdFloat4::load(1.0, 0.0, 1.0, 0.0)).
+                to_affine(&mut translate, &mut rotate, &mut scale), true);
+        expect_simd_float_eq!(translate, 0.0, 0.0, 0.0, 1.0);
+        expect_simd_float_eq!(rotate, 0.0, 0.0, 0.0, 1.0);
+        expect_simd_float_eq!(scale, 1.0, 0.0, 1.0, 1.0);
+
+        assert_eq!(
+            Float4x4::scaling(SimdFloat4::load(1.0, 1.0, 0.0, 0.0)).
+                to_affine(&mut translate, &mut rotate, &mut scale), true);
+        expect_simd_float_eq!(translate, 0.0, 0.0, 0.0, 1.0);
+        expect_simd_float_eq!(rotate, 0.0, 0.0, 0.0, 1.0);
+        expect_simd_float_eq!(scale, 1.0, 1.0, 0.0, 1.0);
+
+        assert_eq!(
+            (Float4x4::translation(SimdFloat4::load(46.0, 69.0, 58.0, 1.0)) *
+                Float4x4::scaling(SimdFloat4::load(2.0, 3.0, 4.0, 0.0))).
+                to_affine(&mut translate, &mut rotate, &mut scale), true);
+        expect_simd_float_eq!(translate, 46.0, 69.0, 58.0, 1.0);
+        expect_simd_float_eq!(rotate, 0.0, 0.0, 0.0, 1.0);
+        expect_simd_float_eq!(scale, 2.0, 3.0, 4.0, 1.0);
+
+        assert_eq!(
+            (Float4x4::translation(SimdFloat4::load(46.0, -69.0, -58.0, 1.0)) *
+                Float4x4::scaling(SimdFloat4::load(-2.0, 3.0, 4.0, 0.0))).
+                to_affine(&mut translate, &mut rotate, &mut scale), true);
+        expect_simd_float_eq!(translate, 46.0, -69.0, -58.0, 1.0);
+        expect_simd_float_eq!(rotate, 0.0, 0.0, 1.0, 0.0);
+        expect_simd_float_eq!(scale, 2.0, -3.0, 4.0, 1.0);
+
+        assert_eq!(
+            Float4x4::scaling(SimdFloat4::load(2.0, -3.0, 4.0, 0.0)).
+                to_affine(&mut translate, &mut rotate, &mut scale), true);
+        expect_simd_float_eq!(translate, 0.0, 0.0, 0.0, 1.0);
+        expect_simd_float_eq!(rotate, 0.0, 0.0, 0.0, 1.0);
+        expect_simd_float_eq!(scale, 2.0, -3.0, 4.0, 1.0);
+
+        assert_eq!(
+            Float4x4::scaling(SimdFloat4::load(2.0, 3.0, -4.0, 0.0)).
+                to_affine(&mut translate, &mut rotate, &mut scale), true);
+        expect_simd_float_eq!(translate, 0.0, 0.0, 0.0, 1.0);
+        expect_simd_float_eq!(rotate, 1.0, 0.0, 0.0, 0.0);
+        expect_simd_float_eq!(scale, 2.0, -3.0, 4.0, 1.0);
+
+        // This one is not a reflexion.
+        assert_eq!(
+            Float4x4::scaling(SimdFloat4::load(-2.0, -3.0, 4.0, 0.0)).
+                to_affine(&mut translate, &mut rotate, &mut scale), true);
+        expect_simd_float_eq!(translate, 0.0, 0.0, 0.0, 1.0);
+        expect_simd_float_eq!(rotate, 0.0, 0.0, 1.0, 0.0);
+        expect_simd_float_eq!(scale, 2.0, 3.0, 4.0, 1.0);
+
+        // This one is not a reflexion.
+        assert_eq!(
+            Float4x4::scaling(SimdFloat4::load(2.0, -3.0, -4.0, 0.0)).
+                to_affine(&mut translate, &mut rotate, &mut scale), true);
+        expect_simd_float_eq!(translate, 0.0, 0.0, 0.0, 1.0);
+        expect_simd_float_eq!(rotate, 1.0, 0.0, 0.0, 0.0);
+        expect_simd_float_eq!(scale, 2.0, 3.0, 4.0, 1.0);
+
+        assert_eq!(
+            (Float4x4::translation(SimdFloat4::load(46.0, -69.0, -58.0, 1.0)) *
+                Float4x4::from_quaternion(SimdFloat4::load(-0.6172133, -0.1543033, 0.0, 0.7715167)) *
+                Float4x4::scaling(SimdFloat4::load(2.0, 3.0, 4.0, 0.0))).
+                to_affine(&mut translate, &mut rotate, &mut scale), true);
+        expect_simd_float_eq!(translate, 46.0, -69.0, -58.0, 1.0);
+        expect_simd_float_eq!(rotate, -0.6172133, -0.1543033, 0.0, 0.7715167);
+        expect_simd_float_eq!(scale, 2.0, 3.0, 4.0, 1.0);
+
+        assert_eq!(
+            (Float4x4::translation(SimdFloat4::load(46.0, -69.0, -58.0, 1.0)) *
+                Float4x4::from_quaternion(SimdFloat4::load(0.70710677, 0.0, 0.0, 0.70710677)) *
+                Float4x4::scaling(SimdFloat4::load(2.0, -3.0, 4.0, 0.0))).
+                to_affine(&mut translate, &mut rotate, &mut scale), true);
+        expect_simd_float_eq!(translate, 46.0, -69.0, -58.0, 1.0);
+        expect_simd_float_eq!(rotate, 0.70710677, 0.0, 0.0, 0.70710677);
+        expect_simd_float_eq!(scale, 2.0, -3.0, 4.0, 1.0);
+
+        let trace = Float4x4 {
+            cols:
+            [SimdFloat4::load(-0.916972, 0.0, -0.398952, 0.0),
+                SimdFloat4::load(0.0, -1.0, 0.0, 0.0),
+                SimdFloat4::load(-0.398952, 0.0, 0.916972, 0.0),
+                SimdFloat4::load(0.0, 0.0, 0.0, 1.0)]
+        };
+        assert_eq!(trace.to_affine(&mut translate, &mut rotate, &mut scale), true);
+        expect_simd_float_eq!(translate, 0.0, 0.0, 0.0, 1.0);
+        expect_simd_float_eq!(rotate, -0.20375007, 0.0, 0.97902298, 0.0);
+        expect_simd_float_eq!(scale, 1.0, 1.0, 1.0, 1.0);
+
+        let small = Float4x4 {
+            cols:
+            [SimdFloat4::load(0.000907520065, 0.0, 0.0, 0.0),
+                SimdFloat4::load(0.0, 0.000959928846, 0.0, 0.0),
+                SimdFloat4::load(0.0, 0.0, 0.0159599986, 0.0),
+                SimdFloat4::load(0.00649994006, 0.00719946623,
+                                 -0.000424541620, 0.999999940)]
+        };
+        assert_eq!(small.to_affine(&mut translate, &mut rotate, &mut scale), true);
+        expect_simd_float_eq!(translate, 0.00649994006, 0.00719946623, -0.000424541620,
+                            1.0);
+        expect_simd_float_eq!(rotate, 0.0, 0.0, 0.0, 1.0);
+        expect_simd_float_eq!(scale, 0.000907520065, 0.000959928846, 0.0159599986, 1.0);
     }
 }
 
