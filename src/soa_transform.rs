@@ -28,3 +28,25 @@ impl SoaTransform {
         };
     }
 }
+
+//--------------------------------------------------------------------------------------------------
+//--------------------------------------------------------------------------------------------------
+//--------------------------------------------------------------------------------------------------
+#[cfg(test)]
+mod ozz_soa_math {
+    use crate::simd_math::*;
+    use crate::math_test_helper::*;
+    use crate::*;
+    use crate::soa_transform::SoaTransform;
+
+    #[test]
+    fn soa_transform_constant() {
+        expect_soa_float3_eq!(SoaTransform::identity().translation, 0.0, 0.0, 0.0, 0.0,
+                            0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0);
+        expect_soa_quaternion_eq!(SoaTransform::identity().rotation, 0.0, 0.0, 0.0, 0.0,
+                                0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0, 1.0, 1.0,
+                                1.0);
+        expect_soa_float3_eq!(SoaTransform::identity().scale, 1.0, 1.0, 1.0, 1.0, 1.0,
+                            1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0);
+    }
+}

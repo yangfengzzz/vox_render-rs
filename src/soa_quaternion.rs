@@ -243,7 +243,6 @@ impl SoaQuaternion {
 //--------------------------------------------------------------------------------------------------
 #[cfg(test)]
 mod ozz_soa_math {
-    use crate::soa_float::*;
     use crate::math_test_helper::*;
     use crate::*;
     use crate::soa_quaternion::*;
