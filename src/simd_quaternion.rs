@@ -10,6 +10,7 @@ use crate::simd_math::*;
 use std::ops::{Mul, Neg};
 
 // Declare the Quaternion type.
+#[derive(Clone, Copy)]
 pub struct SimdQuaternion {
     pub xyzw: SimdFloat4,
 }
@@ -159,7 +160,7 @@ impl Neg for SimdQuaternion {
 
 impl SimdQuaternion {
     // Returns the conjugate of _q. This is the same as the inverse if _q is
-    // normalized. Otherwise the magnitude of the inverse is 1.f/|_q|.
+    // normalized. Otherwise the magnitude of the inverse is 1.0/|_q|.
     #[inline]
     pub fn conjugate(&self) -> SimdQuaternion {
         return SimdQuaternion { xyzw: self.xyzw.xor_fi(SimdInt4::mask_sign_xyz()) };
@@ -236,9 +237,118 @@ impl SimdQuaternion {
     pub fn transform_vector(&self,
                             _v: SimdFloat4) -> SimdFloat4 {
         // http://www.neil.dantam.name/note/dantam-quaternion.pdf
-        // _v + 2.f * cross(_q.xyz, cross(_q.xyz, _v) + _q.w * _v)
+        // _v + 2.0 * cross(_q.xyz, cross(_q.xyz, _v) + _q.w * _v)
         let cross1 = self.xyzw.splat_w().madd(_v, self.xyzw.cross3(_v));
         let cross2 = self.xyzw.cross3(cross1);
         return _v + cross2 + cross2;
     }
 }
+
+//--------------------------------------------------------------------------------------------------
+//--------------------------------------------------------------------------------------------------
+//--------------------------------------------------------------------------------------------------
+#[cfg(test)]
+mod ozz_simd_math {
+    use crate::simd_quaternion::SimdQuaternion;
+    use crate::simd_math::*;
+    use crate::math_test_helper::*;
+    use crate::*;
+
+    #[test]
+    fn quaternion_constant() {
+        expect_simd_quaternion_eq!(SimdQuaternion::identity(), 0.0, 0.0, 0.0, 1.0);
+    }
+
+    #[test]
+    #[allow(overflowing_literals)]
+    fn quaternion_arithmetic() {
+        let a = SimdQuaternion {
+            xyzw:
+            SimdFloat4::load(0.70710677, 0.0, 0.0, 0.70710677)
+        };
+        let b = SimdQuaternion {
+            xyzw:
+            SimdFloat4::load(0.0, 0.70710677, 0.0, 0.70710677)
+        };
+        let c = SimdQuaternion {
+            xyzw:
+            SimdFloat4::load(0.0, 0.70710677, 0.0, -0.70710677)
+        };
+        let denorm = SimdQuaternion {
+            xyzw:
+            SimdFloat4::load(1.414212, 0.0, 0.0, 1.414212)
+        };
+        let zero = SimdQuaternion {
+            xyzw:
+            SimdFloat4::zero()
+        };
+
+        expect_simd_int_eq!(a.is_normalized(), 0xffffffff, 0, 0, 0);
+        expect_simd_int_eq!(b.is_normalized(), 0xffffffff, 0, 0, 0);
+        expect_simd_int_eq!(c.is_normalized(), 0xffffffff, 0, 0, 0);
+        expect_simd_int_eq!(denorm.is_normalized(), 0, 0, 0, 0);
+
+        let conjugate = a.conjugate();
+        expect_simd_quaternion_eq!(conjugate, -0.70710677, 0.0, 0.0, 0.70710677);
+
+        let negate = -a;
+        expect_simd_quaternion_eq!(negate, -0.70710677, 0.0, 0.0, -0.70710677);
+
+        let mul0 = a * conjugate;
+        expect_simd_quaternion_eq!(mul0, 0.0, 0.0, 0.0, 1.0);
+
+        let mul1 = conjugate * a;
+        expect_simd_quaternion_eq!(mul1, 0.0, 0.0, 0.0, 1.0);
+
+        let q1234 = SimdQuaternion {
+            xyzw:
+            SimdFloat4::load(1.0, 2.0, 3.0, 4.0)
+        };
+        let q5678 = SimdQuaternion {
+            xyzw:
+            SimdFloat4::load(5.0, 6.0, 7.0, 8.0)
+        };
+        let mul12345678 = q1234 * q5678;
+        expect_simd_quaternion_eq!(mul12345678, 24.0, 48.0, 48.0, -6.0);
+
+        // EXPECT_ASSERTION(Normalize(zero), "is not normalizable");
+        let norm = denorm.normalize();
+        expect_simd_int_eq!(norm.is_normalized(), 0xffffffff, 0, 0, 0);
+        expect_simd_quaternion_eq!(norm, 0.7071068, 0.0, 0.0, 0.7071068);
+
+        // EXPECT_ASSERTION(NormalizeSafe(denorm, zero), "_safer is not normalized");
+        let norm_safe = denorm.normalize_safe(&b);
+        expect_simd_int_eq!(norm_safe.is_normalized(), 0xffffffff, 0, 0, 0);
+        expect_simd_quaternion_eq!(norm_safe, 0.7071068, 0.0, 0.0, 0.7071068);
+        let norm_safer = zero.normalize_safe(&b);
+        expect_simd_int_eq!(norm_safer.is_normalized(), 0xffffffff, 0, 0, 0);
+        expect_simd_quaternion_eq!(norm_safer, 0.0, 0.70710677, 0.0, 0.70710677);
+
+        // EXPECT_ASSERTION(NormalizeEst(zero), "is not normalizable");
+        let norm_est = denorm.normalize_est();
+        expect_simd_int_eq!(norm_est.is_normalized_est(), 0xffffffff, 0, 0, 0);
+        expect_simd_quaternion_eq_est!(norm_est, 0.7071068, 0.0, 0.0, 0.7071068);
+
+        // EXPECT_ASSERTION(NormalizeSafe(denorm, zero), "_safer is not normalized");
+        let norm_safe_est = denorm.normalize_safe_est(&b);
+        expect_simd_int_eq!(norm_safe_est.is_normalized_est(), 0xffffffff, 0, 0, 0);
+        expect_simd_quaternion_eq_est!(norm_safe_est, 0.7071068, 0.0, 0.0, 0.7071068);
+        let norm_safer_est = zero.normalize_safe_est(&b);
+        expect_simd_int_eq!(norm_safer_est.is_normalized_est(), 0xffffffff, 0, 0, 0);
+        expect_simd_quaternion_eq_est!(norm_safer_est, 0.0, 0.70710677, 0.0,
+                                     0.70710677);
+    }
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
