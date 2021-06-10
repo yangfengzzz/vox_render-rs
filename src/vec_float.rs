@@ -9,7 +9,7 @@
 use std::ops::{Add, Sub, Neg, Mul, Div, BitAnd};
 
 // Declares a 2d float vector.
-#[derive(Clone)]
+#[derive(Clone, Copy)]
 pub struct Float2 {
     pub x: f32,
     pub y: f32,
@@ -62,7 +62,7 @@ impl Float2 {
 
 //--------------------------------------------------------------------------------------------------
 // Declares a 3d float vector.
-#[derive(Clone)]
+#[derive(Clone, Copy)]
 pub struct Float3 {
     pub x: f32,
     pub y: f32,
@@ -133,7 +133,7 @@ impl Float3 {
 
 //--------------------------------------------------------------------------------------------------
 // Declares a 4d float vector.
-#[derive(Clone)]
+#[derive(Clone, Copy)]
 pub struct Float4 {
     pub x: f32,
     pub y: f32,
@@ -1021,4 +1021,25 @@ pub fn clamp2(_a: &Float2, _v: &Float2, _b: &Float2) -> Float2 {
             true => _a.y,
             false => min.y
         });
+}
+
+//--------------------------------------------------------------------------------------------------
+//--------------------------------------------------------------------------------------------------
+//--------------------------------------------------------------------------------------------------
+#[cfg(test)]
+mod ozz_math {
+    use crate::math_test_helper::*;
+    use crate::*;
+    use crate::transform::Transform;
+    use crate::vec_float::*;
+
+    #[test]
+    fn vector_load4() {
+        expect_float4_eq!(Float4::new_scalar(46.0), 46.0, 46.0, 46.0, 46.0);
+        expect_float4_eq!(Float4::new(-1.0, 0.0, 1.0, 2.0), -1.0, 0.0, 1.0, 2.0);
+        let f3 = Float3::new(-1.0, 0.0, 1.0);
+        expect_float4_eq!(Float4::new3(f3, 2.0), -1.0, 0.0, 1.0, 2.0);
+        let f2 = Float2::new(-1.0, 0.0);
+        expect_float4_eq!(Float4::new2(f2, 1.0, 2.0), -1.0, 0.0, 1.0, 2.0);
+    }
 }

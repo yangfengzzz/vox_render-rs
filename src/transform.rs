@@ -33,3 +33,20 @@ impl Transform {
         };
     }
 }
+
+//--------------------------------------------------------------------------------------------------
+//--------------------------------------------------------------------------------------------------
+//--------------------------------------------------------------------------------------------------
+#[cfg(test)]
+mod ozz_math {
+    use crate::math_test_helper::*;
+    use crate::*;
+    use crate::transform::Transform;
+
+    #[test]
+    fn transform_constant() {
+        expect_float3_eq!(Transform::identity().translation, 0.0, 0.0, 0.0);
+        expect_quaternion_eq!(Transform::identity().rotation, 0.0, 0.0, 0.0, 1.0);
+        expect_float3_eq!(Transform::identity().scale, 1.0, 1.0, 1.0);
+    }
+}
