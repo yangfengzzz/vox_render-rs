@@ -573,6 +573,24 @@ mod ozz_simd_math {
                                           SimdFloat4::zero()),
             0.0, 0.0, 0.0, 1.0);
         expect_simd_float_eq!(SimdQuaternion::identity().to_axis_angle(), 1.0, 0.0, 0.0, 0.0);
+
+        // Other axis angles
+        let pi_2 = SimdFloat4::load_x(crate::math_constant::K_PI_2);
+        let qy_pi_2 = SimdQuaternion::from_axis_angle(SimdFloat4::y_axis(), pi_2);
+        expect_simd_quaternion_eq!(qy_pi_2, 0.0, 0.70710677, 0.0, 0.70710677);
+        expect_simd_float_eq!(qy_pi_2.to_axis_angle(), 0.0, 1.0, 0.0, crate::math_constant::K_PI_2);
+
+        let qy_mpi_2 = SimdQuaternion::from_axis_angle(SimdFloat4::y_axis(), -pi_2);
+        expect_simd_quaternion_eq!(qy_mpi_2, 0.0, -0.70710677, 0.0, 0.70710677);
+        expect_simd_float_eq!(qy_mpi_2.to_axis_angle(), 0.0, -1.0, 0.0, crate::math_constant::K_PI_2);  // q = -q
+        let qmy_pi_2 = SimdQuaternion::from_axis_angle(-SimdFloat4::y_axis(), pi_2);
+        expect_simd_quaternion_eq!(qmy_pi_2, 0.0, -0.70710677, 0.0, 0.70710677);
+
+        let any_axis = SimdFloat4::load(0.819865, 0.033034, -0.571604, 99.0);
+        let any_angle = SimdFloat4::load(1.123, 99.0, 26.0, 93.0);
+        let qany = SimdQuaternion::from_axis_angle(any_axis, any_angle);
+        expect_simd_quaternion_eq!(qany, 0.4365425, 0.017589169, -0.30435428, 0.84645736);
+        expect_simd_float_eq!(qany.to_axis_angle(), 0.819865, 0.033034, -0.571604, 1.123);
     }
 }
 
