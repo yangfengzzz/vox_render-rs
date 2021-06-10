@@ -334,7 +334,7 @@ mod ozz_simd_math {
     use crate::simd_math::*;
     use crate::math_test_helper::*;
     use crate::*;
-    use crate::soa_float::SoaFloat4;
+    use crate::soa_float::{SoaFloat4, SoaFloat3};
     use crate::soa_quaternion::SoaQuaternion;
 
     #[test]
@@ -618,5 +618,38 @@ mod ozz_simd_math {
             0.0, -0.707106, 0.0, 0.0, 0.0, 0.0, 1.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0,
             0.707106, 0.0, 0.0, 1.0, 0.707106, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0,
             0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0, 1.0, 1.0, 1.0);
+    }
+
+    #[test]
+    fn soa_float4x4affine() {
+        let identity = SoaFloat4x4::from_affine(
+            &SoaFloat3::zero(), &SoaQuaternion::identity(), &SoaFloat3::one());
+        expect_soa_float4x4_eq!(identity, 1.0, 1.0, 1.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0,
+                              0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0,
+                              1.0, 1.0, 1.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0,
+                              0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0, 1.0,
+                              1.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0,
+                              0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0, 1.0, 1.0, 1.0);
+        let translation =
+            SoaFloat3::load(SimdFloat4::load(0.0, 46.0, 7.0, -12.0),
+                            SimdFloat4::load(0.0, 12.0, 7.0, -46.0),
+                            SimdFloat4::load(0.0, 0.0, 7.0, 46.0));
+        let scale =
+            SoaFloat3::load(SimdFloat4::load(1.0, 1.0, -1.0, 0.1),
+                            SimdFloat4::load(1.0, 2.0, -1.0, 0.1),
+                            SimdFloat4::load(1.0, 3.0, -1.0, 0.1));
+        let quaternion = SoaQuaternion::load(
+            SimdFloat4::load(0.70710677, 0.0, 0.0, -0.382683432),
+            SimdFloat4::load(0.0, 0.70710677, 0.0, 0.0),
+            SimdFloat4::load(0.70710677, 0.0, 0.0, 0.0),
+            SimdFloat4::load(0.0, 0.70710677, 1.0, 0.9238795));
+        let matrix =
+            SoaFloat4x4::from_affine(&translation, &quaternion, &scale);
+        expect_soa_float4x4_eq!(
+            matrix, 0.0, 0.0, -1.0, 0.1, 0.0, 0.0, 0.0, 0.0, 1.0, -1.0, 0.0, 0.0, 0.0,
+            0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, -1.0, 2.0, -1.0, 0.0707106, 0.0, 0.0,
+            0.0, -0.0707106, 0.0, 0.0, 0.0, 0.0, 1.0, 3.0, 0.0, 0.0, 0.0, 0.0, 0.0,
+            0.0707106, 0.0, 0.0, -1.0, 0.0707106, 0.0, 0.0, 0.0, 0.0, 0.0, 46.0, 7.0,
+            -12.0, 0.0, 12.0, 7.0, -46.0, 0.0, 0.0, 7.0, 46.0, 1.0, 1.0, 1.0, 1.0);
     }
 }
