@@ -342,7 +342,7 @@ macro_rules! expect_soa_float2_eq_est {
 #[macro_export]
 macro_rules! expect_soa_float1_eq {
     ($expected:expr, $_x0:expr, $_x1:expr, $_x2:expr, $_x3:expr) => {
-        _impl_expect_simd_float_eq!($expected.x, $_x0, $_x1, $_x2, $_x3);
+        _impl_expect_simd_float_eq!($expected, $_x0, $_x1, $_x2, $_x3);
     };
 }
 
@@ -351,7 +351,7 @@ macro_rules! expect_soa_float1_eq {
 #[macro_export]
 macro_rules! expect_soa_float1_eq_est {
     ($expected:expr, $_x0:expr, $_x1:expr, $_x2:expr, $_x3:expr) => {
-        _impl_expect_simd_float_eq_est!($expected.x, $_x0, $_x1, $_x2, $_x3);
+        _impl_expect_simd_float_eq_est!($expected, $_x0, $_x1, $_x2, $_x3);
     };
 }
 

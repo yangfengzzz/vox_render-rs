@@ -77,7 +77,7 @@ impl SoaFloat3 {
     }
 
     #[inline]
-    pub fn loa2d(_v: &SoaFloat2, _z: SimdFloat4) -> SoaFloat3 {
+    pub fn load2(_v: &SoaFloat2, _z: SimdFloat4) -> SoaFloat3 {
         return SoaFloat3 {
             x: _v.x,
             y: _v.y,
@@ -432,41 +432,46 @@ impl Mul<SimdFloat4> for SoaFloat2 {
 }
 
 //--------------------------------------------------------------------------------------------------
-// Multiplies _a and _b, then adds _addend.
+impl SoaFloat2 {
+    // Multiplies _a and _b, then adds _addend.
 // v = (_a * _b) + _addend
-#[inline]
-pub fn m_add2(_a: &SoaFloat2,
-              _b: &SoaFloat2,
-              _addend: &SoaFloat2) -> SoaFloat2 {
-    return SoaFloat2 {
-        x: SimdFloat4::madd(&_a.x, _b.x, _addend.x),
-        y: SimdFloat4::madd(&_a.y, _b.y, _addend.y),
-    };
+    #[inline]
+    pub fn m_add(&self,
+                 _b: &SoaFloat2,
+                 _addend: &SoaFloat2) -> SoaFloat2 {
+        return SoaFloat2 {
+            x: SimdFloat4::madd(&self.x, _b.x, _addend.x),
+            y: SimdFloat4::madd(&self.y, _b.y, _addend.y),
+        };
+    }
 }
 
-#[inline]
-pub fn m_add3(_a: &SoaFloat3,
-              _b: &SoaFloat3,
-              _addend: &SoaFloat3) -> SoaFloat3 {
-    return SoaFloat3 {
-        x: SimdFloat4::madd(&_a.x, _b.x, _addend.x),
-        y: SimdFloat4::madd(&_a.y, _b.y, _addend.y),
-        z: SimdFloat4::madd(&_a.z, _b.z, _addend.z),
-    };
+impl SoaFloat3 {
+    #[inline]
+    pub fn m_add(&self,
+                 _b: &SoaFloat3,
+                 _addend: &SoaFloat3) -> SoaFloat3 {
+        return SoaFloat3 {
+            x: SimdFloat4::madd(&self.x, _b.x, _addend.x),
+            y: SimdFloat4::madd(&self.y, _b.y, _addend.y),
+            z: SimdFloat4::madd(&self.z, _b.z, _addend.z),
+        };
+    }
 }
 
-#[inline]
-pub fn m_add4(_a: &SoaFloat4,
-              _b: &SoaFloat4,
-              _addend: &SoaFloat4) -> SoaFloat4 {
-    return SoaFloat4 {
-        x: SimdFloat4::madd(&_a.x, _b.x, _addend.x),
-        y: SimdFloat4::madd(&_a.y, _b.y, _addend.y),
-        z: SimdFloat4::madd(&_a.z, _b.z, _addend.z),
-        w: SimdFloat4::madd(&_a.w, _b.w, _addend.w),
-    };
+impl SoaFloat4 {
+    #[inline]
+    pub fn m_add(&self,
+                 _b: &SoaFloat4,
+                 _addend: &SoaFloat4) -> SoaFloat4 {
+        return SoaFloat4 {
+            x: SimdFloat4::madd(&self.x, _b.x, _addend.x),
+            y: SimdFloat4::madd(&self.y, _b.y, _addend.y),
+            z: SimdFloat4::madd(&self.z, _b.z, _addend.z),
+            w: SimdFloat4::madd(&self.w, _b.w, _addend.w),
+        };
+    }
 }
-
 //--------------------------------------------------------------------------------------------------
 // Returns per element division of _a and _b using operator /.
 macro_rules! impl_div4 {
@@ -692,242 +697,543 @@ impl SoaFloat2 {
 }
 
 //--------------------------------------------------------------------------------------------------
-// Returns the (horizontal) addition of each element of _v.
-pub fn h_add4(_v: &SoaFloat4) -> SimdFloat4 { return _v.x + _v.y + _v.z + _v.w; }
-
-pub fn h_add3(_v: &SoaFloat3) -> SimdFloat4 { return _v.x + _v.y + _v.z; }
-
-pub fn h_add2(_v: &SoaFloat2) -> SimdFloat4 { return _v.x + _v.y; }
-
-//--------------------------------------------------------------------------------------------------
-// Returns the dot product of _a and _b.
-pub fn dot4(_a: &SoaFloat4, _b: &SoaFloat4) -> SimdFloat4 {
-    return _a.x * _b.x + _a.y * _b.y + _a.z * _b.z + _a.w * _b.w;
+impl SoaFloat4 {
+    // Returns the (horizontal) addition of each element of _v.
+    pub fn h_add(&self) -> SimdFloat4 { return self.x + self.y + self.z + self.w; }
 }
 
-pub fn dot3(_a: &SoaFloat3, _b: &SoaFloat3) -> SimdFloat4 {
-    return _a.x * _b.x + _a.y * _b.y + _a.z * _b.z;
+impl SoaFloat3 {
+    pub fn h_add(&self) -> SimdFloat4 { return self.x + self.y + self.z; }
 }
 
-pub fn dot2(_a: &SoaFloat2, _b: &SoaFloat2) -> SimdFloat4 {
-    return _a.x * _b.x + _a.y * _b.y;
+impl SoaFloat2 {
+    pub fn h_add(&self) -> SimdFloat4 { return self.x + self.y; }
 }
 
 //--------------------------------------------------------------------------------------------------
-// Returns the cross product of _a and _b.
-pub fn cross(_a: &SoaFloat3, _b: &SoaFloat3) -> SoaFloat3 {
-    return SoaFloat3::load(_a.y * _b.z - _b.y * _a.z,
-                           _a.z * _b.x - _b.z * _a.x,
-                           _a.x * _b.y - _b.x * _a.y);
+impl SoaFloat4 {
+    // Returns the dot product of _a and _b.
+    pub fn dot(&self, _b: &SoaFloat4) -> SimdFloat4 {
+        return self.x * _b.x + self.y * _b.y + self.z * _b.z + self.w * _b.w;
+    }
+}
+
+impl SoaFloat3 {
+    pub fn dot(&self, _b: &SoaFloat3) -> SimdFloat4 {
+        return self.x * _b.x + self.y * _b.y + self.z * _b.z;
+    }
+}
+
+impl SoaFloat2 {
+    pub fn dot(&self, _b: &SoaFloat2) -> SimdFloat4 {
+        return self.x * _b.x + self.y * _b.y;
+    }
 }
 
 //--------------------------------------------------------------------------------------------------
-// Returns the length |_v| of _v.
-pub fn length4(_v: &SoaFloat4) -> SimdFloat4 {
-    let len2 = _v.x * _v.x + _v.y * _v.y + _v.z * _v.z + _v.w * _v.w;
-    return len2.sqrt();
-}
-
-pub fn length3(_v: &SoaFloat3) -> SimdFloat4 {
-    let len2 = _v.x * _v.x + _v.y * _v.y + _v.z * _v.z;
-    return len2.sqrt();
-}
-
-pub fn length2(_v: &SoaFloat2) -> SimdFloat4 {
-    let len2 = _v.x * _v.x + _v.y * _v.y;
-    return len2.sqrt();
+impl SoaFloat3 {
+    // Returns the cross product of _a and _b.
+    pub fn cross(&self, _b: &SoaFloat3) -> SoaFloat3 {
+        return SoaFloat3::load(self.y * _b.z - _b.y * self.z,
+                               self.z * _b.x - _b.z * self.x,
+                               self.x * _b.y - _b.x * self.y);
+    }
 }
 
 //--------------------------------------------------------------------------------------------------
-// Returns the square length |_v|^2 of _v.
-pub fn length_sqr4(_v: &SoaFloat4) -> SimdFloat4 {
-    return _v.x * _v.x + _v.y * _v.y + _v.z * _v.z + _v.w * _v.w;
+impl SoaFloat4 {
+    // Returns the length |_v| of _v.
+    pub fn length(&self) -> SimdFloat4 {
+        let len2 = self.x * self.x + self.y * self.y + self.z * self.z + self.w * self.w;
+        return len2.sqrt();
+    }
 }
 
-pub fn length_sqr3(_v: &SoaFloat3) -> SimdFloat4 {
-    return _v.x * _v.x + _v.y * _v.y + _v.z * _v.z;
+impl SoaFloat3 {
+    pub fn length(&self) -> SimdFloat4 {
+        let len2 = self.x * self.x + self.y * self.y + self.z * self.z;
+        return len2.sqrt();
+    }
 }
 
-pub fn length_sqr2(_v: &SoaFloat2) -> SimdFloat4 {
-    return _v.x * _v.x + _v.y * _v.y;
-}
-
-//--------------------------------------------------------------------------------------------------
-// Returns the normalized vector _v.
-pub fn normalize4(_v: &SoaFloat4) -> SoaFloat4 {
-    let len2 = _v.x * _v.x + _v.y * _v.y + _v.z * _v.z + _v.w * _v.w;
-    debug_assert!(len2.cmp_ne(SimdFloat4::load(0.0, 0.0, 0.0, 0.0)).are_all_true()
-        && "_v is not normalizable".parse().unwrap_or(true));
-
-    let inv_len = SimdFloat4::load(1.0, 1.0, 1.0, 1.0) / len2.sqrt();
-    return SoaFloat4::load(
-        _v.x * inv_len, _v.y * inv_len, _v.z * inv_len,
-        _v.w * inv_len,
-    );
-}
-
-pub fn normalize3(_v: &SoaFloat3) -> SoaFloat3 {
-    let len2 = _v.x * _v.x + _v.y * _v.y + _v.z * _v.z;
-    debug_assert!(len2.cmp_ne(SimdFloat4::load(0.0, 0.0, 0.0, 0.0)).are_all_true()
-        && "_v is not normalizable".parse().unwrap_or(true));
-
-    let inv_len = SimdFloat4::load(1.0, 1.0, 1.0, 1.0) / len2.sqrt();
-    return SoaFloat3::load(_v.x * inv_len, _v.y * inv_len, _v.z * inv_len);
-}
-
-pub fn normalize2(_v: &SoaFloat2) -> SoaFloat2 {
-    let len2 = _v.x * _v.x + _v.y * _v.y;
-    debug_assert!(len2.cmp_ne(SimdFloat4::load(0.0, 0.0, 0.0, 0.0)).are_all_true()
-        && "_v is not normalizable".parse().unwrap_or(true));
-
-    let inv_len = SimdFloat4::load(1.0, 1.0, 1.0, 1.0) / len2.sqrt();
-    return SoaFloat2::load(_v.x * inv_len, _v.y * inv_len);
+impl SoaFloat2 {
+    pub fn length(&self) -> SimdFloat4 {
+        let len2 = self.x * self.x + self.y * self.y;
+        return len2.sqrt();
+    }
 }
 
 //--------------------------------------------------------------------------------------------------
-// Test if each vector _v is normalized.
-pub fn is_normalized4(_v: &SoaFloat4) -> SimdInt4 {
-    let len2 = _v.x * _v.x + _v.y * _v.y + _v.z * _v.z + _v.w * _v.w;
-    return (len2 - SimdFloat4::load(1.0, 1.0, 1.0, 1.0)).abs().
-        cmp_lt(SimdFloat4::load(K_NORMALIZATION_TOLERANCE_SQ, K_NORMALIZATION_TOLERANCE_SQ,
-                                K_NORMALIZATION_TOLERANCE_SQ, K_NORMALIZATION_TOLERANCE_SQ));
+impl SoaFloat4 {
+    // Returns the square length |_v|^2 of _v.
+    pub fn length_sqr(&self) -> SimdFloat4 {
+        return self.x * self.x + self.y * self.y + self.z * self.z + self.w * self.w;
+    }
 }
 
-pub fn is_normalized3(_v: &SoaFloat3) -> SimdInt4 {
-    let len2 = _v.x * _v.x + _v.y * _v.y + _v.z * _v.z;
-    return (len2 - SimdFloat4::load(1.0, 1.0, 1.0, 1.0)).abs().
-        cmp_lt(SimdFloat4::load(K_NORMALIZATION_TOLERANCE_SQ, K_NORMALIZATION_TOLERANCE_SQ,
-                                K_NORMALIZATION_TOLERANCE_SQ, K_NORMALIZATION_TOLERANCE_SQ));
+impl SoaFloat3 {
+    pub fn length_sqr(&self) -> SimdFloat4 {
+        return self.x * self.x + self.y * self.y + self.z * self.z;
+    }
 }
 
-pub fn is_normalized2(_v: &SoaFloat2) -> SimdInt4 {
-    let len2 = _v.x * _v.x + _v.y * _v.y;
-    return (len2 - SimdFloat4::load(1.0, 1.0, 1.0, 1.0)).abs().
-        cmp_lt(SimdFloat4::load(K_NORMALIZATION_TOLERANCE_SQ, K_NORMALIZATION_TOLERANCE_SQ,
-                                K_NORMALIZATION_TOLERANCE_SQ, K_NORMALIZATION_TOLERANCE_SQ));
-}
-
-
-//--------------------------------------------------------------------------------------------------
-// Test if each vector _v is normalized using estimated tolerance.
-pub fn is_normalized_est4(_v: &SoaFloat4) -> SimdInt4 {
-    let len2 = _v.x * _v.x + _v.y * _v.y + _v.z * _v.z + _v.w * _v.w;
-    return (len2 - SimdFloat4::load(1.0, 1.0, 1.0, 1.0)).abs().
-        cmp_lt(SimdFloat4::load(K_NORMALIZATION_TOLERANCE_EST_SQ, K_NORMALIZATION_TOLERANCE_EST_SQ,
-                                K_NORMALIZATION_TOLERANCE_EST_SQ, K_NORMALIZATION_TOLERANCE_EST_SQ));
-}
-
-pub fn is_normalized_est3(_v: &SoaFloat3) -> SimdInt4 {
-    let len2 = _v.x * _v.x + _v.y * _v.y + _v.z * _v.z;
-    return (len2 - SimdFloat4::load(1.0, 1.0, 1.0, 1.0)).abs().
-        cmp_lt(SimdFloat4::load(K_NORMALIZATION_TOLERANCE_EST_SQ, K_NORMALIZATION_TOLERANCE_EST_SQ,
-                                K_NORMALIZATION_TOLERANCE_EST_SQ, K_NORMALIZATION_TOLERANCE_EST_SQ));
-}
-
-pub fn is_normalized_est2(_v: &SoaFloat2) -> SimdInt4 {
-    let len2 = _v.x * _v.x + _v.y * _v.y;
-    return (len2 - SimdFloat4::load(1.0, 1.0, 1.0, 1.0)).abs().
-        cmp_lt(SimdFloat4::load(K_NORMALIZATION_TOLERANCE_EST_SQ, K_NORMALIZATION_TOLERANCE_EST_SQ,
-                                K_NORMALIZATION_TOLERANCE_EST_SQ, K_NORMALIZATION_TOLERANCE_EST_SQ));
+impl SoaFloat2 {
+    pub fn length_sqr(&self) -> SimdFloat4 {
+        return self.x * self.x + self.y * self.y;
+    }
 }
 
 //--------------------------------------------------------------------------------------------------
-// Returns the normalized vector _v if the norm of _v is not 0.
+impl SoaFloat4 {
+    // Returns the normalized vector self.
+    pub fn normalize(&self) -> SoaFloat4 {
+        let len2 = self.x * self.x + self.y * self.y + self.z * self.z + self.w * self.w;
+        debug_assert!(len2.cmp_ne(SimdFloat4::load(0.0, 0.0, 0.0, 0.0)).are_all_true()
+            && "self is not normalizable".parse().unwrap_or(true));
+
+        let inv_len = SimdFloat4::load(1.0, 1.0, 1.0, 1.0) / len2.sqrt();
+        return SoaFloat4::load(
+            self.x * inv_len, self.y * inv_len, self.z * inv_len,
+            self.w * inv_len,
+        );
+    }
+}
+
+impl SoaFloat3 {
+    pub fn normalize(&self) -> SoaFloat3 {
+        let len2 = self.x * self.x + self.y * self.y + self.z * self.z;
+        debug_assert!(len2.cmp_ne(SimdFloat4::load(0.0, 0.0, 0.0, 0.0)).are_all_true()
+            && "self is not normalizable".parse().unwrap_or(true));
+
+        let inv_len = SimdFloat4::load(1.0, 1.0, 1.0, 1.0) / len2.sqrt();
+        return SoaFloat3::load(self.x * inv_len, self.y * inv_len, self.z * inv_len);
+    }
+}
+
+impl SoaFloat2 {
+    pub fn normalize(&self) -> SoaFloat2 {
+        let len2 = self.x * self.x + self.y * self.y;
+        debug_assert!(len2.cmp_ne(SimdFloat4::load(0.0, 0.0, 0.0, 0.0)).are_all_true()
+            && "self is not normalizable".parse().unwrap_or(true));
+
+        let inv_len = SimdFloat4::load(1.0, 1.0, 1.0, 1.0) / len2.sqrt();
+        return SoaFloat2::load(self.x * inv_len, self.y * inv_len);
+    }
+}
+
+//--------------------------------------------------------------------------------------------------
+impl SoaFloat4 {
+    // Test if each vector self is normalized.
+    pub fn is_normalized(&self) -> SimdInt4 {
+        let len2 = self.x * self.x + self.y * self.y + self.z * self.z + self.w * self.w;
+        return (len2 - SimdFloat4::load(1.0, 1.0, 1.0, 1.0)).abs().
+            cmp_lt(SimdFloat4::load(K_NORMALIZATION_TOLERANCE_SQ, K_NORMALIZATION_TOLERANCE_SQ,
+                                    K_NORMALIZATION_TOLERANCE_SQ, K_NORMALIZATION_TOLERANCE_SQ));
+    }
+}
+
+impl SoaFloat3 {
+    pub fn is_normalized(&self) -> SimdInt4 {
+        let len2 = self.x * self.x + self.y * self.y + self.z * self.z;
+        return (len2 - SimdFloat4::load(1.0, 1.0, 1.0, 1.0)).abs().
+            cmp_lt(SimdFloat4::load(K_NORMALIZATION_TOLERANCE_SQ, K_NORMALIZATION_TOLERANCE_SQ,
+                                    K_NORMALIZATION_TOLERANCE_SQ, K_NORMALIZATION_TOLERANCE_SQ));
+    }
+}
+
+impl SoaFloat2 {
+    pub fn is_normalized(&self) -> SimdInt4 {
+        let len2 = self.x * self.x + self.y * self.y;
+        return (len2 - SimdFloat4::load(1.0, 1.0, 1.0, 1.0)).abs().
+            cmp_lt(SimdFloat4::load(K_NORMALIZATION_TOLERANCE_SQ, K_NORMALIZATION_TOLERANCE_SQ,
+                                    K_NORMALIZATION_TOLERANCE_SQ, K_NORMALIZATION_TOLERANCE_SQ));
+    }
+}
+
+//--------------------------------------------------------------------------------------------------
+impl SoaFloat4 {
+    // Test if each vector _v is normalized using estimated tolerance.
+    pub fn is_normalized_est(&self) -> SimdInt4 {
+        let len2 = self.x * self.x + self.y * self.y + self.z * self.z + self.w * self.w;
+        return (len2 - SimdFloat4::load(1.0, 1.0, 1.0, 1.0)).abs().
+            cmp_lt(SimdFloat4::load(K_NORMALIZATION_TOLERANCE_EST_SQ, K_NORMALIZATION_TOLERANCE_EST_SQ,
+                                    K_NORMALIZATION_TOLERANCE_EST_SQ, K_NORMALIZATION_TOLERANCE_EST_SQ));
+    }
+}
+
+impl SoaFloat3 {
+    pub fn is_normalized_est(&self) -> SimdInt4 {
+        let len2 = self.x * self.x + self.y * self.y + self.z * self.z;
+        return (len2 - SimdFloat4::load(1.0, 1.0, 1.0, 1.0)).abs().
+            cmp_lt(SimdFloat4::load(K_NORMALIZATION_TOLERANCE_EST_SQ, K_NORMALIZATION_TOLERANCE_EST_SQ,
+                                    K_NORMALIZATION_TOLERANCE_EST_SQ, K_NORMALIZATION_TOLERANCE_EST_SQ));
+    }
+}
+
+impl SoaFloat2 {
+    pub fn is_normalized_est(&self) -> SimdInt4 {
+        let len2 = self.x * self.x + self.y * self.y;
+        return (len2 - SimdFloat4::load(1.0, 1.0, 1.0, 1.0)).abs().
+            cmp_lt(SimdFloat4::load(K_NORMALIZATION_TOLERANCE_EST_SQ, K_NORMALIZATION_TOLERANCE_EST_SQ,
+                                    K_NORMALIZATION_TOLERANCE_EST_SQ, K_NORMALIZATION_TOLERANCE_EST_SQ));
+    }
+}
+
+//--------------------------------------------------------------------------------------------------
+impl SoaFloat4 {
+    // Returns the normalized vector self if the norm of self is not 0.
 // Otherwise returns _safer.
-pub fn normalize_safe4(_v: &SoaFloat4, _safer: &SoaFloat4) -> SoaFloat4 {
-    debug_assert!(is_normalized_est4(_safer).are_all_true() && "_safer is not normalized".parse().unwrap_or(true));
-    let len2 = _v.x * _v.x + _v.y * _v.y + _v.z * _v.z + _v.w * _v.w;
-    let b = len2.cmp_ne(SimdFloat4::load(0.0, 0.0, 0.0, 0.0));
-    let inv_len = SimdFloat4::load(1.0, 1.0, 1.0, 1.0) / len2.sqrt();
-    return SoaFloat4::load(
-        SimdFloat4::select(b, _v.x * inv_len, _safer.x),
-        SimdFloat4::select(b, _v.y * inv_len, _safer.y),
-        SimdFloat4::select(b, _v.z * inv_len, _safer.z),
-        SimdFloat4::select(b, _v.w * inv_len, _safer.w));
+    pub fn normalize_safe(&self, _safer: &SoaFloat4) -> SoaFloat4 {
+        debug_assert!(_safer.is_normalized_est().are_all_true() && "_safer is not normalized".parse().unwrap_or(true));
+        let len2 = self.x * self.x + self.y * self.y + self.z * self.z + self.w * self.w;
+        let b = len2.cmp_ne(SimdFloat4::load(0.0, 0.0, 0.0, 0.0));
+        let inv_len = SimdFloat4::load(1.0, 1.0, 1.0, 1.0) / len2.sqrt();
+        return SoaFloat4::load(
+            SimdFloat4::select(b, self.x * inv_len, _safer.x),
+            SimdFloat4::select(b, self.y * inv_len, _safer.y),
+            SimdFloat4::select(b, self.z * inv_len, _safer.z),
+            SimdFloat4::select(b, self.w * inv_len, _safer.w));
+    }
 }
 
-pub fn normalize_safe3(_v: &SoaFloat3, _safer: &SoaFloat3) -> SoaFloat3 {
-    debug_assert!(is_normalized_est3(_safer).are_all_true() && "_safer is not normalized".parse().unwrap_or(true));
+impl SoaFloat3 {
+    pub fn normalize_safe(&self, _safer: &SoaFloat3) -> SoaFloat3 {
+        debug_assert!(_safer.is_normalized_est().are_all_true() && "_safer is not normalized".parse().unwrap_or(true));
 
-    let len2 = _v.x * _v.x + _v.y * _v.y + _v.z * _v.z;
-    let b = len2.cmp_ne(SimdFloat4::load(0.0, 0.0, 0.0, 0.0));
-    let inv_len = SimdFloat4::load(1.0, 1.0, 1.0, 1.0) / len2.sqrt();
-    return SoaFloat3::load(SimdFloat4::select(b, _v.x * inv_len, _safer.x),
-                           SimdFloat4::select(b, _v.y * inv_len, _safer.y),
-                           SimdFloat4::select(b, _v.z * inv_len, _safer.z));
+        let len2 = self.x * self.x + self.y * self.y + self.z * self.z;
+        let b = len2.cmp_ne(SimdFloat4::load(0.0, 0.0, 0.0, 0.0));
+        let inv_len = SimdFloat4::load(1.0, 1.0, 1.0, 1.0) / len2.sqrt();
+        return SoaFloat3::load(SimdFloat4::select(b, self.x * inv_len, _safer.x),
+                               SimdFloat4::select(b, self.y * inv_len, _safer.y),
+                               SimdFloat4::select(b, self.z * inv_len, _safer.z));
+    }
 }
 
-pub fn normalize_safe2(_v: &SoaFloat2, _safer: &SoaFloat2) -> SoaFloat2 {
-    debug_assert!(is_normalized_est2(_safer).are_all_true() && "_safer is not normalized".parse().unwrap_or(true));
-    let len2 = _v.x * _v.x + _v.y * _v.y;
-    let b = len2.cmp_ne(SimdFloat4::load(0.0, 0.0, 0.0, 0.0));
-    let inv_len = SimdFloat4::load(1.0, 1.0, 1.0, 1.0) / len2.sqrt();
-    return SoaFloat2::load(SimdFloat4::select(b, _v.x * inv_len, _safer.x),
-                           SimdFloat4::select(b, _v.y * inv_len, _safer.y));
-}
-
-//--------------------------------------------------------------------------------------------------
-// Returns the linear interpolation of _a and _b with coefficient _f.
-// _f is not limited to range [0,1].
-pub fn lerp4(_a: &SoaFloat4, _b: &SoaFloat4, _f: SimdFloat4) -> SoaFloat4 {
-    return SoaFloat4::load((_b.x - _a.x) * _f + _a.x, (_b.y - _a.y) * _f + _a.y,
-                           (_b.z - _a.z) * _f + _a.z, (_b.w - _a.w) * _f + _a.w);
-}
-
-pub fn lerp3(_a: &SoaFloat3, _b: &SoaFloat3, _f: SimdFloat4) -> SoaFloat3 {
-    return SoaFloat3::load((_b.x - _a.x) * _f + _a.x, (_b.y - _a.y) * _f + _a.y,
-                           (_b.z - _a.z) * _f + _a.z);
-}
-
-pub fn lerp2(_a: &SoaFloat2, _b: &SoaFloat2, _f: SimdFloat4) -> SoaFloat2 {
-    return SoaFloat2::load((_b.x - _a.x) * _f + _a.x, (_b.y - _a.y) * _f + _a.y);
+impl SoaFloat2 {
+    pub fn normalize_safe(&self, _safer: &SoaFloat2) -> SoaFloat2 {
+        debug_assert!(_safer.is_normalized_est().are_all_true() && "_safer is not normalized".parse().unwrap_or(true));
+        let len2 = self.x * self.x + self.y * self.y;
+        let b = len2.cmp_ne(SimdFloat4::load(0.0, 0.0, 0.0, 0.0));
+        let inv_len = SimdFloat4::load(1.0, 1.0, 1.0, 1.0) / len2.sqrt();
+        return SoaFloat2::load(SimdFloat4::select(b, self.x * inv_len, _safer.x),
+                               SimdFloat4::select(b, self.y * inv_len, _safer.y));
+    }
 }
 
 //--------------------------------------------------------------------------------------------------
-// Returns the minimum of each element of _a and _b.
-pub fn min4(_a: &SoaFloat4, _b: &SoaFloat4) -> SoaFloat4 {
-    return SoaFloat4::load(SimdFloat4::min(&_a.x, _b.x), SimdFloat4::min(&_a.y, _b.y),
-                           SimdFloat4::min(&_a.z, _b.z),
-                           SimdFloat4::min(&_a.w, _b.w));
+impl SoaFloat4 {
+    // Returns the linear interpolation of _a and _b with coefficient _f.
+    // _f is not limited to range [0,1].
+    pub fn lerp(&self, _b: &SoaFloat4, _f: SimdFloat4) -> SoaFloat4 {
+        return SoaFloat4::load((_b.x - self.x) * _f + self.x, (_b.y - self.y) * _f + self.y,
+                               (_b.z - self.z) * _f + self.z, (_b.w - self.w) * _f + self.w);
+    }
 }
 
-pub fn min3(_a: &SoaFloat3, _b: &SoaFloat3) -> SoaFloat3 {
-    return SoaFloat3::load(SimdFloat4::min(&_a.x, _b.x), SimdFloat4::min(&_a.y, _b.y),
-                           SimdFloat4::min(&_a.z, _b.z));
+impl SoaFloat3 {
+    pub fn lerp(&self, _b: &SoaFloat3, _f: SimdFloat4) -> SoaFloat3 {
+        return SoaFloat3::load((_b.x - self.x) * _f + self.x, (_b.y - self.y) * _f + self.y,
+                               (_b.z - self.z) * _f + self.z);
+    }
 }
 
-pub fn min2(_a: &SoaFloat2, _b: &SoaFloat2) -> SoaFloat2 {
-    return SoaFloat2::load(SimdFloat4::min(&_a.x, _b.x), SimdFloat4::min(&_a.y, _b.y));
-}
-
-//--------------------------------------------------------------------------------------------------
-// Returns the maximum of each element of _a and _b.
-pub fn max4(_a: &SoaFloat4, _b: &SoaFloat4) -> SoaFloat4 {
-    return SoaFloat4::load(SimdFloat4::max(&_a.x, _b.x), SimdFloat4::max(&_a.y, _b.y),
-                           SimdFloat4::max(&_a.z, _b.z),
-                           SimdFloat4::max(&_a.w, _b.w));
-}
-
-pub fn max3(_a: &SoaFloat3, _b: &SoaFloat3) -> SoaFloat3 {
-    return SoaFloat3::load(SimdFloat4::max(&_a.x, _b.x), SimdFloat4::max(&_a.y, _b.y),
-                           SimdFloat4::max(&_a.z, _b.z));
-}
-
-pub fn max2(_a: &SoaFloat2, _b: &SoaFloat2) -> SoaFloat2 {
-    return SoaFloat2::load(SimdFloat4::max(&_a.x, _b.x), SimdFloat4::max(&_a.y, _b.y));
+impl SoaFloat2 {
+    pub fn lerp(&self, _b: &SoaFloat2, _f: SimdFloat4) -> SoaFloat2 {
+        return SoaFloat2::load((_b.x - self.x) * _f + self.x, (_b.y - self.y) * _f + self.y);
+    }
 }
 
 //--------------------------------------------------------------------------------------------------
-// Clamps each element of _x between _a and _b.
-// _a must be less or equal to b;
-pub fn clamp4(_a: &SoaFloat4, _v: &SoaFloat4, _b: &SoaFloat4) -> SoaFloat4 {
-    return max4(_a, &min4(_v, _b));
+impl SoaFloat4 {
+    // Returns the minimum of each element of _a and _b.
+    pub fn min(&self, _b: &SoaFloat4) -> SoaFloat4 {
+        return SoaFloat4::load(SimdFloat4::min(&self.x, _b.x), SimdFloat4::min(&self.y, _b.y),
+                               SimdFloat4::min(&self.z, _b.z),
+                               SimdFloat4::min(&self.w, _b.w));
+    }
 }
 
-pub fn clamp3(_a: &SoaFloat3, _v: &SoaFloat3, _b: &SoaFloat3) -> SoaFloat3 {
-    return max3(_a, &min3(_v, _b));
+impl SoaFloat3 {
+    pub fn min(&self, _b: &SoaFloat3) -> SoaFloat3 {
+        return SoaFloat3::load(SimdFloat4::min(&self.x, _b.x), SimdFloat4::min(&self.y, _b.y),
+                               SimdFloat4::min(&self.z, _b.z));
+    }
 }
 
-pub fn clamp2(_a: &SoaFloat2, _v: &SoaFloat2, _b: &SoaFloat2) -> SoaFloat2 {
-    return max2(_a, &min2(_v, _b));
+impl SoaFloat2 {
+    pub fn min(&self, _b: &SoaFloat2) -> SoaFloat2 {
+        return SoaFloat2::load(SimdFloat4::min(&self.x, _b.x), SimdFloat4::min(&self.y, _b.y));
+    }
 }
+
+//--------------------------------------------------------------------------------------------------
+impl SoaFloat4 {
+    // Returns the maximum of each element of _a and _b.
+    pub fn max(&self, _b: &SoaFloat4) -> SoaFloat4 {
+        return SoaFloat4::load(SimdFloat4::max(&self.x, _b.x), SimdFloat4::max(&self.y, _b.y),
+                               SimdFloat4::max(&self.z, _b.z),
+                               SimdFloat4::max(&self.w, _b.w));
+    }
+}
+
+impl SoaFloat3 {
+    pub fn max(&self, _b: &SoaFloat3) -> SoaFloat3 {
+        return SoaFloat3::load(SimdFloat4::max(&self.x, _b.x), SimdFloat4::max(&self.y, _b.y),
+                               SimdFloat4::max(&self.z, _b.z));
+    }
+}
+
+impl SoaFloat2 {
+    pub fn max(&self, _b: &SoaFloat2) -> SoaFloat2 {
+        return SoaFloat2::load(SimdFloat4::max(&self.x, _b.x), SimdFloat4::max(&self.y, _b.y));
+    }
+}
+
+//--------------------------------------------------------------------------------------------------
+impl SoaFloat4 {
+    // Clamps each element of _x between _a and _b.
+    // _a must be less or equal to b;
+    pub fn clamp4(&self, _v: &SoaFloat4, _b: &SoaFloat4) -> SoaFloat4 {
+        return SoaFloat4::max(self, &SoaFloat4::min(_v, _b));
+    }
+}
+
+impl SoaFloat3 {
+    pub fn clamp3(&self, _v: &SoaFloat3, _b: &SoaFloat3) -> SoaFloat3 {
+        return SoaFloat3::max(self, &SoaFloat3::min(_v, _b));
+    }
+}
+
+impl SoaFloat2 {
+    pub fn clamp2(&self, _v: &SoaFloat2, _b: &SoaFloat2) -> SoaFloat2 {
+        return SoaFloat2::max(self, &SoaFloat2::min(_v, _b));
+    }
+}
+
+//--------------------------------------------------------------------------------------------------
+//--------------------------------------------------------------------------------------------------
+//--------------------------------------------------------------------------------------------------
+#[cfg(test)]
+mod ozz_soa_math {
+    use crate::soa_float::*;
+    use crate::simd_math::*;
+    use crate::math_test_helper::*;
+    use crate::*;
+
+    #[test]
+    fn soa_float_load4() {
+        expect_soa_float4_eq!(
+            SoaFloat4::load(SimdFloat4::load(0.0, 1.0, 2.0, 3.0),
+                            SimdFloat4::load(4.0, 5.0, 6.0, 7.0),
+                            SimdFloat4::load(8.0, 9.0, 10.0, 11.0),
+                            SimdFloat4::load(12.0, 13.0, 14.0, 15.0)),
+            0.0, 1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0, 9.0, 10.0, 11.0, 12.0, 13.0,
+            14.0, 15.0);
+        expect_soa_float4_eq!(
+            SoaFloat4::load3(
+                &SoaFloat3::load(SimdFloat4::load(0.0, 1.0, 2.0, 3.0),
+                                 SimdFloat4::load(4.0, 5.0, 6.0, 7.0),
+                                 SimdFloat4::load(8.0, 9.0, 10.0, 11.0)),
+                SimdFloat4::load(12.0, 13.0, 14.0, 15.0)),
+            0.0, 1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0, 9.0, 10.0, 11.0, 12.0, 13.0,
+            14.0, 15.0);
+        expect_soa_float4_eq!(
+            SoaFloat4::load2(
+                &SoaFloat2::load(SimdFloat4::load(0.0, 1.0, 2.0, 3.0),
+                                 SimdFloat4::load(4.0, 5.0, 6.0, 7.0)),
+                SimdFloat4::load(8.0, 9.0, 10.0, 11.0),
+                SimdFloat4::load(12.0, 13.0, 14.0, 15.0)),
+            0.0, 1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0, 9.0, 10.0, 11.0, 12.0, 13.0,
+            14.0, 15.0);
+    }
+
+    #[test]
+    fn soa_float_load3() {
+        expect_soa_float3_eq!(
+            SoaFloat3::load(SimdFloat4::load(0.0, 1.0, 2.0, 3.0),
+                            SimdFloat4::load(4.0, 5.0, 6.0, 7.0),
+                            SimdFloat4::load(8.0, 9.0, 10.0, 11.0)),
+            0.0, 1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0, 9.0, 10.0, 11.0);
+        expect_soa_float3_eq!(
+            SoaFloat3::load2(
+                &SoaFloat2::load(SimdFloat4::load(0.0, 1.0, 2.0, 3.0),
+                                SimdFloat4::load(4.0, 5.0, 6.0, 7.0)),
+                SimdFloat4::load(8.0, 9.0, 10.0, 11.0)),
+            0.0, 1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0, 9.0, 10.0, 11.0);
+    }
+
+    #[test]
+    fn soa_float_load2() {
+        expect_soa_float2_eq!(
+            SoaFloat2::load(SimdFloat4::load(0.0, 1.0, 2.0, 3.0),
+                            SimdFloat4::load(4.0, 5.0, 6.0, 7.0)),
+            0.0, 1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0);
+    }
+
+    #[test]
+    fn soa_float_constant4() {
+        expect_soa_float4_eq!(SoaFloat4::zero(), 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0,
+                            0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0);
+        expect_soa_float4_eq!(SoaFloat4::one(), 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0,
+                            1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0);
+        expect_soa_float4_eq!(SoaFloat4::x_axis(), 1.0, 1.0, 1.0, 1.0, 0.0, 0.0, 0.0,
+                            0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0);
+        expect_soa_float4_eq!(SoaFloat4::y_axis(), 0.0, 0.0, 0.0, 0.0, 1.0, 1.0, 1.0,
+                            1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0);
+        expect_soa_float4_eq!(SoaFloat4::z_axis(), 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0,
+                            0.0, 1.0, 1.0, 1.0, 1.0, 0.0, 0.0, 0.0, 0.0);
+        expect_soa_float4_eq!(SoaFloat4::w_axis(), 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0,
+                            0.0, 0.0, 0.0, 0.0, 0.0, 1.0, 1.0, 1.0, 1.0);
+    }
+
+    #[test]
+    fn soa_float_constant3() {
+        expect_soa_float3_eq!(SoaFloat3::zero(), 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0,
+                            0.0, 0.0, 0.0, 0.0);
+        expect_soa_float3_eq!(SoaFloat3::one(), 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0,
+                            1.0, 1.0, 1.0, 1.0);
+        expect_soa_float3_eq!(SoaFloat3::x_axis(), 1.0, 1.0, 1.0, 1.0, 0.0, 0.0, 0.0,
+                            0.0, 0.0, 0.0, 0.0, 0.0);
+        expect_soa_float3_eq!(SoaFloat3::y_axis(), 0.0, 0.0, 0.0, 0.0, 1.0, 1.0, 1.0,
+                            1.0, 0.0, 0.0, 0.0, 0.0);
+        expect_soa_float3_eq!(SoaFloat3::z_axis(), 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0,
+                            0.0, 1.0, 1.0, 1.0, 1.0);
+    }
+
+    #[test]
+    fn soa_float_constant2() {
+        expect_soa_float2_eq!(SoaFloat2::zero(), 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0,
+                            0.0);
+        expect_soa_float2_eq!(SoaFloat2::one(), 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0);
+        expect_soa_float2_eq!(SoaFloat2::x_axis(), 1.0, 1.0, 1.0, 1.0, 0.0, 0.0, 0.0,
+                            0.0);
+        expect_soa_float2_eq!(SoaFloat2::y_axis(), 0.0, 0.0, 0.0, 0.0, 1.0, 1.0, 1.0,
+                            1.0);
+    }
+
+    #[test]
+    fn soa_float_arithmetic4() {
+        let a = SoaFloat4 {
+            x: SimdFloat4::load(0.5, 1.0, 2.0, 3.0),
+            y: SimdFloat4::load(4.0, 5.0, 6.0, 7.0),
+            z: SimdFloat4::load(8.0, 9.0, 10.0, 11.0),
+            w: SimdFloat4::load(12.0, 13.0, 14.0, 15.0),
+        };
+        let b = SoaFloat4 {
+            x: SimdFloat4::load(-0.5, -1.0, -2.0, -3.0),
+            y: SimdFloat4::load(-4.0, -5.0, -6.0, -7.0),
+            z: SimdFloat4::load(-8.0, -9.0, -10.0, -11.0),
+            w: SimdFloat4::load(-12.0, -13.0, -14.0, -15.0),
+        };
+        let c = SoaFloat4 {
+            x: SimdFloat4::load(0.05, 0.1, 0.2, 0.3),
+            y: SimdFloat4::load(0.4, 0.5, 0.6, 0.7),
+            z: SimdFloat4::load(0.8, 0.9, 1.0, 1.1),
+            w: SimdFloat4::load(1.2, 1.3, 1.4, 1.5),
+        };
+
+        let add = a + b;
+        expect_soa_float4_eq!(add, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0,
+                            0.0, 0.0, 0.0, 0.0, 0.0, 0.0);
+
+        let sub = a - b;
+        expect_soa_float4_eq!(sub, 1.0, 2.0, 4.0, 6.0, 8.0, 10.0, 12.0, 14.0, 16.0,
+                            18.0, 20.0, 22.0, 24.0, 26.0, 28.0, 30.0);
+
+        let neg = -a;
+        expect_soa_float4_eq!(neg, -0.5, -1.0, -2.0, -3.0, -4.0, -5.0, -6.0, -7.0, -8.0,
+                            -9.0, -10.0, -11.0, -12.0, -13.0, -14.0, -15.0);
+
+        let mul = a * b;
+        expect_soa_float4_eq!(mul, -0.25, -1.0, -4.0, -9.0, -16.0, -25.0, -36.0, -49.0,
+                            -64.0, -81.0, -100.0, -121.0, -144.0, -169.0, -196.0,
+                            -225.0);
+
+        let mul_add = a.m_add(&b, &c);
+        expect_soa_float4_eq!(mul_add, -0.2, -0.9, -3.8, -8.7, -15.6, -24.5,
+                            -35.4, -48.3, -63.2, -80.1, -99.0, -119.9, -142.8,
+                            -167.7, -194.6, -223.5);
+
+        let mul_scal = a * SimdFloat4::load1(2.0);
+        expect_soa_float4_eq!(mul_scal, 1.0, 2.0, 4.0, 6.0, 8.0, 10.0, 12.0, 14.0, 16.0,
+                            18.0, 20.0, 22.0, 24.0, 26.0, 28.0, 30.0);
+
+        let div = a / b;
+        expect_soa_float4_eq!(div, -1.0, -1.0, -1.0, -1.0, -1.0, -1.0, -1.0, -1.0, -1.0,
+                            -1.0, -1.0, -1.0, -1.0, -1.0, -1.0, -1.0);
+
+        let div_scal = a / SimdFloat4::load1(2.0);
+        expect_soa_float4_eq!(div_scal, 0.25, 0.5, 1.0, 1.5, 2.0, 2.5, 3.0, 3.5,
+                            4.0, 4.5, 5.0, 5.5, 6.0, 6.5, 7.0, 7.5);
+
+        let hadd4 = a.h_add();
+        expect_soa_float1_eq!(hadd4, 24.5, 28.0, 32.0, 36.0);
+
+        let dot = a.dot(&b);
+        expect_soa_float1_eq!(dot, -224.25, -276.0, -336.0, -404.0);
+
+        let length = a.length();
+        expect_soa_float1_eq!(length, 14.974979, 16.613247, 18.3303, 20.09975);
+
+        let length2 = a.length_sqr();
+        expect_soa_float1_eq!(length2, 224.25, 276.0, 336.0, 404.0);
+
+        // EXPECT_ASSERTION(SoaFloat4::zero().normalize(), "_v is not normalizable");
+        assert_eq!(a.is_normalized().are_all_false(), true);
+        assert_eq!(a.is_normalized_est().are_all_false(), true);
+        let normalize = a.normalize();
+        assert_eq!(normalize.is_normalized().are_all_true(), true);
+        assert_eq!(normalize.is_normalized_est().are_all_true(), true);
+        expect_soa_float4_eq!(normalize, 0.033389, 0.0601929, 0.1091089, 0.1492555,
+                            0.267112, 0.300964, 0.3273268, 0.348263, 0.53422445,
+                            0.541736, 0.545544, 0.547270, 0.80133667, 0.782508,
+                            0.763762, 0.74627789);
+
+        // EXPECT_ASSERTION(a.normalize_safe(&a), "_safer is not normalized");
+        let safe = SoaFloat4::x_axis();
+        let normalize_safe = a.normalize_safe(&safe);
+        assert_eq!(normalize_safe.is_normalized().are_all_true(), true);
+        assert_eq!(normalize_safe.is_normalized_est().are_all_true(), true);
+        expect_soa_float4_eq!(normalize_safe, 0.033389, 0.0601929, 0.1091089, 0.1492555,
+                            0.267112, 0.300964, 0.3273268, 0.348263, 0.53422445,
+                            0.541736, 0.545544, 0.547270, 0.80133667, 0.782508,
+                            0.763762, 0.74627789);
+
+        let normalize_safer = SoaFloat4::zero().normalize_safe(&safe);
+        assert_eq!(normalize_safer.is_normalized().are_all_true(), true);
+        assert_eq!(normalize_safer.is_normalized_est().are_all_true(), true);
+        expect_soa_float4_eq!(normalize_safer, 1.0, 1.0, 1.0, 1.0, 0.0, 0.0, 0.0, 0.0,
+                            0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0);
+
+        let lerp_0 = a.lerp(&b, SimdFloat4::zero());
+        expect_soa_float4_eq!(lerp_0, 0.5, 1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0, 9.0,
+                            10.0, 11.0, 12.0, 13.0, 14.0, 15.0);
+
+        let lerp_1 = a.lerp(&b, SimdFloat4::one());
+        expect_soa_float4_eq!(lerp_1, -0.5, -1.0, -2.0, -3.0, -4.0, -5.0, -6.0, -7.0,
+                            -8.0, -9.0, -10.0, -11.0, -12.0, -13.0, -14.0, -15.0);
+
+        let lerp_0_5 = a.lerp(&b, SimdFloat4::load1(0.5));
+        expect_soa_float4_eq!(lerp_0_5, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0,
+                            0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0);
+    }
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

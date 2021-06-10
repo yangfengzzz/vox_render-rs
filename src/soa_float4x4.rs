@@ -329,7 +329,7 @@ impl Sub for &SoaFloat4x4 {
 //--------------------------------------------------------------------------------------------------
 //--------------------------------------------------------------------------------------------------
 #[cfg(test)]
-mod ozz_simd_math {
+mod ozz_soa_math {
     use crate::soa_float4x4::SoaFloat4x4;
     use crate::simd_math::*;
     use crate::math_test_helper::*;
