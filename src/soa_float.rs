@@ -10,7 +10,7 @@ use crate::math_constant::*;
 use crate::simd_math::*;
 use std::ops::{Add, Sub, Neg, Mul, Div};
 
-#[derive(Clone)]
+#[derive(Clone, Copy)]
 pub struct SoaFloat2 {
     pub x: SimdFloat4,
     pub y: SimdFloat4,
@@ -58,7 +58,7 @@ impl SoaFloat2 {
 }
 
 //--------------------------------------------------------------------------------------------------
-#[derive(Clone)]
+#[derive(Clone, Copy)]
 pub struct SoaFloat3 {
     pub x: SimdFloat4,
     pub y: SimdFloat4,
@@ -993,19 +993,19 @@ impl SoaFloat2 {
 impl SoaFloat4 {
     // Clamps each element of _x between _a and _b.
     // _a must be less or equal to b;
-    pub fn clamp4(&self, _v: &SoaFloat4, _b: &SoaFloat4) -> SoaFloat4 {
+    pub fn clamp(&self, _v: &SoaFloat4, _b: &SoaFloat4) -> SoaFloat4 {
         return SoaFloat4::max(self, &SoaFloat4::min(_v, _b));
     }
 }
 
 impl SoaFloat3 {
-    pub fn clamp3(&self, _v: &SoaFloat3, _b: &SoaFloat3) -> SoaFloat3 {
+    pub fn clamp(&self, _v: &SoaFloat3, _b: &SoaFloat3) -> SoaFloat3 {
         return SoaFloat3::max(self, &SoaFloat3::min(_v, _b));
     }
 }
 
 impl SoaFloat2 {
-    pub fn clamp2(&self, _v: &SoaFloat2, _b: &SoaFloat2) -> SoaFloat2 {
+    pub fn clamp(&self, _v: &SoaFloat2, _b: &SoaFloat2) -> SoaFloat2 {
         return SoaFloat2::max(self, &SoaFloat2::min(_v, _b));
     }
 }
@@ -1216,6 +1216,246 @@ mod ozz_soa_math {
         let lerp_0_5 = a.lerp(&b, SimdFloat4::load1(0.5));
         expect_soa_float4_eq!(lerp_0_5, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0,
                             0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0);
+    }
+
+    #[test]
+    fn soa_float_arithmetic3() {
+        let a = SoaFloat3 {
+            x: SimdFloat4::load(0.5, 1.0, 2.0, 3.0),
+            y: SimdFloat4::load(4.0, 5.0, 6.0, 7.0),
+            z: SimdFloat4::load(8.0, 9.0, 10.0, 11.0),
+        };
+        let b = SoaFloat3 {
+            x: SimdFloat4::load(-0.5, -1.0, -2.0, -3.0),
+            y: SimdFloat4::load(-4.0, -5.0, -6.0, -7.0),
+            z: SimdFloat4::load(-8.0, -9.0, -10.0, -11.0),
+        };
+        let c = SoaFloat3 {
+            x: SimdFloat4::load(0.05, 0.1, 0.2, 0.3),
+            y: SimdFloat4::load(0.4, 0.5, 0.6, 0.7),
+            z: SimdFloat4::load(0.8, 0.9, 1.0, 1.1),
+        };
+
+
+        let add = a + b;
+        expect_soa_float3_eq!(add, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0,
+                            0.0, 0.0);
+
+        let sub = a - b;
+        expect_soa_float3_eq!(sub, 1.0, 2.0, 4.0, 6.0, 8.0, 10.0, 12.0, 14.0, 16.0,
+                            18.0, 20.0, 22.0);
+
+        let neg = -a;
+        expect_soa_float3_eq!(neg, -0.5, -1.0, -2.0, -3.0, -4.0, -5.0, -6.0, -7.0, -8.0,
+                            -9.0, -10.0, -11.0);
+
+        let mul = a * b;
+        expect_soa_float3_eq!(mul, -0.25, -1.0, -4.0, -9.0, -16.0, -25.0, -36.0, -49.0,
+                            -64.0, -81.0, -100.0, -121.0);
+
+        let mul_add = a.m_add(&b, &c);
+        expect_soa_float3_eq!(mul_add, -0.2, -0.9, -3.8, -8.7, -15.6, -24.5,
+                            -35.4, -48.3, -63.2, -80.1, -99.0, -119.9);
+
+        let mul_scal = a * SimdFloat4::load1(2.0);
+        expect_soa_float3_eq!(mul_scal, 1.0, 2.0, 4.0, 6.0, 8.0, 10.0, 12.0, 14.0, 16.0,
+                            18.0, 20.0, 22.0);
+
+        let div = a / b;
+        expect_soa_float3_eq!(div, -1.0, -1.0, -1.0, -1.0, -1.0, -1.0, -1.0, -1.0, -1.0,
+                            -1.0, -1.0, -1.0);
+
+        let div_scal = a / SimdFloat4::load1(2.0);
+        expect_soa_float3_eq!(div_scal, 0.25, 0.5, 1.0, 1.5, 2.0, 2.5, 3.0, 3.5,
+                            4.0, 4.5, 5.0, 5.5);
+
+        let hadd4 = a.h_add();
+        expect_soa_float1_eq!(hadd4, 12.5, 15.0, 18.0, 21.0);
+
+        let dot = a.dot(&b);
+        expect_soa_float1_eq!(dot, -80.25, -107.0, -140.0, -179.0);
+
+        let length = a.length();
+        expect_soa_float1_eq!(length, 8.958236, 10.34408, 11.83216, 13.37909);
+
+        let length2 = a.length_sqr();
+        expect_soa_float1_eq!(length2, 80.25, 107.0, 140.0, 179.0);
+
+        let cross = a.cross(&b);
+        expect_soa_float3_eq!(cross, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0,
+                            0.0, 0.0);
+
+        // EXPECT_ASSERTION(SoaFloat3::zero().normalize(), "_v is not normalizable");
+        assert_eq!(a.is_normalized().are_all_false(), true);
+        assert_eq!(a.is_normalized_est().are_all_false(), true);
+        let normalize = a.normalize();
+        assert_eq!(normalize.is_normalized().are_all_true(), true);
+        assert_eq!(normalize.is_normalized_est().are_all_true(), true);
+        expect_soa_float3_eq!(normalize, 0.055814, 0.096673, 0.16903, 0.22423, 0.446516,
+                            0.483368, 0.50709, 0.52320, 0.893033, 0.870063, 0.84515,
+                            0.822178);
+
+        // EXPECT_ASSERTION(a.normalize_safe(&a), "_safer is not normalized");
+        let safe = SoaFloat3::x_axis();
+        let normalize_safe = a.normalize_safe(&safe);
+        assert_eq!(normalize_safe.is_normalized().are_all_true(), true);
+        assert_eq!(normalize_safe.is_normalized_est().are_all_true(), true);
+        expect_soa_float3_eq!(normalize_safe, 0.055814, 0.096673, 0.16903, 0.22423,
+                            0.446516, 0.483368, 0.50709, 0.52320, 0.893033, 0.870063,
+                            0.84515, 0.822178);
+
+        let normalize_safer = SoaFloat3::zero().normalize_safe(&safe);
+        assert_eq!(normalize_safer.is_normalized().are_all_true(), true);
+        assert_eq!(normalize_safer.is_normalized_est().are_all_true(), true);
+        expect_soa_float3_eq!(normalize_safer, 1.0, 1.0, 1.0, 1.0, 0.0, 0.0, 0.0, 0.0,
+                            0.0, 0.0, 0.0, 0.0);
+
+        let lerp_0 = a.lerp(&b, SimdFloat4::zero());
+        expect_soa_float3_eq!(lerp_0, 0.5, 1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0, 9.0,
+                            10.0, 11.0);
+
+        let lerp_1 = a.lerp(&b, SimdFloat4::one());
+        expect_soa_float3_eq!(lerp_1, -0.5, -1.0, -2.0, -3.0, -4.0, -5.0, -6.0, -7.0,
+                            -8.0, -9.0, -10.0, -11.0);
+
+        let lerp_0_5 = a.lerp(&b, SimdFloat4::load1(0.5));
+        expect_soa_float3_eq!(lerp_0_5, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0,
+                            0.0, 0.0, 0.0);
+    }
+
+    #[test]
+    fn soa_float_arithmetic2() {
+        let a = SoaFloat2 {
+            x: SimdFloat4::load(0.5, 1.0, 2.0, 3.0),
+            y: SimdFloat4::load(4.0, 5.0, 6.0, 7.0),
+        };
+        let b = SoaFloat2 {
+            x: SimdFloat4::load(-0.5, -1.0, -2.0, -3.0),
+            y: SimdFloat4::load(-4.0, -5.0, -6.0, -7.0),
+        };
+        let c = SoaFloat2 {
+            x: SimdFloat4::load(0.05, 0.1, 0.2, 0.3),
+            y: SimdFloat4::load(0.4, 0.5, 0.6, 0.7),
+        };
+
+        let add = a + b;
+        expect_soa_float2_eq!(add, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0);
+
+        let sub = a - b;
+        expect_soa_float2_eq!(sub, 1.0, 2.0, 4.0, 6.0, 8.0, 10.0, 12.0, 14.0);
+
+        let neg = -a;
+        expect_soa_float2_eq!(neg, -0.5, -1.0, -2.0, -3.0, -4.0, -5.0, -6.0, -7.0);
+
+        let mul = a * b;
+        expect_soa_float2_eq!(mul, -0.25, -1.0, -4.0, -9.0, -16.0, -25.0, -36.0,
+                            -49.0);
+
+        let mul_add = a.m_add(&b, &c);
+        expect_soa_float2_eq!(mul_add, -0.2, -0.9, -3.8, -8.7, -15.6, -24.5,
+                            -35.4, -48.3);
+
+        let mul_scal = a * SimdFloat4::load1(2.0);
+        expect_soa_float2_eq!(mul_scal, 1.0, 2.0, 4.0, 6.0, 8.0, 10.0, 12.0, 14.0);
+
+        let div = a / b;
+        expect_soa_float2_eq!(div, -1.0, -1.0, -1.0, -1.0, -1.0, -1.0, -1.0, -1.0);
+
+        let div_scal = a / SimdFloat4::load1(2.0);
+        expect_soa_float2_eq!(div_scal, 0.25, 0.5, 1.0, 1.5, 2.0, 2.5, 3.0, 3.5);
+
+        let hadd4 = a.h_add();
+        expect_soa_float1_eq!(hadd4, 4.5, 6.0, 8.0, 10.0);
+
+        let dot = a.dot(&b);
+        expect_soa_float1_eq!(dot, -16.25, -26.0, -40.0, -58.0);
+
+        let length = a.length();
+        expect_soa_float1_eq!(length, 4.031129, 5.09902, 6.324555, 7.615773);
+
+        let length2 = a.length_sqr();
+        expect_soa_float1_eq!(length2, 16.25, 26.0, 40.0, 58.0);
+
+        // EXPECT_ASSERTION(SoaFloat2::zero().normalize(), "_v is not normalizable");
+        assert_eq!(a.is_normalized().are_all_false(), true);
+        assert_eq!(a.is_normalized_est().are_all_false(), true);
+        let normalize = a.normalize();
+        assert_eq!(normalize.is_normalized().are_all_true(), true);
+        assert_eq!(normalize.is_normalized_est().are_all_true(), true);
+        expect_soa_float2_eq!(normalize, 0.124034, 0.196116, 0.316227, 0.393919,
+                            0.992277, 0.980580, 0.9486832, 0.919145);
+
+        // EXPECT_ASSERTION(a.normalize_safe(&a), "_safer is not normalized");
+        let safe = SoaFloat2::x_axis();
+        let normalize_safe = a.normalize_safe(&safe);
+        assert_eq!(normalize_safe.is_normalized().are_all_true(), true);
+        assert_eq!(normalize_safe.is_normalized_est().are_all_true(), true);
+        expect_soa_float2_eq!(normalize, 0.124034, 0.196116, 0.316227, 0.393919,
+                            0.992277, 0.980580, 0.9486832, 0.919145);
+
+        let normalize_safer = SoaFloat2::zero().normalize_safe(&safe);
+        assert_eq!(normalize_safer.is_normalized().are_all_true(), true);
+        assert_eq!(normalize_safer.is_normalized_est().are_all_true(), true);
+        expect_soa_float2_eq!(normalize_safer, 1.0, 1.0, 1.0, 1.0, 0.0, 0.0, 0.0, 0.0);
+
+        let lerp_0 = a.lerp(&b, SimdFloat4::zero());
+        expect_soa_float2_eq!(lerp_0, 0.5, 1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0);
+
+        let lerp_1 = a.lerp(&b, SimdFloat4::one());
+        expect_soa_float2_eq!(lerp_1, -0.5, -1.0, -2.0, -3.0, -4.0, -5.0, -6.0, -7.0);
+
+        let lerp_0_5 = a.lerp(&b, SimdFloat4::load1(0.5));
+        expect_soa_float2_eq!(lerp_0_5, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0);
+    }
+
+    #[test]
+    #[allow(overflowing_literals)]
+    fn soa_float_comparison4() {
+        let a = SoaFloat4 {
+            x: SimdFloat4::load(0.5, 1.0, 2.0, 3.0),
+            y: SimdFloat4::load(1.0, 5.0, 6.0, 7.0),
+            z: SimdFloat4::load(2.0, 9.0, 10.0, 11.0),
+            w: SimdFloat4::load(3.0, 13.0, 14.0, 15.0),
+        };
+        let b = SoaFloat4 {
+            x: SimdFloat4::load(4.0, 3.0, 7.0, 3.0),
+            y: SimdFloat4::load(2.0, -5.0, 6.0, 5.0),
+            z: SimdFloat4::load(-6.0, 9.0, -10.0, 2.0),
+            w: SimdFloat4::load(7.0, -8.0, 1.0, 5.0),
+        };
+        let c = SoaFloat4 {
+            x: SimdFloat4::load(7.5, 12.0, 46.0, 31.0),
+            y: SimdFloat4::load(1.0, 58.0, 16.0, 78.0),
+            z: SimdFloat4::load(2.5, 9.0, 111.0, 22.0),
+            w: SimdFloat4::load(8.0, 23.0, 41.0, 18.0),
+        };
+        let min = a.min(&b);
+        expect_soa_float4_eq!(min, 0.5, 1.0, 2.0, 3.0, 1.0, -5.0, 6.0, 5.0, -6.0, 9.0,
+                            -10.0, 2.0, 3.0, -8.0, 1.0, 5.0);
+
+        let max = a.max(&b);
+        expect_soa_float4_eq!(max, 4.0, 3.0, 7.0, 3.0, 2.0, 5.0, 6.0, 7.0, 2.0, 9.0,
+                            10.0, 11.0, 7.0, 13.0, 14.0, 15.0);
+
+        expect_soa_float4_eq!(a.clamp(&SoaFloat4::load(
+                SimdFloat4::load(1.5, 5.0, -2.0, 24.0),
+                SimdFloat4::load(2.0, -5.0, 7.0, 1.0),
+                SimdFloat4::load(-3.0, 1.0, 200.0, 0.0),
+                SimdFloat4::load(-9.0, 15.0, 46.0, -1.0)), &c),
+            1.5, 5.0, 2.0, 24.0, 1.0, 5.0, 7.0, 7.0, 2.0, 9.0, 111.0, 11.0, 3.0,
+            15.0, 41.0, 15.0);
+
+        expect_simd_int_eq!(a.lt(&c), 0, 0, 0xffffffff, 0xffffffff);
+        expect_simd_int_eq!(a.le(&c), 0xffffffff, 0xffffffff, 0xffffffff, 0xffffffff);
+        expect_simd_int_eq!(c.le(&c), 0xffffffff, 0xffffffff, 0xffffffff, 0xffffffff);
+
+        expect_simd_int_eq!(c.gt(&a), 0, 0, 0xffffffff, 0xffffffff);
+        expect_simd_int_eq!(c.ge(&a), 0xffffffff, 0xffffffff, 0xffffffff, 0xffffffff);
+        expect_simd_int_eq!(a.ge(&a), 0xffffffff, 0xffffffff, 0xffffffff, 0xffffffff);
+
+        expect_simd_int_eq!(a.eq(&a), 0xffffffff, 0xffffffff, 0xffffffff, 0xffffffff);
+        expect_simd_int_eq!(a.eq(&c), 0, 0, 0, 0);
+        expect_simd_int_eq!(a.ne(&b), 0xffffffff, 0xffffffff, 0xffffffff, 0xffffffff);
     }
 }
 
