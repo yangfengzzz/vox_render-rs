@@ -2389,6 +2389,41 @@ impl SimdInt4 {
         return SimdInt4::new(self.data);
     }
 
+    #[inline]
+    pub fn swizzle3210(&self) -> SimdInt4 {
+        unsafe {
+            return SimdInt4::new(_mm_shuffle_epi32(self.data, _mm_shuffle!(0, 1, 2, 3)));
+        }
+    }
+
+    #[inline]
+    pub fn swizzle0011(&self) -> SimdInt4 {
+        unsafe {
+            return SimdInt4::new(_mm_shuffle_epi32(self.data, _mm_shuffle!(1, 1, 0, 0)));
+        }
+    }
+
+    #[inline]
+    pub fn swizzle2233(&self) -> SimdInt4 {
+        unsafe {
+            return SimdInt4::new(_mm_shuffle_epi32(self.data, _mm_shuffle!(3, 3, 2, 2)));
+        }
+    }
+
+    #[inline]
+    pub fn swizzle0101(&self) -> SimdInt4 {
+        unsafe {
+            return SimdInt4::new(_mm_shuffle_epi32(self.data, _mm_shuffle!(1, 0, 1, 0)));
+        }
+    }
+
+    #[inline]
+    pub fn swizzle2323(&self) -> SimdInt4 {
+        unsafe {
+            return SimdInt4::new(_mm_shuffle_epi32(self.data, _mm_shuffle!(3, 2, 3, 2)));
+        }
+    }
+
     // Creates a 4-bit mask from the most significant bits of each component of _v.
     // i := sign(a3)<<3 | sign(a2)<<2 | sign(a1)<<1 | sign(a0)
     #[inline]
@@ -4701,7 +4736,7 @@ mod ozz_simd_math {
         expect_simd_int_eq!(a.set_i(b, 2), 1, 2, 5, 4);
         expect_simd_int_eq!(a.set_i(b, 3), 1, 2, 3, 5);
     }
-    
+
     #[test]
     #[allow(overflowing_literals)]
     fn constant_int() {
@@ -4764,6 +4799,116 @@ mod ozz_simd_math {
 
         let mask_000f = SimdInt4::mask_000f();
         expect_simd_int_eq!(mask_000f, 0, 0, 0, 0xffffffff);
+    }
+
+    #[test]
+    fn splat_int() {
+        let i = SimdInt4::load(1, -1, 2, -3);
+
+        let x = i.splat_x();
+        expect_simd_int_eq!(x, 1, 1, 1, 1);
+
+        let y = i.splat_y();
+        expect_simd_int_eq!(y, -1, -1, -1, -1);
+
+        let z = i.splat_z();
+        expect_simd_int_eq!(z, 2, 2, 2, 2);
+
+        let w = i.splat_w();
+        expect_simd_int_eq!(w, -3, -3, -3, -3);
+
+        let s3210 = i.swizzle3210();
+        expect_simd_int_eq!(s3210, -3, 2, -1, 1);
+
+        let s0123 = i.swizzle0123();
+        expect_simd_int_eq!(s0123, 1, -1, 2, -3);
+
+        let s0011 = i.swizzle0011();
+        expect_simd_int_eq!(s0011, 1, 1, -1, -1);
+
+        let s2233 = i.swizzle2233();
+        expect_simd_int_eq!(s2233, 2, 2, -3, -3);
+
+        let s0101 = i.swizzle0101();
+        expect_simd_int_eq!(s0101, 1, -1, 1, -1);
+
+        let s2323 = i.swizzle2323();
+        expect_simd_int_eq!(s2323, 2, -3, 2, -3);
+    }
+
+    #[test]
+    fn from_float() {
+        let f = SimdFloat4::load(0.0, 46.93, 46.26, -93.99);
+        expect_simd_int_eq!(SimdInt4::from_float_round(f), 0, 47, 46, -94);
+        expect_simd_int_eq!(SimdInt4::from_float_trunc(f), 0, 46, 46, -93);
+    }
+
+    #[test]
+    #[allow(overflowing_literals)]
+    fn arithmetic_int() {
+        let a = SimdInt4::load(0, 1, 2, 3);
+        let b = SimdInt4::load(4, 5, -6, 7);
+
+        let hadd2 = a.hadd2();
+        expect_simd_int_eq!(hadd2, 1, 1, 2, 3);
+
+        let hadd3 = a.hadd3();
+        expect_simd_int_eq!(hadd3, 3, 1, 2, 3);
+
+        let hadd4 = a.hadd4();
+        expect_simd_int_eq!(hadd4, 6, 1, 2, 3);
+
+        let abs = b.abs();
+        expect_simd_int_eq!(abs, 4, 5, 6, 7);
+
+        let sign = b.sign();
+        expect_simd_int_eq!(sign, 0, 0, 0x80000000, 0);
+    }
+    
+    #[test]
+    #[allow(overflowing_literals)]
+    fn compare_int() {
+        let a = SimdInt4::load(0, 1, 2, 3);
+        let b = SimdInt4::load(4, 1, -6, 7);
+        let c = SimdInt4::load(4, 5, 6, 7);
+
+        let min = SimdInt4::min(&a, b);
+        expect_simd_int_eq!(min, 0, 1, -6, 3);
+
+        let max = SimdInt4::max(&a, b);
+        expect_simd_int_eq!(max, 4, 1, 2, 7);
+
+        let min0 = SimdInt4::min0(&b);
+        expect_simd_int_eq!(min0, 0, 0, -6, 0);
+
+        let max0 = SimdInt4::max0(&b);
+        expect_simd_int_eq!(max0, 4, 1, 0, 7);
+
+        expect_simd_int_eq!(SimdInt4::clamp(&a, SimdInt4::load(-12, 2, 9, 3), c), 0, 2, 6, 3);
+
+        let eq1 = SimdInt4::cmp_eq(&a, b);
+        expect_simd_int_eq!(eq1, 0, 0xffffffff, 0, 0);
+
+        let eq2 = SimdInt4::cmp_eq(&a, a);
+        expect_simd_int_eq!(eq2, 0xffffffff, 0xffffffff, 0xffffffff, 0xffffffff);
+
+        let neq1 = SimdInt4::cmp_ne(&a, b);
+        expect_simd_int_eq!(neq1, 0xffffffff, 0, 0xffffffff, 0xffffffff);
+
+        let neq2 = SimdInt4::cmp_ne(&a, a);
+        expect_simd_int_eq!(neq2, 0, 0, 0, 0);
+
+        let lt = SimdInt4::cmp_lt(&a, b);
+        expect_simd_int_eq!(lt, 0xffffffff, 0, 0, 0xffffffff);
+
+        let le = SimdInt4::cmp_le(&a, b);
+        expect_simd_int_eq!(le, 0xffffffff, 0xffffffff, 0, 0xffffffff);
+
+        let gt = SimdInt4::cmp_gt(&a, b);
+        expect_simd_int_eq!(gt, 0, 0, 0xffffffff, 0);
+
+        let ge = SimdInt4::cmp_ge(&a, b);
+        expect_simd_int_eq!(ge, 0, 0xffffffff, 0xffffffff, 0);
     }
 }
 
