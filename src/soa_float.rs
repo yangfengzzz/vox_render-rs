@@ -132,7 +132,7 @@ impl SoaFloat3 {
 }
 
 //--------------------------------------------------------------------------------------------------
-#[derive(Clone)]
+#[derive(Clone, Copy)]
 pub struct SoaFloat4 {
     pub x: SimdFloat4,
     pub y: SimdFloat4,
