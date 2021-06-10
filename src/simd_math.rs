@@ -4398,6 +4398,138 @@ mod ozz_simd_math {
                            -18.0, -28.0, -8.0, -18.0, -30.0, -44.0, -12.0, -26.0,
                            -42.0, -60.0);
     }
+
+    #[test]
+    fn float4x4rotate() {
+        let euler_identity =
+            Float4x4::from_euler(SimdFloat4::load(0.0, 0.0, 0.0, 0.0));
+        expect_float4x4_eq!(euler_identity, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0,
+                           0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0);
+
+        let euler = Float4x4::from_euler(
+            SimdFloat4::load(crate::math_constant::K_PI_2, 0.0, 0.0, 0.0));
+        expect_float4x4_eq!(euler, 0.0, 0.0, 1.0, 0.0, 0.0, 1.0, 0.0, 0.0, -1.0, 0.0,
+                           0.0, 0.0, 0.0, 0.0, 0.0, 1.0);
+        assert_eq!(euler.is_normalized().are_all_true3(), true);
+        assert_eq!(euler.is_orthogonal().are_all_true1(), true);
+
+        // EXPECT_ASSERTION(Float4x4::FromQuaternion(
+        //     ozz::math::simd_float4::Load(1.0, 0.0, 0.0, 1.0)),
+        //                  "IsNormalized");
+        let quaternion_identity = Float4x4::from_quaternion(
+            SimdFloat4::load(0.0, 0.0, 0.0, 1.0));
+        expect_float4x4_eq!(quaternion_identity, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0,
+                           0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0);
+        assert_eq!(quaternion_identity.is_normalized().are_all_true3(), true);
+        assert_eq!(quaternion_identity.is_orthogonal().are_all_true1(), true);
+
+        let quaternion = Float4x4::from_quaternion(
+            SimdFloat4::load(0.0, 0.70710677, 0.0, 0.70710677));
+        expect_float4x4_eq!(quaternion, 0.0, 0.0, -1.0, 0.0, 0.0, 1.0, 0.0, 0.0, 1.0,
+                           0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0);
+
+        // EXPECT_ASSERTION(
+        //     Float4x4::FromAxisAngle(ozz::math::simd_float4::Load(1.0, 1.0, 0.0, 0.0),
+        //                             ozz::math::simd_float4::zero()),
+        //     "IsNormalized");
+        let axis_angle_identity = Float4x4::from_axis_angle(
+            SimdFloat4::y_axis(), SimdFloat4::zero());
+        expect_float4x4_eq!(axis_angle_identity, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0,
+                           0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0);
+
+        let axis_angle =
+            Float4x4::from_axis_angle(SimdFloat4::y_axis(),
+                                      SimdFloat4::load_x(crate::math_constant::K_PI_2));
+        expect_float4x4_eq!(axis_angle, 0.0, 0.0, -1.0, 0.0, 0.0, 1.0, 0.0, 0.0, 1.0,
+                           0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0);
+        assert_eq!(axis_angle.is_normalized().are_all_true3(), true);
+        assert_eq!(axis_angle.is_orthogonal().are_all_true1(), true);
+    }
+
+    #[test]
+    fn float4x4affine() {
+        let identity =
+            Float4x4::from_affine(SimdFloat4::load(0.0, 0.0, 0.0, 0.0),
+                                  SimdFloat4::load(0.0, 0.0, 0.0, 1.0),
+                                  SimdFloat4::load(1.0, 1.0, 1.0, 1.0));
+        expect_float4x4_eq!(identity, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0,
+                           1.0, 0.0, 0.0, 0.0, 0.0, 1.0);
+
+        let affine = Float4x4::from_affine(
+            SimdFloat4::load(-12.0, 46.0, 12.0, 9.0),
+            SimdFloat4::load(0.0, 0.70710677, 0.0, 0.70710677),
+            SimdFloat4::load(2.0, 46.0, 3.0, 1.0));
+        expect_float4x4_eq!(affine, 0.0, 0.0, -2.0, 0.0, 0.0, 46.0, 0.0, 0.0, 3.0, 0.0,
+                           0.0, 0.0, -12.0, 46.0, 12.0, 1.0);
+        assert_eq!(affine.is_normalized().are_all_true3(), false);
+        assert_eq!(affine.is_orthogonal().are_all_true1(), true);
+
+        let affine_reflexion = Float4x4::from_affine(
+            SimdFloat4::load(-12.0, 46.0, 12.0, 9.0),
+            SimdFloat4::load(0.0, 0.70710677, 0.0, 0.70710677),
+            SimdFloat4::load(2.0, -1.0, 3.0, 1.0));
+        expect_float4x4_eq!(affine_reflexion, 0.0, 0.0, -2.0, 0.0, 0.0, -1.0, 0.0, 0.0,
+                           3.0, 0.0, 0.0, 0.0, -12.0, 46.0, 12.0, 1.0);
+        assert_eq!(affine_reflexion.is_normalized().are_all_true3(), false);
+        assert_eq!(affine_reflexion.is_orthogonal().are_all_true1(), false);
+    }
+
+    #[test]
+    fn float4x4to_quaternion() {
+        let not_normalized = Float4x4 {
+            cols:
+            [SimdFloat4::load(1.1, 0.0, 0.0, 0.0),
+                SimdFloat4::load(0.0, 1.0, 0.0, 0.0),
+                SimdFloat4::load(0.0, 0.0, 1.0, 0.0),
+                SimdFloat4::load(0.0, 0.0, 0.0, 1.0)]
+        };
+        let not_orthogonal = Float4x4 {
+            cols:
+            [SimdFloat4::load(1.0, 0.0, 0.0, 0.0),
+                SimdFloat4::load(1.0, 0.0, 0.0, 0.0),
+                SimdFloat4::load(0.0, 0.0, 1.0, 0.0),
+                SimdFloat4::load(0.0, 0.0, 0.0, 1.0)]
+        };
+
+        // EXPECT_ASSERTION(ToQuaternion(not_normalized), "IsNormalized");
+        // EXPECT_ASSERTION(ToQuaternion(not_orthogonal), "IsOrthogonal");
+        expect_simd_float_eq!(Float4x4::identity().to_quaternion(), 0.0, 0.0, 0.0, 1.0);
+        expect_simd_float_eq!(Float4x4::from_quaternion(
+            SimdFloat4::load(0.0, 0.0, 1.0, 0.0)).to_quaternion(),
+                            0.0, 0.0, 1.0, 0.0);
+        expect_simd_float_eq!(Float4x4::from_quaternion(
+            SimdFloat4::load(0.0, 1.0, 0.0, 0.0)).to_quaternion(),
+                            0.0, 1.0, 0.0, 0.0);
+        expect_simd_float_eq!(Float4x4::from_quaternion(
+            SimdFloat4::load(1.0, 0.0, 0.0, 0.0)).to_quaternion(),
+                            1.0, 0.0, 0.0, 0.0);
+        expect_simd_float_eq!(Float4x4::from_quaternion(
+                SimdFloat4::load(0.70710677, 0.0, 0.0, 0.70710677)).to_quaternion(),
+            0.70710677, 0.0, 0.0, 0.70710677);
+        expect_simd_float_eq!(Float4x4::from_quaternion(SimdFloat4::load(
+                0.4365425, 0.017589169, -0.30435428, 0.84645736)).to_quaternion(),
+            0.4365425, 0.017589169, -0.30435428, 0.84645736);
+        expect_simd_float_eq!(Float4x4::from_quaternion(SimdFloat4::load(
+                0.56098551, -0.092295974, 0.43045932, 0.70105737)).to_quaternion(),
+            0.56098551, -0.092295974, 0.43045932, 0.70105737);
+        expect_simd_float_eq!(Float4x4::from_quaternion(SimdFloat4::load(
+                -0.6172133, -0.1543033, 0.0, 0.7715167)).to_quaternion(),
+            -0.6172133, -0.1543033, 0.0, 0.7715167);
+    }
+
+    #[test]
+    fn float4x4to_affine() {
+        let mut translate = SimdFloat4::zero();
+        let mut rotate = SimdFloat4::zero();
+        let mut scale = SimdFloat4::zero();
+
+        assert_eq!(Float4x4::scaling(SimdFloat4::load(0.0, 0.0, 1.0, 0.0)).to_affine(
+            &mut translate, &mut rotate, &mut scale), false);
+        assert_eq!(Float4x4::scaling(SimdFloat4::load(1.0, 0.0, 0.0, 0.0)).to_affine(
+            &mut translate, &mut rotate, &mut scale), false);
+        assert_eq!(Float4x4::scaling(SimdFloat4::load(0.0, 1.0, 0.0, 0.0)).to_affine(
+            &mut translate, &mut rotate, &mut scale), false);
+    }
 }
 
 
