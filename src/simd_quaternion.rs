@@ -31,7 +31,7 @@ impl SimdQuaternion {
         let half_sin = (half_angle).sin_x();
         let half_cos = (half_angle).cos_x();
 
-        return SimdQuaternion { xyzw: _axis * half_sin.splat_x().set_w(half_cos) };
+        return SimdQuaternion { xyzw: (_axis * half_sin.splat_x()).set_w(half_cos) };
     }
 
     // Returns a normalized quaternion initialized from an axis and angle cosine
@@ -592,17 +592,80 @@ mod ozz_simd_math {
         expect_simd_quaternion_eq!(qany, 0.4365425, 0.017589169, -0.30435428, 0.84645736);
         expect_simd_float_eq!(qany.to_axis_angle(), 0.819865, 0.033034, -0.571604, 1.123);
     }
+
+    #[test]
+    fn quaternion_axis_cos_angle() {
+        // // Expect assertions from invalid inputs
+        // EXPECT_ASSERTION(
+        //     SimdQuaternion::from_axis_cos_angle(SimdFloat4::zero(),
+        //                                         SimdFloat4::load1(0.0)),
+        //     "axis is not normalized");
+        // EXPECT_ASSERTION(SimdQuaternion::from_axis_cos_angle(
+        //     SimdFloat4::y_axis(),
+        //     SimdFloat4::load1(-1.0000001)),
+        //                  "cos is not in \\[-1,1\\] range.");
+        // EXPECT_ASSERTION(SimdQuaternion::from_axis_cos_angle(
+        //     SimdFloat4::y_axis(),
+        //     SimdFloat4::load1(1.0000001)),
+        //                  "cos is not in \\[-1,1\\] range.");
+
+        // Identity
+        expect_simd_quaternion_eq!(
+            SimdQuaternion::from_axis_cos_angle(
+                SimdFloat4::y_axis(),
+                SimdFloat4::load(1.0, 99.0, 93.0, 5.0)),
+            0.0, 0.0, 0.0, 1.0);
+
+        // Other axis angles
+        expect_simd_quaternion_eq!(
+            SimdQuaternion::from_axis_cos_angle(
+                SimdFloat4::y_axis(),
+                SimdFloat4::load(f32::cos(crate::math_constant::K_PI_2), 99.0, 93.0,
+                                 5.0)),
+            0.0, 0.70710677, 0.0, 0.70710677);
+        expect_simd_quaternion_eq!(
+            SimdQuaternion::from_axis_cos_angle(
+                -SimdFloat4::y_axis(),
+                SimdFloat4::load(f32::cos(crate::math_constant::K_PI_2), 99.0, 93.0,
+                                 5.0)),
+            0.0, -0.70710677, 0.0, 0.70710677);
+
+        expect_simd_quaternion_eq!(
+            SimdQuaternion::from_axis_cos_angle(
+                SimdFloat4::y_axis(),
+                SimdFloat4::load(f32::cos(3.0 * crate::math_constant::K_PI_4), 99.0,
+                                 93.0, 5.0)),
+            0.0, 0.923879504, 0.0, 0.382683426);
+
+        expect_simd_quaternion_eq!(
+            SimdQuaternion::from_axis_cos_angle(
+                SimdFloat4::load(0.819865, 0.033034, -0.571604, 99.0),
+                SimdFloat4::load(f32::cos(1.123), 99.0, 93.0, 5.0)),
+            0.4365425, 0.017589169, -0.30435428, 0.84645736);
+    }
+
+    #[test]
+    fn quaternion_transform_vector() {
+        // 0 length
+        expect_simd_float3_eq!(SimdQuaternion::from_axis_angle(SimdFloat4::y_axis(),
+                                                             SimdFloat4::zero()).
+            transform_vector(SimdFloat4::zero()), 0.0, 0.0, 0.0);
+
+        // Unit length
+        expect_simd_float3_eq!(SimdQuaternion::from_axis_angle(SimdFloat4::y_axis(),
+                                                             SimdFloat4::zero()).
+            transform_vector(SimdFloat4::z_axis()), 0.0, 0.0, 1.0);
+
+        let pi_2 = SimdFloat4::load_x(crate::math_constant::K_PI_2);
+        expect_simd_float3_eq!(SimdQuaternion::from_axis_angle(SimdFloat4::y_axis(), pi_2).
+            transform_vector(SimdFloat4::y_axis()), 0.0, 1.0, 0.0);
+        expect_simd_float3_eq!(SimdQuaternion::from_axis_angle(SimdFloat4::y_axis(), pi_2).
+            transform_vector(SimdFloat4::x_axis()), 0.0, 0.0, -1.0);
+        expect_simd_float3_eq!(SimdQuaternion::from_axis_angle(SimdFloat4::y_axis(), pi_2).
+            transform_vector(SimdFloat4::z_axis()), 1.0, 0.0, 0.0);
+
+        // Non unit
+        expect_simd_float3_eq!(SimdQuaternion::from_axis_angle(SimdFloat4::z_axis(), pi_2).
+            transform_vector(SimdFloat4::x_axis() * SimdFloat4::load1(2.0)), 0.0, 2.0, 0.0);
+    }
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
