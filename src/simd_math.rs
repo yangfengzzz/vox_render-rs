@@ -4504,21 +4504,21 @@ mod ozz_simd_math {
 
     #[test]
     fn float4x4to_quaternion() {
-        let not_normalized = Float4x4 {
-            cols:
-            [SimdFloat4::load(1.1, 0.0, 0.0, 0.0),
-                SimdFloat4::load(0.0, 1.0, 0.0, 0.0),
-                SimdFloat4::load(0.0, 0.0, 1.0, 0.0),
-                SimdFloat4::load(0.0, 0.0, 0.0, 1.0)]
-        };
-        let not_orthogonal = Float4x4 {
-            cols:
-            [SimdFloat4::load(1.0, 0.0, 0.0, 0.0),
-                SimdFloat4::load(1.0, 0.0, 0.0, 0.0),
-                SimdFloat4::load(0.0, 0.0, 1.0, 0.0),
-                SimdFloat4::load(0.0, 0.0, 0.0, 1.0)]
-        };
-
+        // let not_normalized = Float4x4 {
+        //     cols:
+        //     [SimdFloat4::load(1.1, 0.0, 0.0, 0.0),
+        //         SimdFloat4::load(0.0, 1.0, 0.0, 0.0),
+        //         SimdFloat4::load(0.0, 0.0, 1.0, 0.0),
+        //         SimdFloat4::load(0.0, 0.0, 0.0, 1.0)]
+        // };
+        // let not_orthogonal = Float4x4 {
+        //     cols:
+        //     [SimdFloat4::load(1.0, 0.0, 0.0, 0.0),
+        //         SimdFloat4::load(1.0, 0.0, 0.0, 0.0),
+        //         SimdFloat4::load(0.0, 0.0, 1.0, 0.0),
+        //         SimdFloat4::load(0.0, 0.0, 0.0, 1.0)]
+        // };
+        //
         // EXPECT_ASSERTION(ToQuaternion(not_normalized), "IsNormalized");
         // EXPECT_ASSERTION(ToQuaternion(not_orthogonal), "IsOrthogonal");
         expect_simd_float_eq!(Float4x4::identity().to_quaternion(), 0.0, 0.0, 0.0, 1.0);
@@ -4864,7 +4864,7 @@ mod ozz_simd_math {
         let sign = b.sign();
         expect_simd_int_eq!(sign, 0, 0, 0x80000000, 0);
     }
-    
+
     #[test]
     #[allow(overflowing_literals)]
     fn compare_int() {
@@ -4910,21 +4910,92 @@ mod ozz_simd_math {
         let ge = SimdInt4::cmp_ge(&a, b);
         expect_simd_int_eq!(ge, 0, 0xffffffff, 0xffffffff, 0);
     }
+
+    #[test]
+    #[allow(overflowing_literals)]
+    fn mask_int() {
+        assert_eq!(SimdInt4::all_false().move_mask(), 0x00000000);
+        assert_eq!(SimdInt4::all_true().move_mask(), 0x0000000f);
+        assert_eq!(SimdInt4::mask_f000().move_mask(), 0x00000001);
+        assert_eq!(SimdInt4::mask_0f00().move_mask(), 0x00000002);
+        assert_eq!(SimdInt4::mask_00f0().move_mask(), 0x00000004);
+        assert_eq!(SimdInt4::mask_000f().move_mask(), 0x00000008);
+        assert_eq!(SimdInt4::load(0xffffffff, 0x00000000, 0x80000001, 0x7fffffff).move_mask(),
+                   0x00000005);
+        assert_eq!(SimdInt4::load(0xffffffff, 0x1000000f, 0x80000001, 0x8ffffffe).move_mask(),
+                   0x0000000d);
+        assert_eq!(SimdInt4::all_false().are_all_false(), true);
+        assert_eq!(SimdInt4::all_true().are_all_false(), false);
+        assert_eq!(SimdInt4::mask_000f().are_all_false(), false);
+
+        assert_eq!(SimdInt4::all_true().are_all_true(), true);
+        assert_eq!(SimdInt4::all_false().are_all_true(), false);
+        assert_eq!(SimdInt4::mask_000f().are_all_true(), false);
+
+        assert_eq!(SimdInt4::all_false().are_all_false3(), true);
+        assert_eq!(SimdInt4::mask_000f().are_all_false3(), true);
+        assert_eq!(SimdInt4::all_true().are_all_false3(), false);
+        assert_eq!(SimdInt4::mask_f000().are_all_false3(), false);
+
+        assert_eq!(SimdInt4::all_true().are_all_true3(), true);
+        assert_eq!(SimdInt4::all_false().are_all_true3(), false);
+        assert_eq!(SimdInt4::mask_f000().are_all_true3(), false);
+
+        assert_eq!(SimdInt4::all_false().are_all_false2(), true);
+        assert_eq!(SimdInt4::mask_000f().are_all_false2(), true);
+        assert_eq!(SimdInt4::all_true().are_all_false2(), false);
+        assert_eq!(SimdInt4::mask_f000().are_all_false2(), false);
+
+        assert_eq!(SimdInt4::all_true().are_all_true2(), true);
+        assert_eq!(SimdInt4::all_false().are_all_true2(), false);
+        assert_eq!(SimdInt4::mask_f000().are_all_true2(), false);
+
+        assert_eq!(SimdInt4::all_false().are_all_false1(), true);
+        assert_eq!(SimdInt4::mask_000f().are_all_false1(), true);
+        assert_eq!(SimdInt4::all_true().are_all_false1(), false);
+        assert_eq!(SimdInt4::mask_f000().are_all_false1(), false);
+
+        assert_eq!(SimdInt4::all_true().are_all_true1(), true);
+        assert_eq!(SimdInt4::all_false().are_all_true1(), false);
+        assert_eq!(SimdInt4::mask_f000().are_all_true1(), true);
+    }
+
+    #[test]
+    #[allow(overflowing_literals)]
+    fn logical_int() {
+        let a = SimdInt4::load(0xffffffff, 0x00000000, 0x80000001, 0x7fffffff);
+        let b = SimdInt4::load(0x80000001, 0xffffffff, 0x7fffffff, 0x00000000);
+        let c = SimdInt4::load(0x01234567, 0x89abcdef, 0x01234567, 0x89abcdef);
+        let cond = SimdInt4::load(0xffffffff, 0x00000000, 0xffffffff, 0x00000000);
+
+        let andm = a.and(b);
+        expect_simd_int_eq!(andm, 0x80000001, 0x00000000, 0x00000001, 0x00000000);
+
+        let andnm = a.and_not(b);
+        expect_simd_int_eq!(andnm, 0x7ffffffe, 0x00000000, 0x80000000, 0x7fffffff);
+
+        let orm = a.or(b);
+        expect_simd_int_eq!(orm, 0xffffffff, 0xffffffff, 0xffffffff, 0x7fffffff);
+
+        let xorm = a.xor(b);
+        expect_simd_int_eq!(xorm, 0x7ffffffe, 0xffffffff, 0xfffffffe, 0x7fffffff);
+
+        let select = SimdInt4::select(cond, b, c);
+        expect_simd_int_eq!(select, 0x80000001, 0x89abcdef, 0x7fffffff, 0x89abcdef);
+    }
+
+    #[test]
+    #[allow(overflowing_literals)]
+    fn shift_int() {
+        let a = SimdInt4::load(0xffffffff, 0x00000000, 0x80000001, 0x7fffffff);
+
+        let shift_l = a.shift_l::<3>();
+        expect_simd_int_eq!(shift_l, 0xfffffff8, 0x00000000, 0x00000008, 0xfffffff8);
+
+        let shift_r = a.shift_r::<3>();
+        expect_simd_int_eq!(shift_r, 0xffffffff, 0x00000000, 0xf0000000, 0x0fffffff);
+
+        let shift_ru = a.shift_ru::<3>();
+        expect_simd_int_eq!(shift_ru, 0x1fffffff, 0x00000000, 0x10000000, 0x0fffffff);
+    }
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
