@@ -55,7 +55,7 @@ impl SoaFloat4x4 {
     // components of _v.
     #[inline]
     pub fn from_quaternion(_q: &SoaQuaternion) -> SoaFloat4x4 {
-        debug_assert!(is_normalized_est(_q).are_all_true());
+        debug_assert!(_q.is_normalized_est().are_all_true());
 
         let zero = SimdFloat4::load(0.0, 0.0, 0.0, 0.0);
         let one = SimdFloat4::load(1.0, 1.0, 1.0, 1.0);
@@ -85,7 +85,7 @@ impl SoaFloat4x4 {
     pub fn from_affine(_translation: &SoaFloat3,
                        _quaternion: &SoaQuaternion,
                        _scale: &SoaFloat3) -> SoaFloat4x4 {
-        debug_assert!(is_normalized_est(_quaternion).are_all_true());
+        debug_assert!(_quaternion.is_normalized_est().are_all_true());
 
         let zero = SimdFloat4::load(0.0, 0.0, 0.0, 0.0);
         let one = SimdFloat4::load(1.0, 1.0, 1.0, 1.0);
