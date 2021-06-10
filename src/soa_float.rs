@@ -598,7 +598,7 @@ impl SoaFloat4 {
         let y = SimdFloat4::cmp_ne(&self.y, other.y);
         let z = SimdFloat4::cmp_ne(&self.z, other.z);
         let w = SimdFloat4::cmp_ne(&self.w, other.w);
-        return SimdInt4::and(&SimdInt4::and(&SimdInt4::and(&x, y), z), w);
+        return SimdInt4::or(&SimdInt4::or(&SimdInt4::or(&x, y), z), w);
     }
 }
 
@@ -648,7 +648,7 @@ impl SoaFloat3 {
         let x = SimdFloat4::cmp_ne(&self.x, other.x);
         let y = SimdFloat4::cmp_ne(&self.y, other.y);
         let z = SimdFloat4::cmp_ne(&self.z, other.z);
-        return SimdInt4::and(&SimdInt4::and(&x, y), z);
+        return SimdInt4::or(&SimdInt4::or(&x, y), z);
     }
 }
 
@@ -692,7 +692,7 @@ impl SoaFloat2 {
     pub fn ne(&self, other: &Self) -> SimdInt4 {
         let x = SimdFloat4::cmp_ne(&self.x, other.x);
         let y = SimdFloat4::cmp_ne(&self.y, other.y);
-        return SimdInt4::and(&x, y);
+        return SimdInt4::or(&x, y);
     }
 }
 
@@ -1016,7 +1016,6 @@ impl SoaFloat2 {
 #[cfg(test)]
 mod ozz_soa_math {
     use crate::soa_float::*;
-    use crate::simd_math::*;
     use crate::math_test_helper::*;
     use crate::*;
 
@@ -1450,6 +1449,91 @@ mod ozz_soa_math {
         expect_simd_int_eq!(c.le(&c), 0xffffffff, 0xffffffff, 0xffffffff, 0xffffffff);
 
         expect_simd_int_eq!(c.gt(&a), 0, 0, 0xffffffff, 0xffffffff);
+        expect_simd_int_eq!(c.ge(&a), 0xffffffff, 0xffffffff, 0xffffffff, 0xffffffff);
+        expect_simd_int_eq!(a.ge(&a), 0xffffffff, 0xffffffff, 0xffffffff, 0xffffffff);
+
+        expect_simd_int_eq!(a.eq(&a), 0xffffffff, 0xffffffff, 0xffffffff, 0xffffffff);
+        expect_simd_int_eq!(a.eq(&c), 0, 0, 0, 0);
+        expect_simd_int_eq!(a.ne(&b), 0xffffffff, 0xffffffff, 0xffffffff, 0xffffffff);
+    }
+
+    #[test]
+    #[allow(overflowing_literals)]
+    fn soa_float_comparison3() {
+        let a = SoaFloat3 {
+            x: SimdFloat4::load(0.5, 1.0, 2.0, 3.0),
+            y: SimdFloat4::load(1.0, 5.0, 6.0, 7.0),
+            z: SimdFloat4::load(2.0, 9.0, 10.0, 11.0),
+        };
+        let b = SoaFloat3 {
+            x: SimdFloat4::load(4.0, 3.0, 7.0, 3.0),
+            y: SimdFloat4::load(2.0, -5.0, 6.0, 5.0),
+            z: SimdFloat4::load(-6.0, 9.0, -10.0, 2.0),
+        };
+        let c = SoaFloat3 {
+            x: SimdFloat4::load(7.5, 12.0, 46.0, 31.0),
+            y: SimdFloat4::load(1.0, 58.0, 16.0, 78.0),
+            z: SimdFloat4::load(2.5, 9.0, 111.0, 22.0),
+        };
+        let min = a.min(&b);
+        expect_soa_float3_eq!(min, 0.5, 1.0, 2.0, 3.0, 1.0, -5.0, 6.0, 5.0, -6.0, 9.0,
+                            -10.0, 2.0);
+
+        let max = a.max(&b);
+        expect_soa_float3_eq!(max, 4.0, 3.0, 7.0, 3.0, 2.0, 5.0, 6.0, 7.0, 2.0, 9.0,
+                            10.0, 11.0);
+
+        expect_soa_float3_eq!(a.clamp(&SoaFloat3::load(
+            SimdFloat4::load(1.5, 5.0, -2.0, 24.0),
+            SimdFloat4::load(2.0, -5.0, 7.0, 1.0),
+            SimdFloat4::load(-3.0, 1.0, 200.0, 0.0)),
+                                    &c),
+                            1.5, 5.0, 2.0, 24.0, 1.0, 5.0, 7.0, 7.0, 2.0, 9.0, 111.0, 11.0);
+
+        expect_simd_int_eq!(a.lt(&c), 0, 0, 0xffffffff, 0xffffffff);
+        expect_simd_int_eq!(a.le(&c), 0xffffffff, 0xffffffff, 0xffffffff, 0xffffffff);
+        expect_simd_int_eq!(c.le(&c), 0xffffffff, 0xffffffff, 0xffffffff, 0xffffffff);
+
+        expect_simd_int_eq!(c.gt(&a), 0, 0, 0xffffffff, 0xffffffff);
+        expect_simd_int_eq!(c.ge(&a), 0xffffffff, 0xffffffff, 0xffffffff, 0xffffffff);
+        expect_simd_int_eq!(a.ge(&a), 0xffffffff, 0xffffffff, 0xffffffff, 0xffffffff);
+
+        expect_simd_int_eq!(a.eq(&a), 0xffffffff, 0xffffffff, 0xffffffff, 0xffffffff);
+        expect_simd_int_eq!(a.eq(&c), 0, 0, 0, 0);
+        expect_simd_int_eq!(a.ne(&b), 0xffffffff, 0xffffffff, 0xffffffff, 0xffffffff);
+    }
+
+    #[test]
+    #[allow(overflowing_literals)]
+    fn soa_float_comparison2() {
+        let a = SoaFloat2 {
+            x: SimdFloat4::load(0.5, 1.0, 2.0, 3.0),
+            y: SimdFloat4::load(1.0, 5.0, 6.0, 7.0),
+        };
+        let b = SoaFloat2 {
+            x: SimdFloat4::load(4.0, 3.0, 7.0, 3.0),
+            y: SimdFloat4::load(2.0, -5.0, 6.0, 5.0),
+        };
+        let c = SoaFloat2 {
+            x: SimdFloat4::load(7.5, 12.0, 46.0, 31.0),
+            y: SimdFloat4::load(1.0, 58.0, 16.0, 78.0),
+        };
+        let min = a.min(&b);
+        expect_soa_float2_eq!(min, 0.5, 1.0, 2.0, 3.0, 1.0, -5.0, 6.0, 5.0);
+
+        let max = a.max(&b);
+        expect_soa_float2_eq!(max, 4.0, 3.0, 7.0, 3.0, 2.0, 5.0, 6.0, 7.0);
+
+        expect_soa_float2_eq!(a.clamp(
+            &SoaFloat2::load(SimdFloat4::load(1.5, 5.0, -2.0, 24.0),
+                             SimdFloat4::load(2.0, -5.0, 7.0, 1.0)),
+            &c),1.5, 5.0, 2.0, 24.0, 1.0, 5.0, 7.0, 7.0);
+
+        expect_simd_int_eq!(a.lt(&c), 0, 0xffffffff, 0xffffffff, 0xffffffff);
+        expect_simd_int_eq!(a.le(&c), 0xffffffff, 0xffffffff, 0xffffffff, 0xffffffff);
+        expect_simd_int_eq!(c.le(&c), 0xffffffff, 0xffffffff, 0xffffffff, 0xffffffff);
+
+        expect_simd_int_eq!(c.gt(&a), 0, 0xffffffff, 0xffffffff, 0xffffffff);
         expect_simd_int_eq!(c.ge(&a), 0xffffffff, 0xffffffff, 0xffffffff, 0xffffffff);
         expect_simd_int_eq!(a.ge(&a), 0xffffffff, 0xffffffff, 0xffffffff, 0xffffffff);
 
