@@ -177,7 +177,7 @@ impl SoaFloat4x4 {
         let det =
             cols[0].x * b0x + cols[0].y * b1x + cols[0].z * b2x + cols[0].w * b3x;
         let invertible = det.cmp_ne(SimdFloat4::load(0.0, 0.0, 0.0, 0.0));
-        debug_assert!((_invertible.is_none() || invertible.are_all_true()) && "Matrix is not invertible".parse().unwrap_or(true));
+        debug_assert!((_invertible.is_some() || invertible.are_all_true()) && "Matrix is not invertible".parse().unwrap_or(true));
         if _invertible.is_some() {
             *_invertible = Some(invertible);
         }
@@ -335,6 +335,7 @@ mod ozz_simd_math {
     use crate::math_test_helper::*;
     use crate::*;
     use crate::soa_float::SoaFloat4;
+    use crate::soa_quaternion::SoaQuaternion;
 
     #[test]
     fn soa_float4x4constant() {
@@ -475,7 +476,7 @@ mod ozz_simd_math {
             10.0, 1.0, 0.0, 0.0, 14.0, 0.0, 0.0, 0.0, 3.0, 0.0, 0.0, 0.0, 7.0, 0.0,
             0.0, 0.0, 11.0, 0.0, 0.0, 0.0, 15.0, 1.0, 0.0, 1.0);
 
-        let mut invertible:Option<SimdInt4> = None;
+        let mut invertible: Option<SimdInt4> = None;
         let invert_ident = SoaFloat4x4::identity().invert(&mut invertible);
         expect_soa_float4x4_eq!(
             invert_ident, 1.0, 1.0, 1.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0,
@@ -504,7 +505,7 @@ mod ozz_simd_math {
         // EXPECT_ASSERTION(Invert(m0), "Matrix is not invertible");
 
         // Invertible
-        let mut invertible:Option<SimdInt4> = Some(SimdInt4::zero());
+        let mut invertible: Option<SimdInt4> = Some(SimdInt4::zero());
         expect_soa_float4x4_eq!(m2.invert(&mut invertible), 0.5, 0.216667, 0.0, 1.0, 0.0, 2.75, 0.0, 0.0,
             0.0, 1.6, 1.0, 0.0, 0.0, 0.066666, 0.0, 0.0, 0.0, 0.2, 0.0, 0.0, 0.0,
             2.5, 1.0, 1.0, 0.333333, 1.4, 0.0, 0.0, 0.0, 0.1, 0.0, 0.0, 0.0, 0.25,
@@ -516,12 +517,106 @@ mod ozz_simd_math {
         // Non invertible
         // EXPECT_ASSERTION(Invert(m0), "Matrix is not invertible");
 
-        let mut not_invertible:Option<SimdInt4> = Some(SimdInt4::zero());
+        let mut not_invertible: Option<SimdInt4> = Some(SimdInt4::zero());
         expect_soa_float4x4_eq!(m0.invert(&mut not_invertible), 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0,
             0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 1.0,
             0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, -1.0, 0.0, 0.0,
             0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0,
             0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 1.0);
         expect_simd_int_eq!(not_invertible.unwrap(), 0, 0xffffffff, 0, 0xffffffff);
+    }
+
+    #[test]
+    fn soa_float4x4scale() {
+        let m0 = SoaFloat4x4 {
+            cols:
+            [SoaFloat4 {
+                x: SimdFloat4::load(0.0, 1.0, 0.0, 0.0),
+                y: SimdFloat4::load(1.0, 0.0, -1.0, 0.0),
+                z: SimdFloat4::load(2.0, 0.0, 2.0, -1.0),
+                w: SimdFloat4::load(3.0, 0.0, 3.0, 0.0),
+            },
+                SoaFloat4 {
+                    x: SimdFloat4::load(4.0, 0.0, -4.0, 0.0),
+                    y: SimdFloat4::load(5.0, 1.0, 5.0, 1.0),
+                    z: SimdFloat4::load(6.0, 0.0, 6.0, 0.0),
+                    w: SimdFloat4::load(7.0, 0.0, -7.0, 0.0),
+                },
+                SoaFloat4 {
+                    x: SimdFloat4::load(8.0, 0.0, 8.0, 1.0),
+                    y: SimdFloat4::load(9.0, 0.0, -9.0, 0.0),
+                    z: SimdFloat4::load(10.0, 1.0, -10.0, 0.0),
+                    w: SimdFloat4::load(11.0, 0.0, 11.0, 0.0),
+                },
+                SoaFloat4 {
+                    x: SimdFloat4::load(12.0, 0.0, -12.0, 0.0),
+                    y: SimdFloat4::load(13.0, 0.0, 13.0, 0.0),
+                    z: SimdFloat4::load(14.0, 0.0, -14.0, 0.0),
+                    w: SimdFloat4::load(15.0, 1.0, 15.0, 1.0),
+                }]
+        };
+        let v = SoaFloat4 {
+            x: SimdFloat4::load(0.0, 1.0, -2.0, 3.0),
+            y: SimdFloat4::load(-1.0, 2.0, 5.0, 46.0),
+            z: SimdFloat4::load(-2.0, 3.0, 7.0, -1.0),
+            w: SimdFloat4::load(-3.0, 4.0, 0.0, 1.0),
+        };
+
+        let scaling = SoaFloat4x4::scaling(&v);
+        expect_soa_float4x4_eq!(scaling, 0.0, 1.0, -2.0, 3.0, 0.0, 0.0, 0.0, 0.0, 0.0,
+                              0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0,
+                              -1.0, 2.0, 5.0, 46.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0,
+                              0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, -2.0, 3.0,
+                              7.0, -1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0,
+                              0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0, 1.0, 1.0, 1.0);
+
+        let scale_mul = m0 * scaling;
+        expect_soa_float4x4_eq!(scale_mul, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 2.0, 0.0, 0.0,
+                              0.0, -4.0, -3.0, 0.0, 0.0, -6.0, 0.0, -4.0, 0.0, -20.0,
+                              0.0, -5.0, 2.0, 25.0, 46.0, -6.0, 0.0, 30.0, 0.0, -7.0,
+                              0.0, -35.0, 0.0, -16.0, 0.0, 56.0, -1.0, -18.0, 0.0,
+                              -63.0, 0.0, -20.0, 3.0, -70.0, 0.0, -22.0, 0.0, 77.0,
+                              0.0, 12.0, 0.0, -12.0, 0.0, 13.0, 0.0, 13.0, 0.0, 14.0,
+                              0.0, -14.0, 0.0, 15.0, 1.0, 15.0, 1.0);
+
+        let scale = m0.scale(&v);
+        expect_soa_float4x4_eq!(scale, 0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 2.0, 0.0, 0.0, 0.0,
+                              -4.0, -3.0, 0.0, 0.0, -6.0, 0.0, -4.0, 0.0, -20.0, 0.0,
+                              -5.0, 2.0, 25.0, 46.0, -6.0, 0.0, 30.0, 0.0, -7.0, 0.0,
+                              -35.0, 0.0, -16.0, 0.0, 56.0, -1.0, -18.0, 0.0, -63.0,
+                              0.0, -20.0, 3.0, -70.0, 0.0, -22.0, 0.0, 77.0, 0.0,
+                              12.0, 0.0, -12.0, 0.0, 13.0, 0.0, 13.0, 0.0, 14.0, 0.0,
+                              -14.0, 0.0, 15.0, 1.0, 15.0, 1.0);
+    }
+
+    #[test]
+    fn soa_float4x4rotate() {
+        // let unormalized =
+        //     SoaQuaternion::Load(SimdFloat4::load(0.0, 0.0, 0.0, 0.0),
+        //                         SimdFloat4::load(0.0, 0.0, 1.0, 0.0),
+        //                         SimdFloat4::load(0.0, 0.0, 0.0, 0.0),
+        //                         SimdFloat4::load(1.0, 1.0, 1.0, 1.0));
+        //
+        // EXPECT_ASSERTION(SoaFloat4x4::from_quaternion(unormalized), "IsNormalized");
+
+        let identity = SoaFloat4x4::from_quaternion(&SoaQuaternion::identity());
+        expect_soa_float4x4_eq!(identity, 1.0, 1.0, 1.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0,
+                              0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0,
+                              1.0, 1.0, 1.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0,
+                              0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0, 1.0,
+                              1.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0,
+                              0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0, 1.0, 1.0, 1.0);
+        let quaternion = SoaQuaternion::load(
+            SimdFloat4::load(0.70710677, 0.0, 0.0, -0.382683432),
+            SimdFloat4::load(0.0, 0.70710677, 0.0, 0.0),
+            SimdFloat4::load(0.70710677, 0.0, 0.0, 0.0),
+            SimdFloat4::load(0.0, 0.70710677, 1.0, 0.9238795));
+        let matrix = SoaFloat4x4::from_quaternion(&quaternion);
+        expect_soa_float4x4_eq!(
+            matrix, 0.0, 0.0, 1.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0, -1.0, 0.0, 0.0, 0.0,
+            0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, -1.0, 1.0, 1.0, 0.707106, 0.0, 0.0,
+            0.0, -0.707106, 0.0, 0.0, 0.0, 0.0, 1.0, 1.0, 0.0, 0.0, 0.0, 0.0, 0.0,
+            0.707106, 0.0, 0.0, 1.0, 0.707106, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0,
+            0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0, 1.0, 1.0, 1.0);
     }
 }
