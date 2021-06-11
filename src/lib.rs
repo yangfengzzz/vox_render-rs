@@ -27,6 +27,7 @@ pub mod animation_keyframe;
 pub mod raw_animation;
 pub mod raw_animation_utils;
 pub mod raw_skeleton;
+pub mod raw_track;
 
 // online
 pub mod skeleton;
