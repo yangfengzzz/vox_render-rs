@@ -1251,6 +1251,174 @@ mod ozz_math {
         expect_float4_eq!(lerp_2, 2.0 * b.x - a.x, 2.0 * b.y - a.y, 2.0 * b.z - a.z,
                          2.0 * b.w - a.w);
     }
+
+    #[test]
+    fn vector_arithmetic3() {
+        let a = Float3::new(0.5, 1.0, 2.0);
+        let b = Float3::new(4.0, 5.0, -6.0);
+
+        let add = a + b;
+        expect_float3_eq!(add, 4.5, 6.0, -4.0);
+
+        let sub = a - b;
+        expect_float3_eq!(sub, -3.5, -4.0, 8.0);
+
+        let neg = -b;
+        expect_float3_eq!(neg, -4.0, -5.0, 6.0);
+
+        let mul = a * b;
+        expect_float3_eq!(mul, 2.0, 5.0, -12.0);
+
+        let mul_scal = a * 2.0;
+        expect_float3_eq!(mul_scal, 1.0, 2.0, 4.0);
+
+        let div = a / b;
+        expect_float3_eq!(div, 0.5 / 4.0, 1.0 / 5.0, -2.0 / 6.0);
+
+        let div_scal = a / 2.0;
+        expect_float3_eq!(div_scal, 0.5 / 2.0, 1.0 / 2.0, 2.0 / 2.0);
+
+        let hadd4 = a.h_add();
+        assert_eq!(hadd4, 3.5);
+
+        let dot = a.dot(&b);
+        assert_eq!(dot, -5.0);
+
+        let cross = a.cross(&b);
+        expect_float3_eq!(cross, -16.0, 11.0, -1.5);
+
+        let length = a.length();
+        assert_eq!(length, f32::sqrt(5.25));
+
+        let length2 = a.length_sqr();
+        assert_eq!(length2, 5.25);
+
+        // EXPECT_ASSERTION(Float3::zero().normalize(), "is not normalizable");
+        assert_eq!(a.is_normalized(), false);
+        let normalize = a.normalize();
+        assert_eq!(normalize.is_normalized(), true);
+        expect_float3_eq!(normalize, 0.21821788, 0.43643576, 0.87287152);
+
+        // EXPECT_ASSERTION(a.normalize_safe(&a), "_safer is not normalized");
+        let safe = Float3::new(1.0, 0.0, 0.0);
+        let normalize_safe = a.normalize_safe(&safe);
+        assert_eq!(normalize_safe.is_normalized(), true);
+        expect_float3_eq!(normalize_safe, 0.21821788, 0.43643576, 0.87287152);
+
+        let normalize_safer = Float3::zero().normalize_safe(&safe);
+        assert_eq!(normalize_safer.is_normalized(), true);
+        expect_float3_eq!(normalize_safer, safe.x, safe.y, safe.z);
+
+        let lerp_0 = a.lerp(&b, 0.0);
+        expect_float3_eq!(lerp_0, a.x, a.y, a.z);
+
+        let lerp_1 = a.lerp(&b, 1.0);
+        expect_float3_eq!(lerp_1, b.x, b.y, b.z);
+
+        let lerp_0_5 = a.lerp(&b, 0.5);
+        expect_float3_eq!(lerp_0_5, (a.x + b.x) * 0.5, (a.y + b.y) * 0.5,
+                         (a.z + b.z) * 0.5);
+
+        let lerp_2 = a.lerp(&b, 2.0);
+        expect_float3_eq!(lerp_2, 2.0 * b.x - a.x, 2.0 * b.y - a.y, 2.0 * b.z - a.z);
+    }
+
+    #[test]
+    fn vector_arithmetic2() {
+        let a = Float2::new(0.5, 1.0);
+        let b = Float2::new(4.0, 5.0);
+
+        let add = a + b;
+        expect_float2_eq!(add, 4.5, 6.0);
+
+        let sub = a - b;
+        expect_float2_eq!(sub, -3.5, -4.0);
+
+        let neg = -b;
+        expect_float2_eq!(neg, -4.0, -5.0);
+
+        let mul = a * b;
+        expect_float2_eq!(mul, 2.0, 5.0);
+
+        let mul_scal = a * 2.0;
+        expect_float2_eq!(mul_scal, 1.0, 2.0);
+
+        let div = a / b;
+        expect_float2_eq!(div, 0.5 / 4.0, 1.0 / 5.0);
+        let div_scal = a / 2.0;
+        expect_float2_eq!(div_scal, 0.5 / 2.0, 1.0 / 2.0);
+
+        let hadd4 = a.h_add();
+        assert_eq!(hadd4, 1.5);
+
+        let dot = a.dot(&b);
+        assert_eq!(dot, 7.0);
+
+        let length = a.length();
+        assert_eq!(length, f32::sqrt(1.25));
+
+        let length2 = a.length_sqr();
+        assert_eq!(length2, 1.25);
+
+        // EXPECT_ASSERTION(Float2::zero().normalize(), "is not normalizable");
+        assert_eq!(a.is_normalized(), false);
+        let normalize = a.normalize();
+        assert_eq!(normalize.is_normalized(), true);
+        expect_float2_eq!(normalize, 0.44721359, 0.89442718);
+
+        // EXPECT_ASSERTION(a.normalize_safe(&a), "_safer is not normalized");
+        let safe = Float2::new(1.0, 0.0);
+        let normalize_safe = a.normalize_safe(&safe);
+        assert_eq!(normalize_safe.is_normalized(), true);
+        expect_float2_eq!(normalize_safe, 0.44721359, 0.89442718);
+
+        let normalize_safer = Float2::zero().normalize_safe(&safe);
+        assert_eq!(normalize_safer.is_normalized(), true);
+        expect_float2_eq!(normalize_safer, safe.x, safe.y);
+
+        let lerp_0 = a.lerp(&b, 0.0);
+        expect_float2_eq!(lerp_0, a.x, a.y);
+
+        let lerp_1 = a.lerp(&b, 1.0);
+        expect_float2_eq!(lerp_1, b.x, b.y);
+
+        let lerp_0_5 = a.lerp(&b, 0.5);
+        expect_float2_eq!(lerp_0_5, (a.x + b.x) * 0.5, (a.y + b.y) * 0.5);
+
+        let lerp_2 = a.lerp(&b, 2.0);
+        expect_float2_eq!(lerp_2, 2.0 * b.x - a.x, 2.0 * b.y - a.y);
+    }
+
+    #[test]
+    fn vector_comparison4() {
+        let a = Float4::new(0.5, 1.0, 2.0, 3.0);
+        let b = Float4::new(4.0, 5.0, -6.0, 7.0);
+        let c = Float4::new(4.0, 5.0, 6.0, 7.0);
+        let d = Float4::new(4.0, 5.0, 6.0, 7.1);
+
+        let min = a.min(&b);
+        expect_float4_eq!(min, 0.5, 1.0, -6.0, 3.0);
+
+        let max = a.max(&b);
+        expect_float4_eq!(max, 4.0, 5.0, 2.0, 7.0);
+
+        expect_float4_eq!(a.clamp(&Float4::new(-12.0, 2.0, 9.0, 3.0), &c), 0.5, 2.0, 6.0, 3.0);
+
+        assert_eq!(a.lt(&c), true);
+        assert_eq!(a.le(&c), true);
+        assert_eq!(c.le(&c), true);
+
+        assert_eq!(c.gt(&a), true);
+        assert_eq!(c.ge(&a), true);
+        assert_eq!(a.ge(&a), true);
+
+        assert_eq!(a.eq(&a), true);
+        assert_eq!(a.ne(&b), true);
+
+        assert_eq!(a.compare(&a, 0.0), true);
+        assert_eq!(c.compare(&d, 0.2), true);
+        assert_eq!(c.compare(&d, 0.05), false);
+    }
 }
 
 
