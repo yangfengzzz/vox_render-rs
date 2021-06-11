@@ -9,15 +9,15 @@
 use crate::transform::Transform;
 
 // Offline skeleton joint type.
-struct Joint {
+pub struct Joint {
     // Children joints.
-    children: Vec<Joint>,
+    pub children: Vec<Joint>,
 
     // The name of the joint.
-    name: String,
+    pub name: String,
 
     // Joint bind pose transformation in local space.
-    transform: Transform,
+    pub transform: Transform,
 }
 
 // Off-line skeleton type.
@@ -30,9 +30,9 @@ struct Joint {
 // The public API exposed through std:vector's of joints can be used freely with
 // the only restriction that the total number of joints does not exceed
 // Skeleton::kMaxJoints.
-struct RawSkeleton {
+pub struct RawSkeleton {
     // Declares the skeleton's roots. Can be empty if the skeleton has no joint.
-    roots: Vec<Joint>,
+    pub roots: Vec<Joint>,
 }
 
 impl RawSkeleton {
@@ -57,6 +57,70 @@ impl RawSkeleton {
     // This function is not constant time as it iterates the hierarchy of joints
     // and counts them.
     pub fn num_joints(&self) -> i32 {
-        todo!()
+        struct JointCounter {
+            num_joints: i32,
+        }
+        impl JointCounter {
+            fn new() -> JointCounter {
+                return JointCounter {
+                    num_joints: 0
+                };
+            }
+        }
+        impl SkeletonVisitFunctor for JointCounter {
+            fn visitor(&mut self, _current: &Joint, _parent: Option<&Joint>) {
+                self.num_joints += 1;
+            }
+        }
+
+        return iterate_joints_df(self, &mut JointCounter::new()).num_joints;
     }
+}
+
+//--------------------------------------------------------------------------------------------------
+pub trait SkeletonVisitFunctor {
+    fn visitor(&mut self, _current: &Joint, _parent: Option<&Joint>);
+}
+
+// Internal function used to iterate through joint hierarchy depth-first.
+pub fn _iter_hierarchy_recurse_df<_Fct: SkeletonVisitFunctor>(_children: &Vec<Joint>,
+                                                              _parent: Option<&Joint>,
+                                                              _fct: &mut _Fct) {
+    for i in 0.._children.len() {
+        let current = &_children[i];
+        _fct.visitor(current, _parent);
+        _iter_hierarchy_recurse_df(&current.children, Some(current), _fct);
+    }
+}
+
+// Internal function used to iterate through joint hierarchy breadth-first.
+pub fn _iter_hierarchy_recurse_bf<_Fct: SkeletonVisitFunctor>(_children: &Vec<Joint>,
+                                                              _parent: Option<&Joint>,
+                                                              _fct: &mut _Fct) {
+    for i in 0.._children.len() {
+        let current = &_children[i];
+        _fct.visitor(current, _parent);
+    }
+    for i in 0.._children.len() {
+        let current = &_children[i];
+        _iter_hierarchy_recurse_bf(&current.children, Some(current), _fct);
+    }
+}
+
+// Applies a specified functor to each joint in a depth-first order.
+// _Fct is of type void(const Joint& _current, const Joint* _parent) where the
+// first argument is the child of the second argument. _parent is null if the
+// _current joint is the root.
+pub fn iterate_joints_df<'a, _Fct: SkeletonVisitFunctor>(_skeleton: &RawSkeleton, _fct: &'a mut _Fct) -> &'a _Fct {
+    _iter_hierarchy_recurse_df(&_skeleton.roots, None, _fct);
+    return _fct;
+}
+
+// Applies a specified functor to each joint in a breadth-first order.
+// _Fct is of type void(const Joint& _current, const Joint* _parent) where the
+// first argument is the child of the second argument. _parent is null if the
+// _current joint is the root.
+pub fn iterate_joints_bf<'a, _Fct: SkeletonVisitFunctor>(_skeleton: &RawSkeleton, _fct: &'a mut _Fct) -> &'a _Fct {
+    _iter_hierarchy_recurse_bf(&_skeleton.roots, None, _fct);
+    return _fct;
 }
