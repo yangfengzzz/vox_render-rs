@@ -39,22 +39,25 @@ pub enum Constants {
 // traversal utility.
 pub struct Skeleton {
     // Bind pose of every joint in local space.
-    joint_bind_poses_: &'static [SoaTransform],
+    joint_bind_poses_: Vec<SoaTransform>,
 
     // Array of joint parent indexes.
-    joint_parents_: &'static [i16],
+    joint_parents_: Vec<i16>,
 
     // Stores the name of every joint in an array of c-strings.
-    joint_names_: &'static [&'static str],
+    joint_names_: Vec<&'static str>,
+
+    whole_name: String,
 }
 
 impl Skeleton {
     // Builds a default skeleton.
     pub fn new() -> Skeleton {
         return Skeleton {
-            joint_bind_poses_: &[],
-            joint_parents_: &[],
-            joint_names_: &[],
+            joint_bind_poses_: vec![],
+            joint_parents_: vec![],
+            joint_names_: vec![],
+            whole_name: "".to_string(),
         };
     }
 
@@ -66,17 +69,47 @@ impl Skeleton {
     pub fn num_soa_joints(&self) -> i32 { return (self.num_joints() + 3) / 4; }
 
     // Returns joint's bind poses. Bind poses are stored in soa format.
-    pub fn joint_bind_poses(&self) -> &[SoaTransform] {
-        return self.joint_bind_poses_;
+    pub fn joint_bind_poses(&self) -> &Vec<SoaTransform> {
+        return &self.joint_bind_poses_;
     }
 
     // Returns joint's parent indices range.
-    pub fn joint_parents(&self) -> &[i16] {
-        return self.joint_parents_;
+    pub fn joint_parents(&self) -> &Vec<i16> {
+        return &self.joint_parents_;
     }
 
     // Returns joint's name collection.
-    pub fn joint_names(&self) -> &[&str] {
-        return self.joint_names_;
+    pub fn joint_names(&self) -> &Vec<&'static str> {
+        return &self.joint_names_;
+    }
+}
+
+impl Skeleton {
+    // Internal allocation/deallocation function.
+    // allocate returns the beginning of the contiguous buffer of names.
+    pub fn allocate(&mut self, _char_count: usize, _num_joints: usize) -> Option<&mut String> {
+        debug_assert!(self.joint_bind_poses_.len() == 0 && self.joint_names_.len() == 0 &&
+            self.joint_parents_.len() == 0);
+
+        // Early out if no joint.
+        if _num_joints == 0 {
+            return None;
+        }
+
+        // Bind poses have SoA format
+        let num_soa_joints = (_num_joints + 3) / 4;
+
+        // Serves larger alignment values first.
+        // Bind pose first, biggest alignment.
+        self.joint_bind_poses_.resize(num_soa_joints, SoaTransform::identity());
+
+        // Then names array, second biggest alignment.
+        self.joint_names_.resize(_num_joints, "");
+
+        // Parents, third biggest alignment.
+        self.joint_parents_.resize(_num_joints, 0);
+
+        self.whole_name.reserve(_char_count);
+        return Some(&mut self.whole_name);
     }
 }

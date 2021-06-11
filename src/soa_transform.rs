@@ -12,6 +12,7 @@
 use crate::soa_float::SoaFloat3;
 use crate::soa_quaternion::SoaQuaternion;
 
+#[derive(Copy, Clone)]
 pub struct SoaTransform {
     pub translation: SoaFloat3,
     pub rotation: SoaQuaternion,
