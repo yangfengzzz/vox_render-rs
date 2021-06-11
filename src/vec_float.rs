@@ -1045,19 +1045,19 @@ impl Float4 {
             });
 
         return Float4::new(
-            match _a.x < min.x {
+            match _a.x > min.x {
                 true => _a.x,
                 false => min.x
             },
-            match _a.y < min.y {
+            match _a.y > min.y {
                 true => _a.y,
                 false => min.y
             },
-            match _a.z < min.z {
+            match _a.z > min.z {
                 true => _a.z,
                 false => min.z
             },
-            match _a.w < min.w {
+            match _a.w > min.w {
                 true => _a.w,
                 false => min.w
             });
@@ -1082,15 +1082,15 @@ impl Float3 {
             });
 
         return Float3::new(
-            match _a.x < min.x {
+            match _a.x > min.x {
                 true => _a.x,
                 false => min.x
             },
-            match _a.y < min.y {
+            match _a.y > min.y {
                 true => _a.y,
                 false => min.y
             },
-            match _a.z < min.z {
+            match _a.z > min.z {
                 true => _a.z,
                 false => min.z
             });
@@ -1111,11 +1111,11 @@ impl Float2 {
             });
 
         return Float2::new(
-            match _a.x < min.x {
+            match _a.x > min.x {
                 true => _a.x,
                 false => min.x
             },
-            match _a.y < min.y {
+            match _a.y > min.y {
                 true => _a.y,
                 false => min.y
             });
@@ -1402,7 +1402,7 @@ mod ozz_math {
         let max = a.max(&b);
         expect_float4_eq!(max, 4.0, 5.0, 2.0, 7.0);
 
-        expect_float4_eq!(a.clamp(&Float4::new(-12.0, 2.0, 9.0, 3.0), &c), 0.5, 2.0, 6.0, 3.0);
+        expect_float4_eq!(Float4::new(-12.0, 2.0, 9.0, 3.0).clamp(&a, &c), 0.5, 2.0, 6.0, 3.0);
 
         assert_eq!(a.lt(&c), true);
         assert_eq!(a.le(&c), true);
@@ -1433,7 +1433,7 @@ mod ozz_math {
         let max = a.max(&b);
         expect_float3_eq!(max, 4.0, 5.0, 2.0);
 
-        expect_float3_eq!(a.clamp(&Float3::new(-12.0, 2.0, 9.0), &c), 0.5, 2.0, 6.0);
+        expect_float3_eq!(Float3::new(-12.0, 2.0, 9.0).clamp(&a, &c), 0.5, 2.0, 6.0);
 
         assert_eq!(a.lt(&c), true);
         assert_eq!(a.le(&c), true);
@@ -1464,7 +1464,7 @@ mod ozz_math {
         let max = a.max(&b);
         expect_float2_eq!(max, 4.0, 1.0);
 
-        expect_float2_eq!(a.clamp(&Float2::new(-12.0, 2.0), &c), 0.5, 2.0);
+        expect_float2_eq!(Float2::new(-12.0, 2.0).clamp(&a, &c), 0.5, 2.0);
 
         assert_eq!(a.lt(&c), true);
         assert_eq!(a.le(&c), true);
