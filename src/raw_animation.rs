@@ -9,14 +9,18 @@
 use crate::vec_float::Float3;
 use crate::quaternion::Quaternion;
 
-trait KeyType {
+pub trait KeyType<T> {
     fn time(&self) -> f32;
+
+    fn value(&self) -> T;
+
+    fn identity() -> T;
 }
 
 // Implements key frames' time range and ordering checks.
 // See AnimationBuilder::Create for more details.
-fn validate_track<_Key: KeyType>(_track: &Vec<_Key>,
-                                 _duration: f32) -> bool {
+fn validate_track<T, _Key: KeyType<T>>(_track: &Vec<_Key>,
+                                       _duration: f32) -> bool {
     let mut previous_time = -1.0;
     for k in 0.._track.len() {
         let frame_time = _track[k].time();
@@ -43,15 +47,17 @@ pub struct TranslationKey {
     pub value: Float3,
 }
 
-impl KeyType for TranslationKey {
+impl KeyType<Float3> for TranslationKey {
     fn time(&self) -> f32 {
         return self.time;
     }
-}
 
-impl TranslationKey {
+    fn value(&self) -> Float3 {
+        return self.value;
+    }
+
     // Provides identity transformation for a translation key.
-    pub fn identity() -> Float3 { return Float3::zero(); }
+    fn identity() -> Float3 { return Float3::zero(); }
 }
 
 //--------------------------------------------------------------------------------------------------
@@ -64,15 +70,17 @@ pub struct RotationKey {
     pub value: Quaternion,
 }
 
-impl KeyType for RotationKey {
+impl KeyType<Quaternion> for RotationKey {
     fn time(&self) -> f32 {
         return self.time;
     }
-}
 
-impl RotationKey {
+    fn value(&self) -> Quaternion {
+        return self.value;
+    }
+
     // Provides identity transformation for a rotation key.
-    pub fn identity() -> Quaternion { return Quaternion::identity(); }
+    fn identity() -> Quaternion { return Quaternion::identity(); }
 }
 
 //--------------------------------------------------------------------------------------------------
@@ -85,15 +93,17 @@ pub struct ScaleKey {
     pub value: Float3,
 }
 
-impl KeyType for ScaleKey {
+impl KeyType<Float3> for ScaleKey {
     fn time(&self) -> f32 {
         return self.time;
     }
-}
 
-impl ScaleKey {
+    fn value(&self) -> Float3 {
+        return self.value;
+    }
+
     // Provides identity transformation for a scale key.
-    pub fn identity() -> Float3 { return Float3::one(); }
+    fn identity() -> Float3 { return Float3::one(); }
 }
 
 //--------------------------------------------------------------------------------------------------

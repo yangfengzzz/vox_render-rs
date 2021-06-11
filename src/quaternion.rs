@@ -181,14 +181,19 @@ impl Mul for Quaternion {
     }
 }
 
-impl Neg for Quaternion {
-    type Output = Quaternion;
-    #[inline]
-    fn neg(self) -> Self::Output {
-        return Quaternion::new(-self.x, -self.y, -self.z, -self.w);
-    }
+macro_rules! impl_neg {
+    ($type:ty) => {
+        impl Neg for $type {
+            type Output = Quaternion;
+            #[inline]
+            fn neg(self) -> Self::Output {
+                return Quaternion::new(-self.x, -self.y, -self.z, -self.w);
+            }
+        }
+    };
 }
-
+impl_neg!(Quaternion);
+impl_neg!(&Quaternion);
 //--------------------------------------------------------------------------------------------------
 impl Quaternion {
     // Returns the conjugate of self. This is the same as the inverse if self is

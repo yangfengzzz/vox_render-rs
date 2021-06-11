@@ -26,9 +26,9 @@ pub fn lerp_rotation(_a: &Quaternion, _b: &Quaternion, _alpha: f32) -> Quaternio
     // Finds the shortest path. This is done by the AnimationBuilder for runtime
     // animations.
     let dot = _a.x * _b.x + _a.y * _b.y + _a.z * _b.z + _a.w * _b.w;
-    return _a.nlerp(match dot < 0.0 {
+    return _a.nlerp(&match dot < 0.0 {
         true => -_b,
-        false => _b,
+        false => *_b,
     }, _alpha);  // _b an -_b are the same rotation.
 }
 
@@ -42,7 +42,12 @@ pub fn lerp_scale(_a: &Float3, _b: &Float3, _alpha: f32) -> Float3 {
 // runtime purpose.
 // Returns false if track is invalid.
 pub fn sample_track(_track: &JointTrack, _time: f32, _transform: &mut Transform) -> bool {
-    todo!()
+    if !_track.validate(f32::INFINITY) {
+        return false;
+    }
+
+    sample_track_no_validate(_track, _time, _transform);
+    return true;
 }
 
 // Samples a RawAnimation. This function shall be used for offline
@@ -50,8 +55,48 @@ pub fn sample_track(_track: &JointTrack, _time: f32, _transform: &mut Transform)
 // runtime purpose.
 // _animation must be valid.
 // Returns false output range is too small or animation is invalid.
-pub fn sample_animation(_animation: &RawAnimation, _time: f32, _transforms: &[Transform]) -> bool {
-    todo!()
+pub fn sample_animation(_animation: &RawAnimation, _time: f32, _transforms: &mut [Transform]) -> bool {
+    if !_animation.validate() {
+        return false;
+    }
+    if _animation.tracks.len() > _transforms.len() {
+        return false;
+    }
+
+    for i in 0.._animation.tracks.len() {
+        sample_track_no_validate(&_animation.tracks[i], _time, &mut _transforms[i]);
+    }
+    return true;
+}
+
+pub fn sample_component<T, _Key: KeyType<T>>(_track: &Vec<_Key>,
+                                             _lerp: fn(_a: &T, _b: &T, _alpha: f32) -> T,
+                                             _time: f32) -> T {
+    return if _track.len() == 0 {
+        // Return identity if there's no key for this track.
+        _Key::identity()
+    } else if _time <= _track.first().unwrap().time() {
+        // Returns the first keyframe if _time is before the first keyframe.
+        _track.first().unwrap().value()
+    } else if _time >= _track.last().unwrap().time() {
+        // Returns the last keyframe if _time is before the last keyframe.
+        _track.last().unwrap().value()
+    } else {
+        // Needs to interpolate the 2 keyframes before and after _time.
+        debug_assert!(_track.len() >= 2);
+        let index = _track.partition_point(|ele| {
+            return ele.time() < _time;
+        });
+        debug_assert!(_time >= _track[index - 1].time() && _time <= _track[index].time());
+        let alpha = (_time - _track[index - 1].time()) / (_track[index].time() - _track[index - 1].time());
+        _lerp(&_track[index - 1].value(), &_track[index].value(), alpha)
+    };
+}
+
+fn sample_track_no_validate(_track: &JointTrack, _time: f32, _transform: &mut Transform) {
+    _transform.translation = sample_component(&_track.translations, lerp_translation, _time);
+    _transform.rotation = sample_component(&_track.rotations, lerp_rotation, _time);
+    _transform.scale = sample_component(&_track.scales, lerp_scale, _time);
 }
 
 //--------------------------------------------------------------------------------------------------
