@@ -18,25 +18,25 @@ impl SkeletonBuilder {
     // RawSkeleton::Validate() for more details about failure reasons.
     // The skeleton is returned as an unique_ptr as ownership is given back to the
     // caller.
-    pub fn apply(_raw_skeleton: &RawSkeleton) -> Skeleton {
+    pub fn apply(_raw_skeleton: &RawSkeleton) -> Option<Skeleton> {
         todo!()
     }
 }
 
 //--------------------------------------------------------------------------------------------------
-struct Joint<'a> {
-    joint: &'a crate::raw_skeleton::Joint,
+struct Joint {
+    joint: *const crate::raw_skeleton::Joint,
     parent: i16,
 }
 
 // Stores each traversed joint in a vector.
-struct JointLister<'a> {
+struct JointLister {
     // Array of joints in the traversed DAG order.
-    linear_joints: Vec<Joint<'a>>,
+    linear_joints: Vec<Joint>,
 }
 
-impl<'a> JointLister<'a> {
-    pub fn new(_num_joints: i32) -> JointLister<'a> {
+impl<'a> JointLister {
+    pub fn new(_num_joints: i32) -> JointLister {
         let mut result = JointLister {
             linear_joints: vec![]
         };
@@ -45,7 +45,7 @@ impl<'a> JointLister<'a> {
     }
 }
 
-impl<'a> SkeletonVisitor for JointLister<'a> {
+impl<'a> SkeletonVisitor for JointLister {
     fn visitor(&mut self, _current: &crate::raw_skeleton::Joint,
                _parent: Option<&crate::raw_skeleton::Joint>) {
         // Looks for the "lister" parent.
@@ -54,7 +54,7 @@ impl<'a> SkeletonVisitor for JointLister<'a> {
             // Start searching from the last joint.
             let mut j = self.linear_joints.len() as i16 - 1;
             while j >= 0 {
-                if self.linear_joints[j as usize].joint == _parent.unwrap() {
+                if self.linear_joints[j as usize].joint as *const _ == _parent.unwrap() as *const _ {
                     parent = j;
                     break;
                 }
