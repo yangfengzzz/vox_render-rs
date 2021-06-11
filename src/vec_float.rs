@@ -448,6 +448,31 @@ impl_div2!(Float2);
 impl_div2!(&Float2);
 
 //--------------------------------------------------------------------------------------------------
+impl Div<f32> for Float4 {
+    type Output = Float4;
+
+    fn div(self, rhs: f32) -> Self::Output {
+        return Float4::new(self.x / rhs, self.y / rhs, self.z / rhs, self.w / rhs);
+    }
+}
+
+impl Div<f32> for Float3 {
+    type Output = Float3;
+
+    fn div(self, rhs: f32) -> Self::Output {
+        return Float3::new(self.x / rhs, self.y / rhs, self.z / rhs);
+    }
+}
+
+impl Div<f32> for Float2 {
+    type Output = Float2;
+
+    fn div(self, rhs: f32) -> Self::Output {
+        return Float2::new(self.x / rhs, self.y / rhs);
+    }
+}
+
+//--------------------------------------------------------------------------------------------------
 impl Float4 {
     // Returns the (horizontal) addition of each element of self.
     #[inline]
@@ -1104,7 +1129,6 @@ impl Float2 {
 mod ozz_math {
     use crate::math_test_helper::*;
     use crate::*;
-    use crate::transform::Transform;
     use crate::vec_float::*;
 
     #[test]
@@ -1124,4 +1148,128 @@ mod ozz_math {
         let f2 = Float2::new(-1.0, 0.0);
         expect_float3_eq!(Float3::new2(f2, 1.0), -1.0, 0.0, 1.0);
     }
+
+    #[test]
+    fn vector_load2() {
+        expect_float2_eq!(Float2::new_scalar(46.0), 46.0, 46.0);
+        expect_float2_eq!(Float2::new(-1.0, 0.0), -1.0, 0.0);
+    }
+
+    #[test]
+    fn vector_constant4() {
+        expect_float4_eq!(Float4::zero(), 0.0, 0.0, 0.0, 0.0);
+        expect_float4_eq!(Float4::one(), 1.0, 1.0, 1.0, 1.0);
+        expect_float4_eq!(Float4::x_axis(), 1.0, 0.0, 0.0, 0.0);
+        expect_float4_eq!(Float4::y_axis(), 0.0, 1.0, 0.0, 0.0);
+        expect_float4_eq!(Float4::z_axis(), 0.0, 0.0, 1.0, 0.0);
+        expect_float4_eq!(Float4::w_axis(), 0.0, 0.0, 0.0, 1.0);
+    }
+
+    #[test]
+    fn vector_constant3() {
+        expect_float3_eq!(Float3::zero(), 0.0, 0.0, 0.0);
+        expect_float3_eq!(Float3::one(), 1.0, 1.0, 1.0);
+        expect_float3_eq!(Float3::x_axis(), 1.0, 0.0, 0.0);
+        expect_float3_eq!(Float3::y_axis(), 0.0, 1.0, 0.0);
+        expect_float3_eq!(Float3::z_axis(), 0.0, 0.0, 1.0);
+    }
+
+    #[test]
+    fn vector_constant2() {
+        expect_float2_eq!(Float2::zero(), 0.0, 0.0);
+        expect_float2_eq!(Float2::one(), 1.0, 1.0);
+        expect_float2_eq!(Float2::x_axis(), 1.0, 0.0);
+        expect_float2_eq!(Float2::y_axis(), 0.0, 1.0);
+    }
+
+    #[test]
+    fn vector_arithmetic4() {
+        let a = Float4::new(0.5, 1.0, 2.0, 3.0);
+        let b = Float4::new(4.0, 5.0, -6.0, 7.0);
+
+        let add = a + b;
+        expect_float4_eq!(add, 4.5, 6.0, -4.0, 10.0);
+
+        let sub = a - b;
+        expect_float4_eq!(sub, -3.5, -4.0, 8.0, -4.0);
+
+        let neg = -b;
+        expect_float4_eq!(neg, -4.0, -5.0, 6.0, -7.0);
+
+        let mul = a * b;
+        expect_float4_eq!(mul, 2.0, 5.0, -12.0, 21.0);
+
+        let mul_scal = a * 2.0;
+        expect_float4_eq!(mul_scal, 1.0, 2.0, 4.0, 6.0);
+
+        let div = a / b;
+        expect_float4_eq!(div, 0.5 / 4.0, 1.0 / 5.0, -2.0 / 6.0, 3.0 / 7.0);
+
+        let div_scal = a / 2.0;
+        expect_float4_eq!(div_scal, 0.5 / 2.0, 1.0 / 2.0, 2.0 / 2.0, 3.0 / 2.0);
+
+        let hadd4 = a.h_add();
+        assert_eq!(hadd4, 6.5);
+
+        let dot = a.dot(&b);
+        assert_eq!(dot, 16.0);
+
+        let length = a.length();
+        assert_eq!(length, f32::sqrt(14.25));
+
+        let length2 = a.length_sqr();
+        assert_eq!(length2, 14.25);
+
+        // EXPECT_ASSERTION(Float4::zero().normalize(), "is not normalizable");
+        assert_eq!(a.is_normalized(), false);
+        let normalize = a.normalize();
+        assert_eq!(normalize.is_normalized(), true);
+        expect_float4_eq!(normalize, 0.13245323, 0.26490647, 0.52981293, 0.79471946);
+
+        // EXPECT_ASSERTION(a.normalize_safe(&a), "_safer is not normalized");
+        let safe = Float4::new(1.0, 0.0, 0.0, 0.0);
+        let normalize_safe = a.normalize_safe(&safe);
+        assert_eq!(normalize_safe.is_normalized(), true);
+        expect_float4_eq!(normalize_safe, 0.13245323, 0.26490647, 0.52981293,
+                         0.79471946);
+
+        let normalize_safer = Float4::zero().normalize_safe(&safe);
+        assert_eq!(normalize_safer.is_normalized(), true);
+        expect_float4_eq!(normalize_safer, safe.x, safe.y, safe.z, safe.w);
+
+        let lerp_0 = a.lerp(&b, 0.0);
+        expect_float4_eq!(lerp_0, a.x, a.y, a.z, a.w);
+
+        let lerp_1 = a.lerp(&b, 1.0);
+        expect_float4_eq!(lerp_1, b.x, b.y, b.z, b.w);
+
+        let lerp_0_5 = a.lerp(&b, 0.5);
+        expect_float4_eq!(lerp_0_5, (a.x + b.x) * 0.5, (a.y + b.y) * 0.5,
+                         (a.z + b.z) * 0.5, (a.w + b.w) * 0.5);
+
+        let lerp_2 = a.lerp(&b, 2.0);
+        expect_float4_eq!(lerp_2, 2.0 * b.x - a.x, 2.0 * b.y - a.y, 2.0 * b.z - a.z,
+                         2.0 * b.w - a.w);
+    }
 }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
