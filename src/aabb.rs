@@ -7,7 +7,7 @@
  */
 
 use crate::simd_math::*;
-use crate::vec_float::{Float3, min3, max3};
+use crate::vec_float::*;
 
 // Defines an axis aligned box.
 #[derive(Clone)]
@@ -46,12 +46,12 @@ impl AABB {
     // Constructs the smallest box that contains the _count points _points.
     // _stride is the number of bytes between points, it must be greater or
     // equal to sizeof(Float3).
-    pub fn new_vec(_points: &Vec<Float3>, _count:usize) -> AABB {
+    pub fn new_vec(_points: &Vec<Float3>, _count: usize) -> AABB {
         let mut local_min = Float3::new_scalar(f32::MAX);
         let mut local_max = Float3::new_scalar(-f32::MAX);
         for i in 0.._count {
-            local_min = min3(&local_min, &_points[i]);
-            local_max = max3(&local_max, &_points[i]);
+            local_min = local_min.min(&_points[i]);
+            local_max = local_max.max(&_points[i]);
         }
 
         return AABB {
@@ -75,7 +75,7 @@ pub fn merge(_a: &AABB, _b: &AABB) -> AABB {
     } else if !_b.is_valid() {
         return _a.clone();
     }
-    return AABB::new(&min3(&_a.min, &_b.min), &max3(&_a.max, &_b.max));
+    return AABB::new(&_a.min.min(&_b.min), &_a.max.max(&_b.max));
 }
 
 // Compute box transformation by a matrix.

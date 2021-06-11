@@ -448,205 +448,261 @@ impl_div2!(Float2);
 impl_div2!(&Float2);
 
 //--------------------------------------------------------------------------------------------------
-// Returns the (horizontal) addition of each element of _v.
-#[inline]
-pub fn h_add4(_v: &Float4) -> f32 {
-    return _v.x + _v.y + _v.z + _v.w;
-}
-
-#[inline]
-pub fn h_add3(_v: &Float3) -> f32 {
-    return _v.x + _v.y + _v.z;
-}
-
-#[inline]
-pub fn h_add2(_v: &Float2) -> f32 {
-    return _v.x + _v.y;
-}
-
-//--------------------------------------------------------------------------------------------------
-// Returns the dot product of _a and _b.
-#[inline]
-pub fn dot4(_a: &Float4, _b: &Float4) -> f32 {
-    return _a.x * _b.x + _a.y * _b.y + _a.z * _b.z + _a.w * _b.w;
-}
-
-#[inline]
-pub fn dot3(_a: &Float3, _b: &Float3) -> f32 {
-    return _a.x * _b.x + _a.y * _b.y + _a.z * _b.z;
-}
-
-#[inline]
-pub fn dot2(_a: &Float2, _b: &Float2) -> f32 {
-    return _a.x * _b.x + _a.y * _b.y;
-}
-
-//--------------------------------------------------------------------------------------------------
-// Returns the cross product of _a and _b.
-#[inline]
-pub fn cross(_a: &Float3, _b: &Float3) -> Float3 {
-    return Float3::new(_a.y * _b.z - _b.y * _a.z,
-                       _a.z * _b.x - _b.z * _a.x,
-                       _a.x * _b.y - _b.x * _a.y);
-}
-
-//--------------------------------------------------------------------------------------------------
-// Returns the length |_v| of _v.
-#[inline]
-pub fn length4(_v: &Float4) -> f32 {
-    let len2 = _v.x * _v.x + _v.y * _v.y + _v.z * _v.z + _v.w * _v.w;
-    return f32::sqrt(len2);
-}
-
-#[inline]
-pub fn length3(_v: &Float3) -> f32 {
-    let len2 = _v.x * _v.x + _v.y * _v.y + _v.z * _v.z;
-    return f32::sqrt(len2);
-}
-
-#[inline]
-pub fn length2(_v: &Float2) -> f32 {
-    let len2 = _v.x * _v.x + _v.y * _v.y;
-    return f32::sqrt(len2);
-}
-
-//--------------------------------------------------------------------------------------------------
-// Returns the square length |_v|^2 of _v.
-#[inline]
-pub fn length_sqr4(_v: &Float4) -> f32 {
-    return _v.x * _v.x + _v.y * _v.y + _v.z * _v.z + _v.w * _v.w;
-}
-
-#[inline]
-pub fn length_sqr3(_v: &Float3) -> f32 {
-    return _v.x * _v.x + _v.y * _v.y + _v.z * _v.z;
-}
-
-#[inline]
-pub fn length_sqr2(_v: &Float2) -> f32 {
-    return _v.x * _v.x + _v.y * _v.y;
-}
-
-//--------------------------------------------------------------------------------------------------
-// Returns the normalized vector _v.
-#[inline]
-pub fn normalize4(_v: &Float4) -> Float4 {
-    let len2 = _v.x * _v.x + _v.y * _v.y + _v.z * _v.z + _v.w * _v.w;
-    debug_assert!(len2 != 0.0 && "_v is not normalizable".parse().unwrap_or(true));
-    let len = f32::sqrt(len2);
-    return Float4::new(_v.x / len, _v.y / len, _v.z / len, _v.w / len);
-}
-
-#[inline]
-pub fn normalize3(_v: &Float3) -> Float3 {
-    let len2 = _v.x * _v.x + _v.y * _v.y + _v.z * _v.z;
-    debug_assert!(len2 != 0.0 && "_v is not normalizable".parse().unwrap_or(true));
-    let len = f32::sqrt(len2);
-    return Float3::new(_v.x / len, _v.y / len, _v.z / len);
-}
-
-#[inline]
-pub fn normalize2(_v: &Float2) -> Float2 {
-    let len2 = _v.x * _v.x + _v.y * _v.y;
-    debug_assert!(len2 != 0.0 && "_v is not normalizable".parse().unwrap_or(true));
-    let len = f32::sqrt(len2);
-    return Float2::new(_v.x / len, _v.y / len);
-}
-
-//--------------------------------------------------------------------------------------------------
-// Returns true if _v is normalized.
-#[inline]
-pub fn is_normalized4(_v: &Float4) -> bool {
-    let len2 = _v.x * _v.x + _v.y * _v.y + _v.z * _v.z + _v.w * _v.w;
-    return f32::abs(len2 - 1.0) < crate::math_constant::K_NORMALIZATION_TOLERANCE_SQ;
-}
-
-#[inline]
-pub fn is_normalized3(_v: &Float3) -> bool {
-    let len2 = _v.x * _v.x + _v.y * _v.y + _v.z * _v.z;
-    return f32::abs(len2 - 1.0) < crate::math_constant::K_NORMALIZATION_TOLERANCE_SQ;
-}
-
-#[inline]
-pub fn is_normalized2(_v: &Float2) -> bool {
-    let len2 = _v.x * _v.x + _v.y * _v.y;
-    return f32::abs(len2 - 1.0) < crate::math_constant::K_NORMALIZATION_TOLERANCE_SQ;
-}
-
-//--------------------------------------------------------------------------------------------------
-// Returns the normalized vector _v if the norm of _v is not 0.
-// Otherwise returns _safer.
-#[inline]
-pub fn normalize_safe4(_v: &Float4, _safer: &Float4) -> Float4 {
-    debug_assert!(is_normalized4(_safer) && "_safer is not normalized".parse().unwrap_or(true));
-    let len2 = _v.x * _v.x + _v.y * _v.y + _v.z * _v.z + _v.w * _v.w;
-    if len2 <= 0.0 {
-        return _safer.clone();
+impl Float4 {
+    // Returns the (horizontal) addition of each element of self.
+    #[inline]
+    pub fn h_add(&self) -> f32 {
+        return self.x + self.y + self.z + self.w;
     }
-    let len = f32::sqrt(len2);
-    return Float4::new(_v.x / len, _v.y / len, _v.z / len, _v.w / len);
 }
 
-#[inline]
-pub fn normalize_safe3(_v: &Float3, _safer: &Float3) -> Float3 {
-    debug_assert!(is_normalized3(_safer) && "_safer is not normalized".parse().unwrap_or(true));
-    let len2 = _v.x * _v.x + _v.y * _v.y + _v.z * _v.z;
-    if len2 <= 0.0 {
-        return _safer.clone();
+impl Float3 {
+    #[inline]
+    pub fn h_add(&self) -> f32 {
+        return self.x + self.y + self.z;
     }
-    let len = f32::sqrt(len2);
-    return Float3::new(_v.x / len, _v.y / len, _v.z / len);
 }
 
-#[inline]
-pub fn normalize_safe2(_v: &Float2, _safer: &Float2) -> Float2 {
-    debug_assert!(is_normalized2(_safer) && "_safer is not normalized".parse().unwrap_or(true));
-    let len2 = _v.x * _v.x + _v.y * _v.y;
-    if len2 <= 0.0 {
-        return _safer.clone();
+impl Float2 {
+    #[inline]
+    pub fn h_add(&self) -> f32 {
+        return self.x + self.y;
     }
-    let len = f32::sqrt(len2);
-    return Float2::new(_v.x / len, _v.y / len);
 }
 
 //--------------------------------------------------------------------------------------------------
-// Returns the linear interpolation of _a and _b with coefficient _f.
-// _f is not limited to range [0,1].
-#[inline]
-pub fn lerp4(_a: &Float4, _b: &Float4, _f: f32) -> Float4 {
-    return Float4::new((_b.x - _a.x) * _f + _a.x, (_b.y - _a.y) * _f + _a.y,
-                       (_b.z - _a.z) * _f + _a.z, (_b.w - _a.w) * _f + _a.w);
+impl Float4 {
+    // Returns the dot product of _a and _b.
+    #[inline]
+    pub fn dot(&self, _b: &Float4) -> f32 {
+        return self.x * _b.x + self.y * _b.y + self.z * _b.z + self.w * _b.w;
+    }
 }
 
-#[inline]
-pub fn lerp3(_a: &Float3, _b: &Float3, _f: f32) -> Float3 {
-    return Float3::new((_b.x - _a.x) * _f + _a.x, (_b.y - _a.y) * _f + _a.y,
-                       (_b.z - _a.z) * _f + _a.z);
+impl Float3 {
+    #[inline]
+    pub fn dot(&self, _b: &Float3) -> f32 {
+        return self.x * _b.x + self.y * _b.y + self.z * _b.z;
+    }
 }
 
-#[inline]
-pub fn lerp2(_a: &Float2, _b: &Float2, _f: f32) -> Float2 {
-    return Float2::new((_b.x - _a.x) * _f + _a.x, (_b.y - _a.y) * _f + _a.y);
+impl Float2 {
+    #[inline]
+    pub fn dot(&self, _b: &Float2) -> f32 {
+        return self.x * _b.x + self.y * _b.y;
+    }
 }
 
 //--------------------------------------------------------------------------------------------------
-// Returns true if the distance between _a and _b is less than _tolerance.
-#[inline]
-pub fn compare4(_a: &Float4, _b: &Float4, _tolerance: f32) -> bool {
-    let diff = _a - _b;
-    return dot4(&diff, &diff) <= _tolerance * _tolerance;
+impl Float3 {
+    // Returns the cross product of _a and _b.
+    #[inline]
+    pub fn cross(&self, _b: &Float3) -> Float3 {
+        return Float3::new(self.y * _b.z - _b.y * self.z,
+                           self.z * _b.x - _b.z * self.x,
+                           self.x * _b.y - _b.x * self.y);
+    }
 }
 
-#[inline]
-pub fn compare3(_a: &Float3, _b: &Float3, _tolerance: f32) -> bool {
-    let diff = _a - _b;
-    return dot3(&diff, &diff) <= _tolerance * _tolerance;
+//--------------------------------------------------------------------------------------------------
+impl Float4 {
+    // Returns the length |self| of self.
+    #[inline]
+    pub fn length(&self) -> f32 {
+        let len2 = self.x * self.x + self.y * self.y + self.z * self.z + self.w * self.w;
+        return f32::sqrt(len2);
+    }
 }
 
-#[inline]
-pub fn compare2(_a: &Float2, _b: &Float2, _tolerance: f32) -> bool {
-    let diff = _a - _b;
-    return dot2(&diff, &diff) <= _tolerance * _tolerance;
+impl Float3 {
+    #[inline]
+    pub fn length(&self) -> f32 {
+        let len2 = self.x * self.x + self.y * self.y + self.z * self.z;
+        return f32::sqrt(len2);
+    }
+}
+
+impl Float2 {
+    #[inline]
+    pub fn length(&self) -> f32 {
+        let len2 = self.x * self.x + self.y * self.y;
+        return f32::sqrt(len2);
+    }
+}
+
+//--------------------------------------------------------------------------------------------------
+impl Float4 {
+    // Returns the square length |self|^2 of self.
+    #[inline]
+    pub fn length_sqr(&self) -> f32 {
+        return self.x * self.x + self.y * self.y + self.z * self.z + self.w * self.w;
+    }
+}
+
+impl Float3 {
+    #[inline]
+    pub fn length_sqr(&self) -> f32 {
+        return self.x * self.x + self.y * self.y + self.z * self.z;
+    }
+}
+
+impl Float2 {
+    #[inline]
+    pub fn length_sqr(&self) -> f32 {
+        return self.x * self.x + self.y * self.y;
+    }
+}
+
+//--------------------------------------------------------------------------------------------------
+impl Float4 {
+    // Returns the normalized vector self.
+    #[inline]
+    pub fn normalize(&self) -> Float4 {
+        let len2 = self.x * self.x + self.y * self.y + self.z * self.z + self.w * self.w;
+        debug_assert!(len2 != 0.0 && "self is not normalizable".parse().unwrap_or(true));
+        let len = f32::sqrt(len2);
+        return Float4::new(self.x / len, self.y / len, self.z / len, self.w / len);
+    }
+}
+
+impl Float3 {
+    #[inline]
+    pub fn normalize(&self) -> Float3 {
+        let len2 = self.x * self.x + self.y * self.y + self.z * self.z;
+        debug_assert!(len2 != 0.0 && "self is not normalizable".parse().unwrap_or(true));
+        let len = f32::sqrt(len2);
+        return Float3::new(self.x / len, self.y / len, self.z / len);
+    }
+}
+
+impl Float2 {
+    #[inline]
+    pub fn normalize(&self) -> Float2 {
+        let len2 = self.x * self.x + self.y * self.y;
+        debug_assert!(len2 != 0.0 && "self is not normalizable".parse().unwrap_or(true));
+        let len = f32::sqrt(len2);
+        return Float2::new(self.x / len, self.y / len);
+    }
+}
+
+//--------------------------------------------------------------------------------------------------
+impl Float4 {
+    // Returns true if self is normalized.
+    #[inline]
+    pub fn is_normalized(&self) -> bool {
+        let len2 = self.x * self.x + self.y * self.y + self.z * self.z + self.w * self.w;
+        return f32::abs(len2 - 1.0) < crate::math_constant::K_NORMALIZATION_TOLERANCE_SQ;
+    }
+}
+
+impl Float3 {
+    #[inline]
+    pub fn is_normalized(&self) -> bool {
+        let len2 = self.x * self.x + self.y * self.y + self.z * self.z;
+        return f32::abs(len2 - 1.0) < crate::math_constant::K_NORMALIZATION_TOLERANCE_SQ;
+    }
+}
+
+impl Float2 {
+    #[inline]
+    pub fn is_normalized(&self) -> bool {
+        let len2 = self.x * self.x + self.y * self.y;
+        return f32::abs(len2 - 1.0) < crate::math_constant::K_NORMALIZATION_TOLERANCE_SQ;
+    }
+}
+
+//--------------------------------------------------------------------------------------------------
+impl Float4 {
+    // Returns the normalized vector self if the norm of self is not 0.
+    // Otherwise returns _safer.
+    #[inline]
+    pub fn normalize_safe(&self, _safer: &Float4) -> Float4 {
+        debug_assert!(_safer.is_normalized() && "_safer is not normalized".parse().unwrap_or(true));
+        let len2 = self.x * self.x + self.y * self.y + self.z * self.z + self.w * self.w;
+        if len2 <= 0.0 {
+            return _safer.clone();
+        }
+        let len = f32::sqrt(len2);
+        return Float4::new(self.x / len, self.y / len, self.z / len, self.w / len);
+    }
+}
+
+impl Float3 {
+    #[inline]
+    pub fn normalize_safe(&self, _safer: &Float3) -> Float3 {
+        debug_assert!(_safer.is_normalized() && "_safer is not normalized".parse().unwrap_or(true));
+        let len2 = self.x * self.x + self.y * self.y + self.z * self.z;
+        if len2 <= 0.0 {
+            return _safer.clone();
+        }
+        let len = f32::sqrt(len2);
+        return Float3::new(self.x / len, self.y / len, self.z / len);
+    }
+}
+
+impl Float2 {
+    #[inline]
+    pub fn normalize_safe(&self, _safer: &Float2) -> Float2 {
+        debug_assert!(_safer.is_normalized() && "_safer is not normalized".parse().unwrap_or(true));
+        let len2 = self.x * self.x + self.y * self.y;
+        if len2 <= 0.0 {
+            return _safer.clone();
+        }
+        let len = f32::sqrt(len2);
+        return Float2::new(self.x / len, self.y / len);
+    }
+}
+
+//--------------------------------------------------------------------------------------------------
+impl Float4 {
+    // Returns the linear interpolation of _a and _b with coefficient _f.
+    // _f is not limited to range [0,1].
+    #[inline]
+    pub fn lerp(&self, _b: &Float4, _f: f32) -> Float4 {
+        return Float4::new((_b.x - self.x) * _f + self.x, (_b.y - self.y) * _f + self.y,
+                           (_b.z - self.z) * _f + self.z, (_b.w - self.w) * _f + self.w);
+    }
+}
+
+impl Float3 {
+    #[inline]
+    pub fn lerp(&self, _b: &Float3, _f: f32) -> Float3 {
+        return Float3::new((_b.x - self.x) * _f + self.x, (_b.y - self.y) * _f + self.y,
+                           (_b.z - self.z) * _f + self.z);
+    }
+}
+
+impl Float2 {
+    #[inline]
+    pub fn lerp(&self, _b: &Float2, _f: f32) -> Float2 {
+        return Float2::new((_b.x - self.x) * _f + self.x, (_b.y - self.y) * _f + self.y);
+    }
+}
+
+//--------------------------------------------------------------------------------------------------
+impl Float4 {
+    // Returns true if the distance between _a and _b is less than _tolerance.
+    #[inline]
+    pub fn compare(&self, _b: &Float4, _tolerance: f32) -> bool {
+        let diff = self - _b;
+        return diff.dot(&diff) <= _tolerance * _tolerance;
+    }
+}
+
+impl Float3 {
+    #[inline]
+    pub fn compare(&self, _b: &Float3, _tolerance: f32) -> bool {
+        let diff = self - _b;
+        return diff.dot(&diff) <= _tolerance * _tolerance;
+    }
+}
+
+impl Float2 {
+    #[inline]
+    pub fn compare(&self, _b: &Float2, _tolerance: f32) -> bool {
+        let diff = self - _b;
+        return diff.dot(&diff) <= _tolerance * _tolerance;
+    }
 }
 
 //--------------------------------------------------------------------------------------------------
@@ -822,205 +878,223 @@ impl PartialEq for Float2 {
 }
 
 //--------------------------------------------------------------------------------------------------
-// Returns the minimum of each element of _a and _b.
-#[inline]
-pub fn min4(_a: &Float4, _b: &Float4) -> Float4 {
-    return Float4::new(
-        match _a.x < _b.x {
-            true => _a.x,
-            false => _b.x
-        },
-        match _a.y < _b.y {
-            true => _a.y,
-            false => _b.y
-        },
-        match _a.z < _b.z {
-            true => _a.z,
-            false => _b.z
-        },
-        match _a.w < _b.w {
-            true => _a.w,
-            false => _b.w
-        });
+impl Float4 {
+    // Returns the minimum of each element of self and _b.
+    #[inline]
+    pub fn min(&self, _b: &Float4) -> Float4 {
+        return Float4::new(
+            match self.x < _b.x {
+                true => self.x,
+                false => _b.x
+            },
+            match self.y < _b.y {
+                true => self.y,
+                false => _b.y
+            },
+            match self.z < _b.z {
+                true => self.z,
+                false => _b.z
+            },
+            match self.w < _b.w {
+                true => self.w,
+                false => _b.w
+            });
+    }
 }
 
-#[inline]
-pub fn min3(_a: &Float3, _b: &Float3) -> Float3 {
-    return Float3::new(
-        match _a.x < _b.x {
-            true => _a.x,
-            false => _b.x
-        },
-        match _a.y < _b.y {
-            true => _a.y,
-            false => _b.y
-        },
-        match _a.z < _b.z {
-            true => _a.z,
-            false => _b.z
-        });
+impl Float3 {
+    #[inline]
+    pub fn min(&self, _b: &Float3) -> Float3 {
+        return Float3::new(
+            match self.x < _b.x {
+                true => self.x,
+                false => _b.x
+            },
+            match self.y < _b.y {
+                true => self.y,
+                false => _b.y
+            },
+            match self.z < _b.z {
+                true => self.z,
+                false => _b.z
+            });
+    }
 }
 
-#[inline]
-pub fn min2(_a: &Float2, _b: &Float2) -> Float2 {
-    return Float2::new(
-        match _a.x < _b.x {
-            true => _a.x,
-            false => _b.x
-        },
-        match _a.y < _b.y {
-            true => _a.y,
-            false => _b.y
-        });
-}
-
-//--------------------------------------------------------------------------------------------------
-// Returns the maximum of each element of _a and _b.
-#[inline]
-pub fn max4(_a: &Float4, _b: &Float4) -> Float4 {
-    return Float4::new(
-        match _a.x > _b.x {
-            true => _a.x,
-            false => _b.x
-        },
-        match _a.y > _b.y {
-            true => _a.y,
-            false => _b.y
-        },
-        match _a.z > _b.z {
-            true => _a.z,
-            false => _b.z
-        },
-        match _a.w > _b.w {
-            true => _a.w,
-            false => _b.w
-        });
-}
-
-#[inline]
-pub fn max3(_a: &Float3, _b: &Float3) -> Float3 {
-    return Float3::new(
-        match _a.x > _b.x {
-            true => _a.x,
-            false => _b.x
-        },
-        match _a.y > _b.y {
-            true => _a.y,
-            false => _b.y
-        },
-        match _a.z > _b.z {
-            true => _a.z,
-            false => _b.z
-        });
-}
-
-#[inline]
-pub fn max2(_a: &Float2, _b: &Float2) -> Float2 {
-    return Float2::new(
-        match _a.x > _b.x {
-            true => _a.x,
-            false => _b.x
-        },
-        match _a.y > _b.y {
-            true => _a.y,
-            false => _b.y
-        });
+impl Float2 {
+    #[inline]
+    pub fn min(&self, _b: &Float2) -> Float2 {
+        return Float2::new(
+            match self.x < _b.x {
+                true => self.x,
+                false => _b.x
+            },
+            match self.y < _b.y {
+                true => self.y,
+                false => _b.y
+            });
+    }
 }
 
 //--------------------------------------------------------------------------------------------------
-// Clamps each element of _x between _a and _b.
-// _a must be less or equal to b;
-#[inline]
-pub fn clamp4(_a: &Float4, _v: &Float4, _b: &Float4) -> Float4 {
-    let min = Float4::new(
-        match _v.x < _b.x {
-            true => _v.x,
-            false => _b.x
-        },
-        match _v.y < _b.y {
-            true => _v.y,
-            false => _b.y
-        },
-        match _v.z < _b.z {
-            true => _v.z,
-            false => _b.z
-        },
-        match _v.w < _b.w {
-            true => _v.w,
-            false => _b.w
-        });
-
-    return Float4::new(
-        match _a.x < min.x {
-            true => _a.x,
-            false => min.x
-        },
-        match _a.y < min.y {
-            true => _a.y,
-            false => min.y
-        },
-        match _a.z < min.z {
-            true => _a.z,
-            false => min.z
-        },
-        match _a.w < min.w {
-            true => _a.w,
-            false => min.w
-        });
+impl Float4 {
+    // Returns the maximum of each element of self and _b.
+    #[inline]
+    pub fn max(&self, _b: &Float4) -> Float4 {
+        return Float4::new(
+            match self.x > _b.x {
+                true => self.x,
+                false => _b.x
+            },
+            match self.y > _b.y {
+                true => self.y,
+                false => _b.y
+            },
+            match self.z > _b.z {
+                true => self.z,
+                false => _b.z
+            },
+            match self.w > _b.w {
+                true => self.w,
+                false => _b.w
+            });
+    }
 }
 
-#[inline]
-pub fn clamp3(_a: &Float3, _v: &Float3, _b: &Float3) -> Float3 {
-    let min = Float3::new(
-        match _v.x < _b.x {
-            true => _v.x,
-            false => _b.x
-        },
-        match _v.y < _b.y {
-            true => _v.y,
-            false => _b.y
-        },
-        match _v.z < _b.z {
-            true => _v.z,
-            false => _b.z
-        });
-
-    return Float3::new(
-        match _a.x < min.x {
-            true => _a.x,
-            false => min.x
-        },
-        match _a.y < min.y {
-            true => _a.y,
-            false => min.y
-        },
-        match _a.z < min.z {
-            true => _a.z,
-            false => min.z
-        });
+impl Float3 {
+    #[inline]
+    pub fn max(&self, _b: &Float3) -> Float3 {
+        return Float3::new(
+            match self.x > _b.x {
+                true => self.x,
+                false => _b.x
+            },
+            match self.y > _b.y {
+                true => self.y,
+                false => _b.y
+            },
+            match self.z > _b.z {
+                true => self.z,
+                false => _b.z
+            });
+    }
 }
 
-#[inline]
-pub fn clamp2(_a: &Float2, _v: &Float2, _b: &Float2) -> Float2 {
-    let min = Float2::new(
-        match _v.x < _b.x {
-            true => _v.x,
-            false => _b.x
-        },
-        match _v.y < _b.y {
-            true => _v.y,
-            false => _b.y
-        });
+impl Float2 {
+    #[inline]
+    pub fn max(&self, _b: &Float2) -> Float2 {
+        return Float2::new(
+            match self.x > _b.x {
+                true => self.x,
+                false => _b.x
+            },
+            match self.y > _b.y {
+                true => self.y,
+                false => _b.y
+            });
+    }
+}
 
-    return Float2::new(
-        match _a.x < min.x {
-            true => _a.x,
-            false => min.x
-        },
-        match _a.y < min.y {
-            true => _a.y,
-            false => min.y
-        });
+//--------------------------------------------------------------------------------------------------
+impl Float4 {
+    // Clamps each element of _x between self and _b.
+    // _a must be less or equal to b;
+    #[inline]
+    pub fn clamp(&self, _a: &Float4, _b: &Float4) -> Float4 {
+        let min = Float4::new(
+            match self.x < _b.x {
+                true => self.x,
+                false => _b.x
+            },
+            match self.y < _b.y {
+                true => self.y,
+                false => _b.y
+            },
+            match self.z < _b.z {
+                true => self.z,
+                false => _b.z
+            },
+            match self.w < _b.w {
+                true => self.w,
+                false => _b.w
+            });
+
+        return Float4::new(
+            match _a.x < min.x {
+                true => _a.x,
+                false => min.x
+            },
+            match _a.y < min.y {
+                true => _a.y,
+                false => min.y
+            },
+            match _a.z < min.z {
+                true => _a.z,
+                false => min.z
+            },
+            match _a.w < min.w {
+                true => _a.w,
+                false => min.w
+            });
+    }
+}
+
+impl Float3 {
+    #[inline]
+    pub fn clamp(&self, _a: &Float3, _b: &Float3) -> Float3 {
+        let min = Float3::new(
+            match self.x < _b.x {
+                true => self.x,
+                false => _b.x
+            },
+            match self.y < _b.y {
+                true => self.y,
+                false => _b.y
+            },
+            match self.z < _b.z {
+                true => self.z,
+                false => _b.z
+            });
+
+        return Float3::new(
+            match _a.x < min.x {
+                true => _a.x,
+                false => min.x
+            },
+            match _a.y < min.y {
+                true => _a.y,
+                false => min.y
+            },
+            match _a.z < min.z {
+                true => _a.z,
+                false => min.z
+            });
+    }
+}
+
+impl Float2 {
+    #[inline]
+    pub fn clamp(&self, _a: &Float2, _b: &Float2) -> Float2 {
+        let min = Float2::new(
+            match self.x < _b.x {
+                true => self.x,
+                false => _b.x
+            },
+            match self.y < _b.y {
+                true => self.y,
+                false => _b.y
+            });
+
+        return Float2::new(
+            match _a.x < min.x {
+                true => _a.x,
+                false => min.x
+            },
+            match _a.y < min.y {
+                true => _a.y,
+                false => min.y
+            });
+    }
 }
 
 //--------------------------------------------------------------------------------------------------
@@ -1041,5 +1115,13 @@ mod ozz_math {
         expect_float4_eq!(Float4::new3(f3, 2.0), -1.0, 0.0, 1.0, 2.0);
         let f2 = Float2::new(-1.0, 0.0);
         expect_float4_eq!(Float4::new2(f2, 1.0, 2.0), -1.0, 0.0, 1.0, 2.0);
+    }
+
+    #[test]
+    fn vector_load3() {
+        expect_float3_eq!(Float3::new_scalar(46.0), 46.0, 46.0, 46.0);
+        expect_float3_eq!(Float3::new(-1.0, 0.0, 1.0), -1.0, 0.0, 1.0);
+        let f2 = Float2::new(-1.0, 0.0);
+        expect_float3_eq!(Float3::new2(f2, 1.0), -1.0, 0.0, 1.0);
     }
 }

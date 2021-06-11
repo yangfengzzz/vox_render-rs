@@ -46,7 +46,7 @@ impl Quaternion {
     // _angle.x is the angle in radian.
     #[inline]
     pub fn from_axis_angle(_axis: &Float3, _angle: f32) -> Quaternion {
-        debug_assert!(is_normalized3(_axis) && "axis is not normalized.".parse().unwrap_or(true));
+        debug_assert!(_axis.is_normalized() && "axis is not normalized.".parse().unwrap_or(true));
         let half_angle = _angle * 0.5;
         let half_sin = f32::sin(half_angle);
         let half_cos = f32::cos(half_angle);
@@ -60,7 +60,7 @@ impl Quaternion {
     // _angle.x is the angle cosine in radian, it must be within [-1,1] range.
     #[inline]
     pub fn from_axis_cos_angle(_axis: &Float3, _cos: f32) -> Quaternion {
-        debug_assert!(is_normalized3(_axis) && "axis is not normalized.".parse().unwrap_or(true));
+        debug_assert!(_axis.is_normalized() && "axis is not normalized.".parse().unwrap_or(true));
         debug_assert!(_cos >= -1.0 && _cos <= 1.0 && "cos is not in [-1,1] range.".parse().unwrap_or(true));
 
         let half_cos2 = (1.0 + _cos) * 0.5;
@@ -96,11 +96,11 @@ impl Quaternion {
     pub fn from_vectors(_from: &Float3, _to: &Float3) -> Quaternion {
         // http://lolengine.net/blog/2014/02/24/quaternion-from-two-vectors-final
 
-        let norm_from_norm_to = f32::sqrt(length_sqr3(_from) * length_sqr3(_to));
+        let norm_from_norm_to = f32::sqrt(_from.length_sqr() * _to.length_sqr());
         if norm_from_norm_to < 1.0e-5 {
             return Quaternion::identity();
         }
-        let real_part = norm_from_norm_to + dot3(_from, _to);
+        let real_part = norm_from_norm_to + _from.dot(_to);
         let quat;
         if real_part < 1.0e-6 * norm_from_norm_to {
             // If _from and _to are exactly opposite, rotate 180 degrees around an
@@ -111,7 +111,7 @@ impl Quaternion {
                 false => Quaternion::new(0.0, -_from.z, _from.y, 0.0)
             };
         } else {
-            let cross = cross(_from, _to);
+            let cross = _from.cross(_to);
             quat = Quaternion::new(cross.x, cross.y, cross.z, real_part);
         }
         return quat.normalize();
@@ -121,11 +121,11 @@ impl Quaternion {
     // around their plan perpendicular axis. The input vectors must be normalized.
     #[inline]
     pub fn from_unit_vectors(_from: &Float3, _to: &Float3) -> Quaternion {
-        debug_assert!(is_normalized3(_from) && is_normalized3(_to) &&
+        debug_assert!(_from.is_normalized() && _to.is_normalized() &&
             "Input vectors must be normalized.".parse().unwrap_or(true));
 
         // http://lolengine.net/blog/2014/02/24/quaternion-from-two-vectors-final
-        let real_part = 1.0 + dot3(_from, _to);
+        let real_part = 1.0 + _from.dot(_to);
         if real_part < 1.0e-6 {
             // If _from and _to are exactly opposite, rotate 180 degrees around an
             // arbitrary orthogonal axis.
@@ -135,7 +135,7 @@ impl Quaternion {
                 false => Quaternion::new(0.0, -_from.z, _from.y, 0.0)
             };
         } else {
-            let cross = cross(_from, _to);
+            let cross = _from.cross(_to);
             return Quaternion::new(cross.x, cross.y, cross.z, real_part).normalize();
         }
     }
