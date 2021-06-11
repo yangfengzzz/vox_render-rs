@@ -9,6 +9,31 @@
 use crate::vec_float::Float3;
 use crate::quaternion::Quaternion;
 
+trait KeyType {
+    fn time(&self) -> f32;
+}
+
+// Implements key frames' time range and ordering checks.
+// See AnimationBuilder::Create for more details.
+fn validate_track<_Key: KeyType>(_track: &Vec<_Key>,
+                                 _duration: f32) -> bool {
+    let mut previous_time = -1.0;
+    for k in 0.._track.len() {
+        let frame_time = _track[k].time();
+        // Tests frame's time is in range [0:duration].
+        if frame_time < 0.0 || frame_time > _duration {
+            return false;
+        }
+        // Tests that frames are sorted.
+        if frame_time <= previous_time {
+            return false;
+        }
+        previous_time = frame_time;
+    }
+    return true;  // Validated.
+}
+
+//--------------------------------------------------------------------------------------------------
 // Defines a raw translation key frame.
 pub struct TranslationKey {
     // Key frame time.
@@ -16,6 +41,12 @@ pub struct TranslationKey {
 
     // Key frame value.
     pub value: Float3,
+}
+
+impl KeyType for TranslationKey {
+    fn time(&self) -> f32 {
+        return self.time;
+    }
 }
 
 impl TranslationKey {
@@ -33,6 +64,12 @@ pub struct RotationKey {
     pub value: Quaternion,
 }
 
+impl KeyType for RotationKey {
+    fn time(&self) -> f32 {
+        return self.time;
+    }
+}
+
 impl RotationKey {
     // Provides identity transformation for a rotation key.
     pub fn identity() -> Quaternion { return Quaternion::identity(); }
@@ -45,7 +82,13 @@ pub struct ScaleKey {
     pub time: f32,
 
     // Key frame value.
-    value: Float3,
+    pub value: Float3,
+}
+
+impl KeyType for ScaleKey {
+    fn time(&self) -> f32 {
+        return self.time;
+    }
 }
 
 impl ScaleKey {
@@ -67,7 +110,9 @@ impl JointTrack {
     // Use an infinite value for _duration if unknown. This will validate
     // keyframe orders, but not maximum duration.
     pub fn validate(&self, _duration: f32) -> bool {
-        todo!()
+        return validate_track(&self.translations, _duration) &&
+            validate_track(&self.rotations, _duration) &&
+            validate_track(&self.scales, _duration);
     }
 }
 
