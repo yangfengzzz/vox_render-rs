@@ -1482,24 +1482,3 @@ mod ozz_math {
         assert_eq!(c.compare(&d, 0.05), false);
     }
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-

@@ -1542,22 +1542,3 @@ mod ozz_soa_math {
         expect_simd_int_eq!(a.ne(&b), 0xffffffff, 0xffffffff, 0xffffffff, 0xffffffff);
     }
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
