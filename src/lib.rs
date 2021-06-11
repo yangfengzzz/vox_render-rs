@@ -31,3 +31,4 @@ pub mod raw_track;
 
 // online
 pub mod skeleton;
+pub mod skeleton_builder;
