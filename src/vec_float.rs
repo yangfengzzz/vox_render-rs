@@ -1419,6 +1419,68 @@ mod ozz_math {
         assert_eq!(c.compare(&d, 0.2), true);
         assert_eq!(c.compare(&d, 0.05), false);
     }
+
+    #[test]
+    fn vector_comparison3() {
+        let a = Float3::new(0.5, -1.0, 2.0);
+        let b = Float3::new(4.0, 5.0, -6.0);
+        let c = Float3::new(4.0, 5.0, 6.0);
+        let d = Float3::new(4.0, 5.0, 6.1);
+
+        let min = a.min(&b);
+        expect_float3_eq!(min, 0.5, -1.0, -6.0);
+
+        let max = a.max(&b);
+        expect_float3_eq!(max, 4.0, 5.0, 2.0);
+
+        expect_float3_eq!(a.clamp(&Float3::new(-12.0, 2.0, 9.0), &c), 0.5, 2.0, 6.0);
+
+        assert_eq!(a.lt(&c), true);
+        assert_eq!(a.le(&c), true);
+        assert_eq!(c.le(&c), true);
+
+        assert_eq!(c.gt(&a), true);
+        assert_eq!(c.ge(&a), true);
+        assert_eq!(a.ge(&a), true);
+
+        assert_eq!(a.eq(&a), true);
+        assert_eq!(a.ne(&b), true);
+
+        assert_eq!(a.compare(&a, 1e-3), true);
+        assert_eq!(c.compare(&d, 0.2), true);
+        assert_eq!(c.compare(&d, 0.05), false);
+    }
+
+    #[test]
+    fn vector_comparison2() {
+        let a = Float2::new(0.5, 1.0);
+        let b = Float2::new(4.0, -5.0);
+        let c = Float2::new(4.0, 5.0);
+        let d = Float2::new(4.0, 5.1);
+
+        let min = a.min(&b);
+        expect_float2_eq!(min, 0.5, -5.0);
+
+        let max = a.max(&b);
+        expect_float2_eq!(max, 4.0, 1.0);
+
+        expect_float2_eq!(a.clamp(&Float2::new(-12.0, 2.0), &c), 0.5, 2.0);
+
+        assert_eq!(a.lt(&c), true);
+        assert_eq!(a.le(&c), true);
+        assert_eq!(c.le(&c), true);
+
+        assert_eq!(c.gt(&a), true);
+        assert_eq!(c.ge(&a), true);
+        assert_eq!(a.ge(&a), true);
+
+        assert_eq!(a.eq(&a), true);
+        assert_eq!(a.ne(&b), true);
+
+        assert_eq!(a.compare(&a, 1e-3), true);
+        assert_eq!(c.compare(&d, 0.2), true);
+        assert_eq!(c.compare(&d, 0.05), false);
+    }
 }
 
 
