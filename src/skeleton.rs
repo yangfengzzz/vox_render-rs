@@ -37,22 +37,22 @@ pub enum Constants {
 // order. This is enough to traverse the whole joint hierarchy. See
 // IterateJointsDF() from skeleton_utils.h that implements a depth-first
 // traversal utility.
-pub struct Skeleton {
+pub struct Skeleton<'a> {
     // Bind pose of every joint in local space.
-    joint_bind_poses_: Vec<SoaTransform>,
+    pub joint_bind_poses_: Vec<SoaTransform>,
 
     // Array of joint parent indexes.
-    joint_parents_: Vec<i16>,
+    pub joint_parents_: Vec<i16>,
 
     // Stores the name of every joint in an array of c-strings.
-    joint_names_: Vec<&'static str>,
+    pub joint_names_: Vec<&'a str>,
 
-    whole_name: String,
+    pub whole_name: String,
 }
 
-impl Skeleton {
+impl<'a> Skeleton<'a> {
     // Builds a default skeleton.
-    pub fn new() -> Skeleton {
+    pub fn new() -> Skeleton<'a> {
         return Skeleton {
             joint_bind_poses_: vec![],
             joint_parents_: vec![],
@@ -79,21 +79,21 @@ impl Skeleton {
     }
 
     // Returns joint's name collection.
-    pub fn joint_names(&self) -> &Vec<&'static str> {
+    pub fn joint_names(&self) -> &Vec<&'a str> {
         return &self.joint_names_;
     }
 }
 
-impl Skeleton {
+impl<'a> Skeleton<'a> {
     // Internal allocation/deallocation function.
     // allocate returns the beginning of the contiguous buffer of names.
-    pub fn allocate(&mut self, _char_count: usize, _num_joints: usize) -> Option<&mut String> {
+    pub fn allocate(&mut self, _num_joints: usize) {
         debug_assert!(self.joint_bind_poses_.len() == 0 && self.joint_names_.len() == 0 &&
             self.joint_parents_.len() == 0);
 
         // Early out if no joint.
         if _num_joints == 0 {
-            return None;
+            return;
         }
 
         // Bind poses have SoA format
@@ -108,8 +108,5 @@ impl Skeleton {
 
         // Parents, third biggest alignment.
         self.joint_parents_.resize(_num_joints, 0);
-
-        self.whole_name.reserve(_char_count);
-        return Some(&mut self.whole_name);
     }
 }
