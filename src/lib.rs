@@ -22,7 +22,11 @@ pub mod soa_quaternion;
 pub mod soa_transform;
 pub mod soa_float4x4;
 
+// offline
 pub mod animation_keyframe;
 pub mod raw_animation;
 pub mod raw_animation_utils;
+pub mod raw_skeleton;
+
+// online
 pub mod skeleton;
