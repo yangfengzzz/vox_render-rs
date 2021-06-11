@@ -19,7 +19,7 @@ impl SkeletonBuilder {
     // RawSkeleton::Validate() for more details about failure reasons.
     // The skeleton is returned as an unique_ptr as ownership is given back to the
     // caller.
-    pub fn apply<'a>(_raw_skeleton: &RawSkeleton, skeleton:&'a mut Skeleton<'a>) {
+    pub fn apply<'a>(_raw_skeleton: &RawSkeleton, skeleton: &'a mut Skeleton<'a>) {
         // Everything is fine, allocates and fills the skeleton.
         // Will not fail.
         let num_joints = _raw_skeleton.num_joints();
@@ -71,13 +71,12 @@ impl SkeletonBuilder {
             let mut rotations = [SimdFloat4::zero(); 4];
             for j in 0..4 {
                 if i * 4 + j < num_joints {
-        //             let src_joint = lister.linear_joints[(i * 4 + j) as usize].joint;
-        //             translations[j] =
-        //                 SimdFloat4::load3ptr_u(&src_joint.transform.translation);
-        //             rotations[j] = math::NormalizeSafe4(
-        //                 SimdFloat4::load_ptr_u(&src_joint.transform.rotation),
-        //                 w_axis);
-        //             scales[j] = SimdFloat4::load3ptr_u(&src_joint.transform.scale);
+                    unsafe {
+                        let src_joint = lister.linear_joints[(i * 4 + j) as usize].joint;
+                        translations[j as usize] = SimdFloat4::load3ptr_u((*src_joint).transform.translation.to_vec4());
+                        rotations[j as usize] = SimdFloat4::load_ptr_u((*src_joint).transform.rotation.to_vec()).normalize_safe4(w_axis);
+                        scales[j as usize] = SimdFloat4::load3ptr_u((*src_joint).transform.scale.to_vec4());
+                    }
                 } else {
                     translations[j as usize] = zero;
                     rotations[j as usize] = w_axis;
@@ -85,10 +84,10 @@ impl SkeletonBuilder {
                 }
             }
             // Fills the SoaTransform structure.
-        //     SimdFloat4::transpose4x3(&translations,
-        //                              skeleton.joint_bind_poses_[i as usize].translation);
-        //     SimdFloat4::transpose4x4(&rotations, &skeleton.joint_bind_poses_[i as usize].rotation);
-        //     SimdFloat4::transpose4x3(&scales, &skeleton.joint_bind_poses_[i as usize].scale);
+            SimdFloat4::transpose4x3(&translations,
+                                     &mut skeleton.joint_bind_poses_[i as usize].translation);
+            SimdFloat4::transpose4x4(&rotations, &mut skeleton.joint_bind_poses_[i as usize].rotation);
+            SimdFloat4::transpose4x3(&scales, &mut skeleton.joint_bind_poses_[i as usize].scale);
         }
 
         return;  // Success.

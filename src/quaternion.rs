@@ -40,6 +40,11 @@ impl Quaternion {
         };
     }
 
+    #[inline]
+    pub fn to_vec(&self) -> [f32; 4] {
+        return [self.x, self.y, self.z, self.w];
+    }
+
     // Returns a normalized quaternion initialized from an axis angle
     // representation.
     // Assumes the axis part (x, y, z) of _axis_angle is normalized.

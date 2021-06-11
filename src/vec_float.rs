@@ -129,6 +129,16 @@ impl Float3 {
     // Returns a unitary vector z.
     #[inline]
     pub fn z_axis() -> Float3 { return Float3::new(0.0, 0.0, 1.0); }
+
+    #[inline]
+    pub fn to_vec(&self) -> [f32; 3] {
+        return [self.x, self.y, self.z];
+    }
+
+    #[inline]
+    pub fn to_vec4(&self) -> [f32; 4] {
+        return [self.x, self.y, self.z, 0.0];
+    }
 }
 
 //--------------------------------------------------------------------------------------------------
