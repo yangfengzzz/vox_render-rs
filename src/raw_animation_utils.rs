@@ -12,18 +12,29 @@ use crate::raw_animation::*;
 use crate::transform::Transform;
 
 // Translation interpolation method.
+// This must be the same Lerp as the one used by the sampling job.
 pub fn lerp_translation(_a: &Float3, _b: &Float3, _alpha: f32) -> Float3 {
     return Float3::lerp(_a, _b, _alpha);
 }
 
 // Rotation interpolation method.
+// This must be the same Lerp as the one used by the sampling job.
+// The goal is to take the shortest path between _a and _b. This code replicates
+// this behavior that is actually not done at runtime, but when building the
+// animation.
 pub fn lerp_rotation(_a: &Quaternion, _b: &Quaternion, _alpha: f32) -> Quaternion {
-    todo!()
+    // Finds the shortest path. This is done by the AnimationBuilder for runtime
+    // animations.
+    let dot = _a.x * _b.x + _a.y * _b.y + _a.z * _b.z + _a.w * _b.w;
+    return _a.nlerp(match dot < 0.0 {
+        true => -_b,
+        false => _b,
+    }, _alpha);  // _b an -_b are the same rotation.
 }
 
 // Scale interpolation method.
 pub fn lerp_scale(_a: &Float3, _b: &Float3, _alpha: f32) -> Float3 {
-    todo!()
+    return Float3::lerp(_a, _b, _alpha);
 }
 
 // Samples a RawAnimation track. This function shall be used for offline
