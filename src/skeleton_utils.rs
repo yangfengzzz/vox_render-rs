@@ -104,12 +104,9 @@ pub fn iterate_joints_df_reverse<_Fct: JointVisitor>(_skeleton: &Skeleton, mut _
 mod skeleton_utils {
     use crate::skeleton_builder::SkeletonBuilder;
     use crate::raw_skeleton::*;
-    use crate::transform::Transform;
     use crate::vec_float::Float3;
     use crate::quaternion::Quaternion;
-    use crate::simd_math::SimdFloat4;
     use crate::math_test_helper::*;
-    use crate::simd_math::*;
     use crate::*;
     use crate::skeleton_utils::*;
 
@@ -404,11 +401,111 @@ mod skeleton_utils {
 
     #[test]
     fn iterate_df_reverse() {
-        todo!()
+        let mut raw_skeleton = RawSkeleton::new();
+        raw_skeleton.roots.resize(2, Joint::new());
+        let j0 = &mut raw_skeleton.roots[0];
+        j0.name = "j0".to_string();
+
+        j0.children.resize(2, Joint::new());
+        j0.children[0].name = "j1".to_string();
+        j0.children[1].name = "j4".to_string();
+
+        j0.children[0].children.resize(1, Joint::new());
+        j0.children[0].children[0].name = "j2".to_string();
+
+        j0.children[0].children[0].children.resize(1, Joint::new());
+        j0.children[0].children[0].children[0].name = "j3".to_string();
+
+        j0.children[1].children.resize(2, Joint::new());
+        j0.children[1].children[0].name = "j5".to_string();
+        j0.children[1].children[1].name = "j6".to_string();
+
+        j0.children[1].children[1].children.resize(1, Joint::new());
+        j0.children[1].children[1].children[0].name = "j7".to_string();
+
+        let j8 = &mut raw_skeleton.roots[1];
+        j8.name = "j8".to_string();
+        j8.children.resize(1, Joint::new());
+        j8.children[0].name = "j9".to_string();
+
+        assert_eq!(raw_skeleton.validate(), true);
+        assert_eq!(raw_skeleton.num_joints(), 10);
+
+        let skeleton = SkeletonBuilder::apply(&raw_skeleton);
+        assert_eq!(skeleton.is_some(), true);
+        assert_eq!(skeleton.as_ref().unwrap().num_joints(), 10);
+
+        {
+            let fct = crate::skeleton_utils::iterate_joints_df_reverse(skeleton.as_ref().unwrap(),
+                                                                       IterateDFReverseTester::new(skeleton.as_ref().unwrap()));
+            assert_eq!(fct.num_iterations(), 10);
+        }
     }
 
+    /* Definition of the skeleton used by the tests.
+     10 joints, 2 roots
+
+          *
+        /   \
+       j0    j8
+     /   \     \
+     j1   j4    j9
+     |   / \
+     j2 j5 j6
+     |     |
+     j3    j7
+     */
     #[test]
     fn is_leaf() {
-        todo!()
+        let mut raw_skeleton = RawSkeleton::new();
+        raw_skeleton.roots.resize(2, Joint::new());
+        let j0 = &mut raw_skeleton.roots[0];
+        j0.name = "j0".to_string();
+
+        j0.children.resize(2, Joint::new());
+        j0.children[0].name = "j1".to_string();
+        j0.children[1].name = "j4".to_string();
+
+        j0.children[0].children.resize(1, Joint::new());
+        j0.children[0].children[0].name = "j2".to_string();
+
+        j0.children[0].children[0].children.resize(1, Joint::new());
+        j0.children[0].children[0].children[0].name = "j3".to_string();
+
+        j0.children[1].children.resize(2, Joint::new());
+        j0.children[1].children[0].name = "j5".to_string();
+        j0.children[1].children[1].name = "j6".to_string();
+
+        j0.children[1].children[1].children.resize(1, Joint::new());
+        j0.children[1].children[1].children[0].name = "j7".to_string();
+
+        let j8 = &mut raw_skeleton.roots[1];
+        j8.name = "j8".to_string();
+        j8.children.resize(1, Joint::new());
+        j8.children[0].name = "j9".to_string();
+
+        assert_eq!(raw_skeleton.validate(), true);
+        assert_eq!(raw_skeleton.num_joints(), 10);
+
+        let skeleton = SkeletonBuilder::apply(&raw_skeleton);
+        assert_eq!(skeleton.is_some(), true);
+        assert_eq!(skeleton.as_ref().unwrap().num_joints(), 10);
+
+        // Out of bound
+        // EXPECT_ASSERTION(IsLeaf(*skeleton, 10), "_joint index out of range");
+        // EXPECT_ASSERTION(IsLeaf(*skeleton, 93), "_joint index out of range");
+        // EXPECT_ASSERTION(IsLeaf(*skeleton, ozz::animation::Skeleton::kNoParent),
+        //                  "_joint index out of range");
+
+        assert_eq!(crate::skeleton_utils::is_leaf(skeleton.as_ref().unwrap(), 0), false);
+        assert_eq!(crate::skeleton_utils::is_leaf(skeleton.as_ref().unwrap(), 1), false);
+        assert_eq!(crate::skeleton_utils::is_leaf(skeleton.as_ref().unwrap(), 2), false);
+        assert_eq!(crate::skeleton_utils::is_leaf(skeleton.as_ref().unwrap(), 3), true);
+        assert_eq!(crate::skeleton_utils::is_leaf(skeleton.as_ref().unwrap(), 4), false);
+        assert_eq!(crate::skeleton_utils::is_leaf(skeleton.as_ref().unwrap(), 5), true);
+        assert_eq!(crate::skeleton_utils::is_leaf(skeleton.as_ref().unwrap(), 6), false);
+        assert_eq!(crate::skeleton_utils::is_leaf(skeleton.as_ref().unwrap(), 7), true);
+        assert_eq!(crate::skeleton_utils::is_leaf(skeleton.as_ref().unwrap(), 8), false);
+        assert_eq!(crate::skeleton_utils::is_leaf(skeleton.as_ref().unwrap(), 9), true);
     }
 }
