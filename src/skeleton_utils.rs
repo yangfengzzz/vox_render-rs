@@ -356,4 +356,59 @@ mod skeleton_utils {
                                                  Some(crate::skeleton::Constants::KNoParent as i32));
         crate::skeleton_utils::iterate_joints_df(&empty, IterateDFFailTester {}, Some(0));
     }
+
+    struct IterateDFReverseTester<'a> {
+        // Iterated skeleton.
+        skeleton_: &'a Skeleton,
+
+        // Number of iterations completed.
+        num_iterations_: i32,
+
+        // Already processed joints
+        processed_joints_: Vec<i32>,
+    }
+
+    impl<'a> IterateDFReverseTester<'a> {
+        pub fn new(_skeleton: &'a Skeleton) -> IterateDFReverseTester<'a> {
+            return IterateDFReverseTester {
+                skeleton_: _skeleton,
+                num_iterations_: 0,
+                processed_joints_: vec![],
+            };
+        }
+
+        pub fn num_iterations(&self) -> i32 { return self.num_iterations_; }
+    }
+
+    impl<'a> JointVisitor for IterateDFReverseTester<'a> {
+        fn visitor(&mut self, _current: i32, _parent: i32) {
+            if self.num_iterations_ == 0 {
+                assert_eq!(crate::skeleton_utils::is_leaf(self.skeleton_, _current), true);
+            }
+
+            // A joint is traversed once.
+            assert_eq!(self.processed_joints_.contains(&_current), false);
+
+            // A parent can't be traversed before a child.
+            assert_eq!(self.processed_joints_.contains(&_parent), false);
+
+            // joint processed
+            self.processed_joints_.push(_current);
+
+            // Validates parent id.
+            assert_eq!(self.skeleton_.joint_parents()[_current as usize], _parent as i16);
+
+            self.num_iterations_ += 1;
+        }
+    }
+
+    #[test]
+    fn iterate_df_reverse() {
+        todo!()
+    }
+
+    #[test]
+    fn is_leaf() {
+        todo!()
+    }
 }
