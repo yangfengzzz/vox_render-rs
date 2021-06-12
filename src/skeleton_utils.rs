@@ -215,4 +215,145 @@ mod skeleton_utils {
             self.num_iterations_ += 1;
         }
     }
+
+    #[test]
+    fn iterate_df() {
+        let mut raw_skeleton = RawSkeleton::new();
+        raw_skeleton.roots.resize(2, Joint::new());
+        let j0 = &mut raw_skeleton.roots[0];
+        j0.name = "j0".to_string();
+
+        j0.children.resize(2, Joint::new());
+        j0.children[0].name = "j1".to_string();
+        j0.children[1].name = "j4".to_string();
+
+        j0.children[0].children.resize(1, Joint::new());
+        j0.children[0].children[0].name = "j2".to_string();
+
+        j0.children[0].children[0].children.resize(1, Joint::new());
+        j0.children[0].children[0].children[0].name = "j3".to_string();
+
+        j0.children[1].children.resize(2, Joint::new());
+        j0.children[1].children[0].name = "j5".to_string();
+        j0.children[1].children[1].name = "j6".to_string();
+
+        j0.children[1].children[1].children.resize(1, Joint::new());
+        j0.children[1].children[1].children[0].name = "j7".to_string();
+
+        let j8 = &mut raw_skeleton.roots[1];
+        j8.name = "j8".to_string();
+        j8.children.resize(1, Joint::new());
+        j8.children[0].name = "j9".to_string();
+
+        assert_eq!(raw_skeleton.validate(), true);
+        assert_eq!(raw_skeleton.num_joints(), 10);
+
+        let skeleton = SkeletonBuilder::apply(&raw_skeleton);
+        assert_eq!(skeleton.is_some(), true);
+        assert_eq!(skeleton.as_ref().unwrap().num_joints(), 10);
+
+        {
+            let fct =
+                crate::skeleton_utils::iterate_joints_df(skeleton.as_ref().unwrap(),
+                                                         IterateDFTester::new(skeleton.as_ref().unwrap(), 0),
+                                                         Some(-12));
+            assert_eq!(fct.num_iterations(), 10);
+        }
+        {
+            let fct =
+                crate::skeleton_utils::iterate_joints_df(skeleton.as_ref().unwrap(),
+                                                         IterateDFTester::new(skeleton.as_ref().unwrap(), 0),
+                                                         None);
+            assert_eq!(fct.num_iterations(), 10);
+        }
+        {
+            let fct =
+                crate::skeleton_utils::iterate_joints_df(skeleton.as_ref().unwrap(),
+                                                         IterateDFTester::new(skeleton.as_ref().unwrap(), 0),
+                                                         Some(crate::skeleton::Constants::KNoParent as i32));
+            assert_eq!(fct.num_iterations(), 10);
+        }
+        {
+            let fct =
+                crate::skeleton_utils::iterate_joints_df(skeleton.as_ref().unwrap(),
+                                                         IterateDFTester::new(skeleton.as_ref().unwrap(), 0),
+                                                         Some(0));
+            assert_eq!(fct.num_iterations(), 8);
+        }
+        {
+            let fct =
+                crate::skeleton_utils::iterate_joints_df(skeleton.as_ref().unwrap(),
+                                                         IterateDFTester::new(skeleton.as_ref().unwrap(), 1),
+                                                         Some(1));
+            assert_eq!(fct.num_iterations(), 3);
+        }
+        {
+            let fct =
+                crate::skeleton_utils::iterate_joints_df(skeleton.as_ref().unwrap(),
+                                                         IterateDFTester::new(skeleton.as_ref().unwrap(), 2),
+                                                         Some(2));
+            assert_eq!(fct.num_iterations(), 2);
+        }
+        {
+            let fct =
+                crate::skeleton_utils::iterate_joints_df(skeleton.as_ref().unwrap(),
+                                                         IterateDFTester::new(skeleton.as_ref().unwrap(), 3),
+                                                         Some(3));
+            assert_eq!(fct.num_iterations(), 1);
+        }
+        {
+            let fct =
+                crate::skeleton_utils::iterate_joints_df(skeleton.as_ref().unwrap(),
+                                                         IterateDFTester::new(skeleton.as_ref().unwrap(), 4),
+                                                         Some(4));
+            assert_eq!(fct.num_iterations(), 4);
+        }
+        {
+            let fct =
+                crate::skeleton_utils::iterate_joints_df(skeleton.as_ref().unwrap(),
+                                                         IterateDFTester::new(skeleton.as_ref().unwrap(), 5),
+                                                         Some(5));
+            assert_eq!(fct.num_iterations(), 1);
+        }
+        {
+            let fct =
+                crate::skeleton_utils::iterate_joints_df(skeleton.as_ref().unwrap(),
+                                                         IterateDFTester::new(skeleton.as_ref().unwrap(), 6),
+                                                         Some(6));
+            assert_eq!(fct.num_iterations(), 2);
+        }
+        {
+            let fct =
+                crate::skeleton_utils::iterate_joints_df(skeleton.as_ref().unwrap(),
+                                                         IterateDFTester::new(skeleton.as_ref().unwrap(), 7),
+                                                         Some(7));
+            assert_eq!(fct.num_iterations(), 1);
+        }
+        {
+            let fct =
+                crate::skeleton_utils::iterate_joints_df(skeleton.as_ref().unwrap(),
+                                                         IterateDFTester::new(skeleton.as_ref().unwrap(), 8),
+                                                         Some(8));
+            assert_eq!(fct.num_iterations(), 2);
+        }
+        {
+            let fct =
+                crate::skeleton_utils::iterate_joints_df(skeleton.as_ref().unwrap(),
+                                                         IterateDFTester::new(skeleton.as_ref().unwrap(), 9),
+                                                         Some(9));
+            assert_eq!(fct.num_iterations(), 1);
+        }
+        crate::skeleton_utils::iterate_joints_df(skeleton.as_ref().unwrap(),
+                                                 IterateDFFailTester {}, Some(10));
+        crate::skeleton_utils::iterate_joints_df(skeleton.as_ref().unwrap(),
+                                                 IterateDFFailTester {}, Some(99));
+    }
+
+    #[test]
+    fn iterate_df_empty() {
+        let empty = Skeleton::new();
+        crate::skeleton_utils::iterate_joints_df(&empty, IterateDFFailTester {},
+                                                 Some(crate::skeleton::Constants::KNoParent as i32));
+        crate::skeleton_utils::iterate_joints_df(&empty, IterateDFFailTester {}, Some(0));
+    }
 }
