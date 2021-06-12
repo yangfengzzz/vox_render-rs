@@ -19,72 +19,66 @@ impl SkeletonBuilder {
     // RawSkeleton::Validate() for more details about failure reasons.
     // The skeleton is returned as an unique_ptr as ownership is given back to the
     // caller.
-    pub fn apply<'a>(_raw_skeleton: &RawSkeleton, skeleton: &'a mut Skeleton<'a>) {
-        // Everything is fine, allocates and fills the skeleton.
+    pub fn apply(_raw_skeleton: &RawSkeleton) -> Option<Skeleton> {
+        // Tests _raw_skeleton validity.
+        if !_raw_skeleton.validate() {
+            return None;
+        }
+
+        // step1: Everything is fine, allocates and fills the skeleton.
         // Will not fail.
+        let mut skeleton = Skeleton::new();
         let num_joints = _raw_skeleton.num_joints();
 
-        // Iterates through all the joint of the raw skeleton and fills a sorted joint
-        // list.
+        // step2: Iterates through all the joint of the raw skeleton and fills a sorted joint list.
         // Iteration order defines runtime skeleton joint ordering.
         let mut lister = JointLister::new(num_joints);
         let linear_joints = &iterate_joints_df(_raw_skeleton, &mut lister).linear_joints;
         debug_assert!(linear_joints.len() as i32 == num_joints);
 
-        // Computes name's buffer size.
-        for i in 0..num_joints {
-            let current = linear_joints[i as usize].joint;
-            skeleton.whole_name += &*current.name;
+        // step3: Copy names
+        for i in 0..num_joints as usize {
+            let current = linear_joints[i].joint;
+            skeleton.joint_names_[i] = current.name.clone();
         }
 
-        // Allocates all skeleton members.
+        // step4: Allocates all skeleton members.
         skeleton.allocate(num_joints as usize);
 
-        // Copy names. All names are allocated in a single buffer. Only the first name
-        // is set, all other names array entries must be initialized.
-        let mut start = 0;
-        let mut end = 0;
-        for i in 0..num_joints {
-            let current = linear_joints[i as usize].joint;
-            end += current.name.len();
-            skeleton.joint_names_[i as usize] = &(skeleton.whole_name[start..end]);
-            start = end;
+        // step5: Transfers sorted joints hierarchy to the new skeleton.
+        for i in 0..num_joints as usize {
+            skeleton.joint_parents_[i] = linear_joints[i].parent;
         }
 
-        // Transfers sorted joints hierarchy to the new skeleton.
-        for i in 0..num_joints {
-            skeleton.joint_parents_[i as usize] = linear_joints[i as usize].parent;
-        }
-
-        // Transfers t-poses.
+        // step6: Transfers t-poses.
         let w_axis = SimdFloat4::w_axis();
         let zero = SimdFloat4::zero();
         let one = SimdFloat4::one();
 
-        for i in 0..skeleton.num_soa_joints() {
+        for i in 0..skeleton.num_soa_joints() as usize {
             let mut translations = [SimdFloat4::zero(); 4];
             let mut scales = [SimdFloat4::zero(); 4];
             let mut rotations = [SimdFloat4::zero(); 4];
-            for j in 0..4 {
-                if i * 4 + j < num_joints {
-                    let src_joint = linear_joints[(i * 4 + j) as usize].joint;
-                    translations[j as usize] = SimdFloat4::load3ptr_u(src_joint.transform.translation.to_vec4());
-                    rotations[j as usize] = SimdFloat4::load_ptr_u(src_joint.transform.rotation.to_vec()).normalize_safe4(w_axis);
-                    scales[j as usize] = SimdFloat4::load3ptr_u(src_joint.transform.scale.to_vec4());
+            for j in 0..4_usize {
+                if i * 4 + j < num_joints as usize {
+                    let src_joint = linear_joints[i * 4 + j].joint;
+                    translations[j] = SimdFloat4::load3ptr_u(src_joint.transform.translation.to_vec4());
+                    rotations[j] = SimdFloat4::load_ptr_u(src_joint.transform.rotation.to_vec()).normalize_safe4(w_axis);
+                    scales[j] = SimdFloat4::load3ptr_u(src_joint.transform.scale.to_vec4());
                 } else {
-                    translations[j as usize] = zero;
-                    rotations[j as usize] = w_axis;
-                    scales[j as usize] = one;
+                    translations[j] = zero;
+                    rotations[j] = w_axis;
+                    scales[j] = one;
                 }
             }
             // Fills the SoaTransform structure.
             SimdFloat4::transpose4x3(&translations,
-                                     &mut skeleton.joint_bind_poses_[i as usize].translation);
-            SimdFloat4::transpose4x4(&rotations, &mut skeleton.joint_bind_poses_[i as usize].rotation);
-            SimdFloat4::transpose4x3(&scales, &mut skeleton.joint_bind_poses_[i as usize].scale);
+                                     &mut skeleton.joint_bind_poses_[i].translation);
+            SimdFloat4::transpose4x4(&rotations, &mut skeleton.joint_bind_poses_[i].rotation);
+            SimdFloat4::transpose4x3(&scales, &mut skeleton.joint_bind_poses_[i].scale);
         }
 
-        return;  // Success.
+        return Some(skeleton);  // Success.
     }
 }
 
@@ -129,5 +123,28 @@ impl<'a> SkeletonVisitor<'a> for JointLister<'a> {
         }
         let listed = Joint { joint: _current, parent };
         self.linear_joints.push(listed);
+    }
+}
+
+//--------------------------------------------------------------------------------------------------
+//--------------------------------------------------------------------------------------------------
+//--------------------------------------------------------------------------------------------------
+#[cfg(test)]
+mod skeleton_builder {
+    use crate::skeleton_builder::SkeletonBuilder;
+    use crate::raw_skeleton::RawSkeleton;
+
+    #[test]
+    fn error() {
+        // The default raw skeleton is valid. It has no joint.
+        {
+            let raw_skeleton = RawSkeleton::new();
+            assert_eq!(raw_skeleton.validate(), true);
+            assert_eq!(raw_skeleton.num_joints(), 0);
+
+            let skeleton = SkeletonBuilder::apply(&raw_skeleton);
+            assert_eq!(skeleton.is_some(), true);
+            assert_eq!(skeleton.unwrap().num_joints(), 0);
+        }
     }
 }

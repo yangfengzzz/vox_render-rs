@@ -37,7 +37,7 @@ pub enum Constants {
 // order. This is enough to traverse the whole joint hierarchy. See
 // IterateJointsDF() from skeleton_utils.h that implements a depth-first
 // traversal utility.
-pub struct Skeleton<'a> {
+pub struct Skeleton {
     // Bind pose of every joint in local space.
     pub joint_bind_poses_: Vec<SoaTransform>,
 
@@ -45,19 +45,16 @@ pub struct Skeleton<'a> {
     pub joint_parents_: Vec<i16>,
 
     // Stores the name of every joint in an array of c-strings.
-    pub joint_names_: Vec<&'a str>,
-
-    pub whole_name: String,
+    pub joint_names_: Vec<String>,
 }
 
-impl<'a> Skeleton<'a> {
+impl Skeleton {
     // Builds a default skeleton.
-    pub fn new() -> Skeleton<'a> {
+    pub fn new() -> Skeleton {
         return Skeleton {
             joint_bind_poses_: vec![],
             joint_parents_: vec![],
             joint_names_: vec![],
-            whole_name: "".to_string(),
         };
     }
 
@@ -79,12 +76,12 @@ impl<'a> Skeleton<'a> {
     }
 
     // Returns joint's name collection.
-    pub fn joint_names(&self) -> &Vec<&'a str> {
+    pub fn joint_names(&self) -> &Vec<String> {
         return &self.joint_names_;
     }
 }
 
-impl<'a> Skeleton<'a> {
+impl Skeleton {
     // Internal allocation/deallocation function.
     // allocate returns the beginning of the contiguous buffer of names.
     pub fn allocate(&mut self, _num_joints: usize) {
@@ -104,7 +101,7 @@ impl<'a> Skeleton<'a> {
         self.joint_bind_poses_.resize(num_soa_joints, SoaTransform::identity());
 
         // Then names array, second biggest alignment.
-        self.joint_names_.resize(_num_joints, "");
+        self.joint_names_.resize(_num_joints, "".to_string());
 
         // Parents, third biggest alignment.
         self.joint_parents_.resize(_num_joints, 0);
