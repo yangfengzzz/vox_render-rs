@@ -16,10 +16,21 @@
 // Defines the float3 key frame type, used for translations and scales.
 // Translation values are stored as half precision floats with 16 bits per
 // component.
+#[derive(Clone)]
 pub struct Float3Key {
     pub ratio: f32,
     pub track: u16,
     pub value: [u16; 3],
+}
+
+impl Float3Key {
+    pub fn new() -> Float3Key {
+        return Float3Key {
+            ratio: 0.0,
+            track: 0,
+            value: [0, 0, 0],
+        };
+    }
 }
 
 // Defines the rotation key frame type.
@@ -37,6 +48,7 @@ pub struct Float3Key {
 // Quantization could be reduced to 11-11-10 bits as often used for animation
 // key frames, but in this case RotationKey structure would induce 16 bits of
 // padding.
+#[derive(Clone)]
 pub struct QuaternionKey {
     pub ratio: f32,
     // The track this key frame belongs to.(13)
@@ -47,5 +59,17 @@ pub struct QuaternionKey {
     pub sign: u16,
     // The quantized value of the 3 smallest components.
     pub value: [i16; 3],
+}
+
+impl QuaternionKey {
+    pub fn new() -> QuaternionKey {
+        return QuaternionKey {
+            ratio: 0.0,
+            track: 0,
+            largest: 0,
+            sign: 0,
+            value: [0, 0, 0],
+        };
+    }
 }
 
