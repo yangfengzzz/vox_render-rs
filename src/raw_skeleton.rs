@@ -67,8 +67,8 @@ impl RawSkeleton {
                 };
             }
         }
-        impl SkeletonVisitor for JointCounter {
-            fn visitor(&mut self, _current: &Joint, _parent: Option<&Joint>) {
+        impl<'a> SkeletonVisitor<'a> for JointCounter {
+            fn visitor(&mut self, _current: &'a Joint, _parent: Option<&Joint>) {
                 self.num_joints += 1;
             }
         }
@@ -78,14 +78,14 @@ impl RawSkeleton {
 }
 
 //--------------------------------------------------------------------------------------------------
-pub trait SkeletonVisitor {
-    fn visitor(&mut self, _current: &Joint, _parent: Option<&Joint>);
+pub trait SkeletonVisitor<'a> {
+    fn visitor(&mut self, _current: &'a Joint, _parent: Option<&Joint>);
 }
 
 // Internal function used to iterate through joint hierarchy depth-first.
-pub fn _iter_hierarchy_recurse_df<_Fct: SkeletonVisitor>(_children: &Vec<Joint>,
-                                                         _parent: Option<&Joint>,
-                                                         _fct: &mut _Fct) {
+pub fn _iter_hierarchy_recurse_df<'a, _Fct: SkeletonVisitor<'a>>(_children: &'a Vec<Joint>,
+                                                                 _parent: Option<&Joint>,
+                                                                 _fct: &mut _Fct) {
     for i in 0.._children.len() {
         let current = &_children[i];
         _fct.visitor(current, _parent);
@@ -94,9 +94,9 @@ pub fn _iter_hierarchy_recurse_df<_Fct: SkeletonVisitor>(_children: &Vec<Joint>,
 }
 
 // Internal function used to iterate through joint hierarchy breadth-first.
-pub fn _iter_hierarchy_recurse_bf<_Fct: SkeletonVisitor>(_children: &Vec<Joint>,
-                                                         _parent: Option<&Joint>,
-                                                         _fct: &mut _Fct) {
+pub fn _iter_hierarchy_recurse_bf<'a, _Fct: SkeletonVisitor<'a>>(_children: &'a Vec<Joint>,
+                                                                 _parent: Option<&Joint>,
+                                                                 _fct: &mut _Fct) {
     for i in 0.._children.len() {
         let current = &_children[i];
         _fct.visitor(current, _parent);
@@ -111,7 +111,7 @@ pub fn _iter_hierarchy_recurse_bf<_Fct: SkeletonVisitor>(_children: &Vec<Joint>,
 // _Fct is of type void(const Joint& _current, const Joint* _parent) where the
 // first argument is the child of the second argument. _parent is null if the
 // _current joint is the root.
-pub fn iterate_joints_df<'a, _Fct: SkeletonVisitor>(_skeleton: &RawSkeleton, _fct: &'a mut _Fct) -> &'a _Fct {
+pub fn iterate_joints_df<'a, _Fct: SkeletonVisitor<'a>>(_skeleton: &'a RawSkeleton, _fct: &'a mut _Fct) -> &'a _Fct {
     _iter_hierarchy_recurse_df(&_skeleton.roots, None, _fct);
     return _fct;
 }
@@ -120,7 +120,7 @@ pub fn iterate_joints_df<'a, _Fct: SkeletonVisitor>(_skeleton: &RawSkeleton, _fc
 // _Fct is of type void(const Joint& _current, const Joint* _parent) where the
 // first argument is the child of the second argument. _parent is null if the
 // _current joint is the root.
-pub fn iterate_joints_bf<'a, _Fct: SkeletonVisitor>(_skeleton: &RawSkeleton, _fct: &'a mut _Fct) -> &'a _Fct {
+pub fn iterate_joints_bf<'a, _Fct: SkeletonVisitor<'a>>(_skeleton: &'a RawSkeleton, _fct: &'a mut _Fct) -> &'a _Fct {
     _iter_hierarchy_recurse_bf(&_skeleton.roots, None, _fct);
     return _fct;
 }

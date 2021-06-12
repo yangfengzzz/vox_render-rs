@@ -28,15 +28,13 @@ impl SkeletonBuilder {
         // list.
         // Iteration order defines runtime skeleton joint ordering.
         let mut lister = JointLister::new(num_joints);
-        iterate_joints_df(_raw_skeleton, &mut lister);
-        debug_assert!(lister.linear_joints.len() as i32 == num_joints);
+        let linear_joints = &iterate_joints_df(_raw_skeleton, &mut lister).linear_joints;
+        debug_assert!(linear_joints.len() as i32 == num_joints);
 
         // Computes name's buffer size.
         for i in 0..num_joints {
-            let current = lister.linear_joints[i as usize].joint;
-            unsafe {
-                skeleton.whole_name += &*(*current).name;
-            }
+            let current = linear_joints[i as usize].joint;
+            skeleton.whole_name += &*current.name;
         }
 
         // Allocates all skeleton members.
@@ -47,17 +45,15 @@ impl SkeletonBuilder {
         let mut start = 0;
         let mut end = 0;
         for i in 0..num_joints {
-            let current = lister.linear_joints[i as usize].joint;
-            unsafe {
-                end += (*current).name.len();
-            }
+            let current = linear_joints[i as usize].joint;
+            end += current.name.len();
             skeleton.joint_names_[i as usize] = &(skeleton.whole_name[start..end]);
             start = end;
         }
 
         // Transfers sorted joints hierarchy to the new skeleton.
         for i in 0..num_joints {
-            skeleton.joint_parents_[i as usize] = lister.linear_joints[i as usize].parent;
+            skeleton.joint_parents_[i as usize] = linear_joints[i as usize].parent;
         }
 
         // Transfers t-poses.
@@ -71,12 +67,10 @@ impl SkeletonBuilder {
             let mut rotations = [SimdFloat4::zero(); 4];
             for j in 0..4 {
                 if i * 4 + j < num_joints {
-                    unsafe {
-                        let src_joint = lister.linear_joints[(i * 4 + j) as usize].joint;
-                        translations[j as usize] = SimdFloat4::load3ptr_u((*src_joint).transform.translation.to_vec4());
-                        rotations[j as usize] = SimdFloat4::load_ptr_u((*src_joint).transform.rotation.to_vec()).normalize_safe4(w_axis);
-                        scales[j as usize] = SimdFloat4::load3ptr_u((*src_joint).transform.scale.to_vec4());
-                    }
+                    let src_joint = linear_joints[(i * 4 + j) as usize].joint;
+                    translations[j as usize] = SimdFloat4::load3ptr_u(src_joint.transform.translation.to_vec4());
+                    rotations[j as usize] = SimdFloat4::load_ptr_u(src_joint.transform.rotation.to_vec()).normalize_safe4(w_axis);
+                    scales[j as usize] = SimdFloat4::load3ptr_u(src_joint.transform.scale.to_vec4());
                 } else {
                     translations[j as usize] = zero;
                     rotations[j as usize] = w_axis;
@@ -95,19 +89,19 @@ impl SkeletonBuilder {
 }
 
 //--------------------------------------------------------------------------------------------------
-struct Joint {
-    joint: *const crate::raw_skeleton::Joint,
+struct Joint<'a> {
+    joint: &'a crate::raw_skeleton::Joint,
     parent: i16,
 }
 
 // Stores each traversed joint in a vector.
-struct JointLister {
+struct JointLister<'a> {
     // Array of joints in the traversed DAG order.
-    linear_joints: Vec<Joint>,
+    linear_joints: Vec<Joint<'a>>,
 }
 
-impl<'a> JointLister {
-    fn new(_num_joints: i32) -> JointLister {
+impl<'a> JointLister<'a> {
+    fn new(_num_joints: i32) -> JointLister<'a> {
         let mut result = JointLister {
             linear_joints: vec![]
         };
@@ -116,8 +110,8 @@ impl<'a> JointLister {
     }
 }
 
-impl<'a> SkeletonVisitor for JointLister {
-    fn visitor(&mut self, _current: &crate::raw_skeleton::Joint,
+impl<'a> SkeletonVisitor<'a> for JointLister<'a> {
+    fn visitor(&mut self, _current: &'a crate::raw_skeleton::Joint,
                _parent: Option<&crate::raw_skeleton::Joint>) {
         // Looks for the "lister" parent.
         let mut parent = crate::skeleton::Constants::KNoParent as i16;
