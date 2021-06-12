@@ -696,13 +696,13 @@ impl SimdFloat4 {
     // Transposes the 3 SimdFloat4 of _in into the x, y and z components of the 4
     // SimdFloat4 of _out. Remaining w are set to 0.
     #[inline]
-    pub fn transpose3x4(_in: &[SimdFloat4], _out: &mut [SimdFloat4; 4]) {
+    pub fn transpose3x4(_in: &SoaFloat3, _out: &mut [SimdFloat4; 4]) {
         unsafe {
             let zero = _mm_setzero_ps();
-            let temp0 = _mm_unpacklo_ps(_in[0].data, _in[1].data);
-            let temp1 = _mm_unpacklo_ps(_in[2].data, zero);
-            let temp2 = _mm_unpackhi_ps(_in[0].data, _in[1].data);
-            let temp3 = _mm_unpackhi_ps(_in[2].data, zero);
+            let temp0 = _mm_unpacklo_ps(_in.x.data, _in.y.data);
+            let temp1 = _mm_unpacklo_ps(_in.z.data, zero);
+            let temp2 = _mm_unpackhi_ps(_in.x.data, _in.y.data);
+            let temp3 = _mm_unpackhi_ps(_in.z.data, zero);
             _out[0].data = _mm_movelh_ps(temp0, temp1);
             _out[1].data = _mm_movehl_ps(temp1, temp0);
             _out[2].data = _mm_movelh_ps(temp2, temp3);
@@ -712,7 +712,7 @@ impl SimdFloat4 {
 
     // Transposes the 4 SimdFloat4 of _in into the 4 SimdFloat4 of _out.
     #[inline]
-    pub fn transpose4x4(_in: &[SimdFloat4], _out: &mut SoaQuaternion) {
+    pub fn transpose4x4_from_vec(_in: &[SimdFloat4], _out: &mut SoaQuaternion) {
         unsafe {
             let tmp0 = _mm_unpacklo_ps(_in[0].data, _in[2].data);
             let tmp1 = _mm_unpacklo_ps(_in[1].data, _in[3].data);
@@ -722,6 +722,20 @@ impl SimdFloat4 {
             _out.y.data = _mm_unpackhi_ps(tmp0, tmp1);
             _out.z.data = _mm_unpacklo_ps(tmp2, tmp3);
             _out.w.data = _mm_unpackhi_ps(tmp2, tmp3);
+        }
+    }
+
+    #[inline]
+    pub fn transpose4x4_from_quat(_in: &SoaQuaternion, _out: &mut [SimdFloat4]) {
+        unsafe {
+            let tmp0 = _mm_unpacklo_ps(_in.x.data, _in.z.data);
+            let tmp1 = _mm_unpacklo_ps(_in.y.data, _in.w.data);
+            let tmp2 = _mm_unpackhi_ps(_in.x.data, _in.z.data);
+            let tmp3 = _mm_unpackhi_ps(_in.y.data, _in.w.data);
+            _out[0].data = _mm_unpacklo_ps(tmp0, tmp1);
+            _out[1].data = _mm_unpackhi_ps(tmp0, tmp1);
+            _out[2].data = _mm_unpacklo_ps(tmp2, tmp3);
+            _out[3].data = _mm_unpackhi_ps(tmp2, tmp3);
         }
     }
 
@@ -5033,15 +5047,20 @@ mod ozz_simd_math {
         expect_simd_float_eq!(t4x3.y, 1.0, 5.0, 9.0, 13.0);
         expect_simd_float_eq!(t4x3.z, 2.0, 6.0, 10.0, 14.0);
 
+        let soa = SoaFloat3 {
+            x: SimdFloat4::load(0.0, 1.0, 2.0, 3.0),
+            y: SimdFloat4::load(4.0, 5.0, 6.0, 7.0),
+            z: SimdFloat4::load(8.0, 9.0, 10.0, 11.0),
+        };
         let mut t3x4 = [SimdFloat4::zero(); 4];
-        SimdFloat4::transpose3x4(&src[0..3], &mut t3x4);
+        SimdFloat4::transpose3x4(&soa, &mut t3x4);
         expect_simd_float_eq!(t3x4[0], 0.0, 4.0, 8.0, 0.0);
         expect_simd_float_eq!(t3x4[1], 1.0, 5.0, 9.0, 0.0);
         expect_simd_float_eq!(t3x4[2], 2.0, 6.0, 10.0, 0.0);
         expect_simd_float_eq!(t3x4[3], 3.0, 7.0, 11.0, 0.0);
 
         let mut t4x4 = SoaQuaternion::identity();
-        SimdFloat4::transpose4x4(&src[..], &mut t4x4);
+        SimdFloat4::transpose4x4_from_vec(&src[..], &mut t4x4);
         expect_simd_float_eq!(t4x4.x, 0.0, 4.0, 8.0, 12.0);
         expect_simd_float_eq!(t4x4.y, 1.0, 5.0, 9.0, 13.0);
         expect_simd_float_eq!(t4x4.z, 2.0, 6.0, 10.0, 14.0);

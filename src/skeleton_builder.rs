@@ -74,7 +74,7 @@ impl SkeletonBuilder {
             // Fills the SoaTransform structure.
             SimdFloat4::transpose4x3(&translations,
                                      &mut skeleton.joint_bind_poses_[i].translation);
-            SimdFloat4::transpose4x4(&rotations, &mut skeleton.joint_bind_poses_[i].rotation);
+            SimdFloat4::transpose4x4_from_vec(&rotations, &mut skeleton.joint_bind_poses_[i].rotation);
             SimdFloat4::transpose4x3(&scales, &mut skeleton.joint_bind_poses_[i].scale);
         }
 
@@ -133,6 +133,13 @@ impl<'a> SkeletonVisitor<'a> for JointLister<'a> {
 mod skeleton_builder {
     use crate::skeleton_builder::SkeletonBuilder;
     use crate::raw_skeleton::*;
+    use crate::transform::Transform;
+    use crate::vec_float::Float3;
+    use crate::quaternion::Quaternion;
+    use crate::simd_math::SimdFloat4;
+    use crate::math_test_helper::*;
+    use crate::simd_math::*;
+    use crate::*;
 
     #[test]
     fn error() {
@@ -530,6 +537,215 @@ mod skeleton_builder {
             assert_eq!(skeleton.as_ref().unwrap().joint_names()[4], "j4");
             assert_eq!(skeleton.as_ref().unwrap().joint_parents()[5], 3);
             assert_eq!(skeleton.as_ref().unwrap().joint_names()[5], "j5");
+        }
+    }
+
+    #[test]
+    fn joint_order() {
+        /*
+         7 joints
+
+              *
+              |
+              j0
+           /  |  \
+         j1   j3  j7
+          |  / \
+         j2 j4 j5
+               |
+               j6
+        */
+        let mut raw_skeleton = RawSkeleton::new();
+        raw_skeleton.roots.resize(1, Joint::new());
+        let root = &mut raw_skeleton.roots[0];
+        root.name = "j0".to_string();
+
+        root.children.resize(3, Joint::new());
+        root.children[0].name = "j1".to_string();
+        root.children[1].name = "j3".to_string();
+        root.children[2].name = "j7".to_string();
+
+        root.children[0].children.resize(1, Joint::new());
+        root.children[0].children[0].name = "j2".to_string();
+
+        root.children[1].children.resize(2, Joint::new());
+        root.children[1].children[0].name = "j4".to_string();
+        root.children[1].children[1].name = "j5".to_string();
+
+        root.children[1].children[1].children.resize(1, Joint::new());
+        root.children[1].children[1].children[0].name = "j6".to_string();
+
+        assert_eq!(raw_skeleton.validate(), true);
+        assert_eq!(raw_skeleton.num_joints(), 8);
+
+        let skeleton = SkeletonBuilder::apply(&raw_skeleton);
+        assert_eq!(skeleton.is_some(), true);
+        assert_eq!(skeleton.as_ref().unwrap().num_joints(), 8);
+
+        // Skeleton joints should be sorted "per parent" and maintain original
+        // children joint order.
+        assert_eq!(skeleton.as_ref().unwrap().joint_parents()[0], crate::skeleton::Constants::KNoParent as i16);
+        assert_eq!(skeleton.as_ref().unwrap().joint_names()[0], "j0");
+        assert_eq!(skeleton.as_ref().unwrap().joint_parents()[1], 0);
+        assert_eq!(skeleton.as_ref().unwrap().joint_names()[1], "j1");
+        assert_eq!(skeleton.as_ref().unwrap().joint_parents()[3], 0);
+        assert_eq!(skeleton.as_ref().unwrap().joint_names()[3], "j3");
+        assert_eq!(skeleton.as_ref().unwrap().joint_parents()[7], 0);
+        assert_eq!(skeleton.as_ref().unwrap().joint_names()[7], "j7");
+        assert_eq!(skeleton.as_ref().unwrap().joint_parents()[2], 1);
+        assert_eq!(skeleton.as_ref().unwrap().joint_names()[2], "j2");
+        assert_eq!(skeleton.as_ref().unwrap().joint_parents()[4], 3);
+        assert_eq!(skeleton.as_ref().unwrap().joint_names()[4], "j4");
+        assert_eq!(skeleton.as_ref().unwrap().joint_parents()[5], 3);
+        assert_eq!(skeleton.as_ref().unwrap().joint_names()[5], "j5");
+        assert_eq!(skeleton.as_ref().unwrap().joint_parents()[6], 5);
+        assert_eq!(skeleton.as_ref().unwrap().joint_names()[6], "j6");
+    }
+
+    #[test]
+    fn multi_roots() {
+        /*
+        6 joints (2 roots)
+           *
+          /  \
+         j0   j2
+         |    |  \
+         j1  j3  j5
+              |
+             j4
+        */
+        let mut raw_skeleton = RawSkeleton::new();
+        raw_skeleton.roots.resize(2, Joint::new());
+
+        raw_skeleton.roots[0].name = "j0".to_string();
+        raw_skeleton.roots[0].children.resize(1, Joint::new());
+        raw_skeleton.roots[0].children[0].name = "j1".to_string();
+
+        raw_skeleton.roots[1].name = "j2".to_string();
+        raw_skeleton.roots[1].children.resize(2, Joint::new());
+        raw_skeleton.roots[1].children[0].name = "j3".to_string();
+        raw_skeleton.roots[1].children[1].name = "j5".to_string();
+
+        raw_skeleton.roots[1].children[0].children.resize(1, Joint::new());
+        raw_skeleton.roots[1].children[0].children[0].name = "j4".to_string();
+
+        assert_eq!(raw_skeleton.validate(), true);
+        assert_eq!(raw_skeleton.num_joints(), 6);
+
+        let skeleton = SkeletonBuilder::apply(&raw_skeleton);
+        assert_eq!(skeleton.is_some(), true);
+        assert_eq!(skeleton.as_ref().unwrap().num_joints(), 6);
+        for i in 0..skeleton.as_ref().unwrap().num_joints() as usize {
+            let parent_index = skeleton.as_ref().unwrap().joint_parents()[i] as usize;
+            if skeleton.as_ref().unwrap().joint_names()[i] == "j0" {
+                assert_eq!(parent_index, crate::skeleton::Constants::KNoParent as usize);
+            } else if skeleton.as_ref().unwrap().joint_names()[i] == "j1" {
+                assert_eq!(skeleton.as_ref().unwrap().joint_names()[parent_index], "j0");
+            } else if skeleton.as_ref().unwrap().joint_names()[i] == "j2" {
+                assert_eq!(parent_index, crate::skeleton::Constants::KNoParent as usize);
+            } else if skeleton.as_ref().unwrap().joint_names()[i] == "j3" {
+                assert_eq!(skeleton.as_ref().unwrap().joint_names()[parent_index], "j2");
+            } else if skeleton.as_ref().unwrap().joint_names()[i] == "j4" {
+                assert_eq!(skeleton.as_ref().unwrap().joint_names()[parent_index], "j3");
+            } else if skeleton.as_ref().unwrap().joint_names()[i] == "j5" {
+                assert_eq!(skeleton.as_ref().unwrap().joint_names()[parent_index], "j2");
+            } else {
+                assert_eq!(false, true);
+            }
+        }
+    }
+
+    #[test]
+    fn bind_pose() {
+        /*
+         3 joints
+        
+           *
+           |
+          j0
+          / \
+         j1 j2
+        */
+
+        let mut raw_skeleton = RawSkeleton::new();
+        raw_skeleton.roots.resize(1, Joint::new());
+        let root = &mut raw_skeleton.roots[0];
+        root.name = "j0".to_string();
+        root.transform = Transform::identity();
+        root.transform.translation = Float3::new(1.0, 2.0, 3.0);
+        root.transform.rotation = Quaternion::new(1.0, 0.0, 0.0, 0.0);
+
+        root.children.resize(2, Joint::new());
+        root.children[0].name = "j1".to_string();
+        root.children[0].transform = Transform::identity();
+        root.children[0].transform.rotation = Quaternion::new(0.0, 1.0, 0.0, 0.0);
+        root.children[0].transform.translation = Float3::new(4.0, 5.0, 6.0);
+        root.children[1].name = "j2".to_string();
+        root.children[1].transform = Transform::identity();
+        root.children[1].transform.translation = Float3::new(7.0, 8.0, 9.0);
+        root.children[1].transform.scale = Float3::new(-27.0, 46.0, 9.0);
+
+        assert_eq!(raw_skeleton.validate(), true);
+        assert_eq!(raw_skeleton.num_joints(), 3);
+
+        let skeleton = SkeletonBuilder::apply(&raw_skeleton);
+        assert_eq!(skeleton.is_some(), true);
+
+        // Convert bind pose back to aos.
+        let mut translations = [SimdFloat4::zero(); 4];
+        let mut scales = [SimdFloat4::zero(); 4];
+        let mut rotations = [SimdFloat4::zero(); 4];
+        let bind_pose = skeleton.as_ref().unwrap().joint_bind_poses()[0];
+        SimdFloat4::transpose3x4(&bind_pose.translation, &mut translations);
+        SimdFloat4::transpose4x4_from_quat(&bind_pose.rotation, &mut rotations);
+        SimdFloat4::transpose3x4(&bind_pose.scale, &mut scales);
+
+        for i in 0..skeleton.as_ref().unwrap().num_joints() as usize {
+            if skeleton.as_ref().unwrap().joint_names()[i] == "j0" {
+                expect_simd_float_eq!(translations[i], 1.0, 2.0, 3.0, 0.0);
+                expect_simd_float_eq!(rotations[i], 1.0, 0.0, 0.0, 0.0);
+                expect_simd_float_eq!(scales[i], 1.0, 1.0, 1.0, 0.0);
+            } else if skeleton.as_ref().unwrap().joint_names()[i] == "j1" {
+                expect_simd_float_eq!(translations[i], 4.0, 5.0, 6.0, 0.0);
+                expect_simd_float_eq!(rotations[i], 0.0, 1.0, 0.0, 0.0);
+                expect_simd_float_eq!(scales[i], 1.0, 1.0, 1.0, 0.0);
+            } else if skeleton.as_ref().unwrap().joint_names()[i] == "j2" {
+                expect_simd_float_eq!(translations[i], 7.0, 8.0, 9.0, 0.0);
+                expect_simd_float_eq!(rotations[i], 0.0, 0.0, 0.0, 1.0);
+                expect_simd_float_eq!(scales[i], -27.0, 46.0, 9.0, 0.0);
+            } else {
+                assert_eq!(false, true);
+            }
+        }
+
+        // Unused joint from the SoA structure must be properly initialized
+        expect_simd_float_eq!(translations[3], 0.0, 0.0, 0.0, 0.0);
+        expect_simd_float_eq!(rotations[3], 0.0, 0.0, 0.0, 1.0);
+        expect_simd_float_eq!(scales[3], 1.0, 1.0, 1.0, 0.0);
+    }
+
+    #[test]
+    fn max_joints() {
+        {  // Inside the domain.
+            let mut raw_skeleton = RawSkeleton::new();
+            raw_skeleton.roots.resize(crate::skeleton::Constants::KMaxJoints as usize, Joint::new());
+
+            assert_eq!(raw_skeleton.validate(), true);
+            assert_eq!(raw_skeleton.num_joints(), crate::skeleton::Constants::KMaxJoints as i32);
+
+            let skeleton = SkeletonBuilder::apply(&raw_skeleton);
+            assert_eq!(skeleton.is_some(), true);
+        }
+
+        {  // Outside of the domain.
+            let mut raw_skeleton = RawSkeleton::new();
+            raw_skeleton.roots.resize(crate::skeleton::Constants::KMaxJoints as usize + 1, Joint::new());
+
+            assert_eq!(raw_skeleton.validate(), false);
+            assert_eq!(raw_skeleton.num_joints(), crate::skeleton::Constants::KMaxJoints as i32 + 1);
+
+            let skeleton = SkeletonBuilder::apply(&raw_skeleton);
+            assert_eq!(skeleton.is_none(), true);
         }
     }
 }
