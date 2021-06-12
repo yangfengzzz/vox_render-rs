@@ -8,10 +8,38 @@
 
 use crate::transform::Transform;
 use crate::skeleton::Skeleton;
+use crate::simd_math::SimdFloat4;
+use crate::vec_float::Float3;
+use crate::quaternion::Quaternion;
 
 // Get bind-pose of a skeleton joint.
 pub fn get_joint_local_bind_pose(_skeleton: &Skeleton, _joint: i32) -> Transform {
-    todo!()
+    debug_assert!(_joint >= 0 && _joint < _skeleton.num_joints() &&
+        "Joint index out of range.".parse().unwrap_or(true));
+
+    let soa_transform = _skeleton.joint_bind_poses()[_joint as usize / 4];
+
+    // Transpose SoA data to AoS.
+    let mut translations = [SimdFloat4::zero(); 4];
+    SimdFloat4::transpose3x4(&soa_transform.translation, &mut translations);
+    let mut rotations = [SimdFloat4::zero(); 4];
+    SimdFloat4::transpose4x4_from_quat(&soa_transform.rotation, &mut rotations);
+    let mut scales = [SimdFloat4::zero(); 4];
+    SimdFloat4::transpose3x4(&soa_transform.scale, &mut scales);
+
+    // Stores to the Transform object.
+    let mut bind_pose = Transform::identity();
+    let offset = _joint as usize % 4;
+
+    let mut result = [0.0_f32; 4];
+    SimdFloat4::store3ptr_u(&translations[offset], &mut result);
+    bind_pose.translation = Float3::new(result[0], result[1], result[2]);
+    SimdFloat4::store_ptr_u(&rotations[offset], &mut result);
+    bind_pose.rotation = Quaternion::new(result[0], result[1], result[2], result[3]);
+    SimdFloat4::store3ptr_u(&scales[offset], &mut result);
+    bind_pose.scale = Float3::new(result[0], result[1], result[2]);
+
+    return bind_pose;
 }
 
 // Test if a joint is a leaf. _joint number must be in range [0, num joints].
@@ -67,4 +95,25 @@ pub fn iterate_joints_df_reverse<_Fct: JointVisitor>(_skeleton: &Skeleton, _fct:
     }
 
     return _fct;
+}
+
+//--------------------------------------------------------------------------------------------------
+//--------------------------------------------------------------------------------------------------
+//--------------------------------------------------------------------------------------------------
+#[cfg(test)]
+mod skeleton_utils {
+    use crate::skeleton_builder::SkeletonBuilder;
+    use crate::raw_skeleton::*;
+    use crate::transform::Transform;
+    use crate::vec_float::Float3;
+    use crate::quaternion::Quaternion;
+    use crate::simd_math::SimdFloat4;
+    use crate::math_test_helper::*;
+    use crate::simd_math::*;
+    use crate::*;
+
+    #[test]
+    fn joint_bind_pose() {
+        todo!()
+    }
 }
