@@ -54,7 +54,7 @@ pub fn is_leaf(_skeleton: &Skeleton, _joint: i32) -> bool {
 }
 
 pub trait JointVisitor {
-    fn visitor(&self, _current: i32, _parent: i32);
+    fn visitor(&mut self, _current: i32, _parent: i32);
 }
 
 // Applies a specified functor to each joint in a depth-first order.
@@ -63,7 +63,7 @@ pub trait JointVisitor {
 // _current joint is a root. _from indicates the joint from which the joint
 // hierarchy traversal begins. Use Skeleton::kNoParent to traverse the
 // whole hierarchy, in case there are multiple roots.
-pub fn iterate_joints_df<_Fct: JointVisitor>(_skeleton: &Skeleton, _fct: _Fct, _from: Option<i32>) -> _Fct {
+pub fn iterate_joints_df<_Fct: JointVisitor>(_skeleton: &Skeleton, mut _fct: _Fct, _from: Option<i32>) -> _Fct {
     let parents = _skeleton.joint_parents();
     let num_joints = _skeleton.num_joints();
 
@@ -86,7 +86,7 @@ pub fn iterate_joints_df<_Fct: JointVisitor>(_skeleton: &Skeleton, _fct: _Fct, _
 // depth-first order. _Fct is of type void(int _current, int _parent) where the
 // first argument is the child of the second argument. _parent is kNoParent if
 // the _current joint is a root.
-pub fn iterate_joints_df_reverse<_Fct: JointVisitor>(_skeleton: &Skeleton, _fct: _Fct) -> _Fct {
+pub fn iterate_joints_df_reverse<_Fct: JointVisitor>(_skeleton: &Skeleton, mut _fct: _Fct) -> _Fct {
     let parents = _skeleton.joint_parents();
     let mut i = _skeleton.num_joints() - 1;
     while i >= 0 {
@@ -111,9 +111,108 @@ mod skeleton_utils {
     use crate::math_test_helper::*;
     use crate::simd_math::*;
     use crate::*;
+    use crate::skeleton_utils::*;
 
     #[test]
     fn joint_bind_pose() {
-        todo!()
+        let mut raw_skeleton = RawSkeleton::new();
+        raw_skeleton.roots.resize(1, Joint::new());
+        let r = &mut raw_skeleton.roots[0];
+        r.name = "r0".to_string();
+        r.transform.translation = Float3::x_axis();
+        r.transform.rotation = Quaternion::identity();
+        r.transform.scale = Float3::zero();
+
+        r.children.resize(2, Joint::new());
+        let c0 = &mut r.children[0];
+        c0.name = "j0".to_string();
+        c0.transform.translation = Float3::y_axis();
+        c0.transform.rotation = -Quaternion::identity();
+        c0.transform.scale = -Float3::one();
+
+        let c1 = &mut r.children[1];
+        c1.name = "j1".to_string();
+        c1.transform.translation = Float3::z_axis();
+        c1.transform.rotation = Quaternion::identity().conjugate();
+        c1.transform.scale = Float3::one();
+
+        assert_eq!(raw_skeleton.validate(), true);
+        assert_eq!(raw_skeleton.num_joints(), 3);
+
+        let skeleton = SkeletonBuilder::apply(&raw_skeleton);
+        assert_eq!(skeleton.is_some(), true);
+        assert_eq!(skeleton.as_ref().unwrap().num_joints(), 3);
+
+        // Out of range.
+        // EXPECT_ASSERTION(GetJointLocalBindPose(*skeleton, 3),
+        //                  "Joint index out of range.");
+
+        let bind_pose0 = get_joint_local_bind_pose(skeleton.as_ref().unwrap(), 0);
+        expect_float3_eq!(bind_pose0.translation, 1.0, 0.0, 0.0);
+        expect_quaternion_eq!(bind_pose0.rotation, 0.0, 0.0, 0.0, 1.0);
+        expect_float3_eq!(bind_pose0.scale, 0.0, 0.0, 0.0);
+
+        let bind_pose1 = get_joint_local_bind_pose(skeleton.as_ref().unwrap(), 1);
+        expect_float3_eq!(bind_pose1.translation, 0.0, 1.0, 0.0);
+        expect_quaternion_eq!(bind_pose1.rotation, 0.0, 0.0, 0.0, -1.0);
+        expect_float3_eq!(bind_pose1.scale, -1.0, -1.0, -1.0);
+
+        let bind_pose2 = get_joint_local_bind_pose(skeleton.as_ref().unwrap(), 2);
+        expect_float3_eq!(bind_pose2.translation, 0.0, 0.0, 1.0);
+        expect_quaternion_eq!(bind_pose2.rotation, -0.0, -0.0, -0.0, 1.0);
+        expect_float3_eq!(bind_pose2.scale, 1.0, 1.0, 1.0);
+    }
+
+    /* Definition of the skeleton used by the tests.
+     10 joints, 2 roots
+
+          *
+        /   \
+       j0    j8
+     /   \     \
+     j1   j4    j9
+     |   / \
+     j2 j5 j6
+     |     |
+     j3    j7
+     */
+    struct IterateDFFailTester {}
+
+    impl JointVisitor for IterateDFFailTester {
+        fn visitor(&mut self, _current: i32, _parent: i32) {
+            assert_eq!(false, true);
+        }
+    }
+
+    struct IterateDFTester<'a> {
+        // Iterated skeleton.
+        skeleton_: &'a Skeleton,
+
+        // First joint to explore.
+        start_: i32,
+
+        // Number of iterations completed.
+        num_iterations_: i32,
+    }
+
+    impl<'a> IterateDFTester<'a> {
+        pub fn new(_skeleton: &'a Skeleton, _start: i32) -> IterateDFTester<'a> {
+            return IterateDFTester {
+                skeleton_: _skeleton,
+                start_: _start,
+                num_iterations_: 0,
+            };
+        }
+
+        pub fn num_iterations(&self) -> i32 { return self.num_iterations_; }
+    }
+
+    impl<'a> JointVisitor for IterateDFTester<'a> {
+        fn visitor(&mut self, _current: i32, _parent: i32) {
+            let joint = self.start_ + self.num_iterations_;
+            assert_eq!(joint, _current);
+            assert_eq!(self.skeleton_.joint_parents()[joint as usize], _parent as i16);
+            self.num_iterations_ += 1;
+        }
     }
 }
