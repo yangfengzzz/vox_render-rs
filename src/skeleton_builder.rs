@@ -132,7 +132,7 @@ impl<'a> SkeletonVisitor<'a> for JointLister<'a> {
 #[cfg(test)]
 mod skeleton_builder {
     use crate::skeleton_builder::SkeletonBuilder;
-    use crate::raw_skeleton::RawSkeleton;
+    use crate::raw_skeleton::*;
 
     #[test]
     fn error() {
@@ -146,5 +146,123 @@ mod skeleton_builder {
             assert_eq!(skeleton.is_some(), true);
             assert_eq!(skeleton.unwrap().num_joints(), 0);
         }
+    }
+
+    // Tester object that ensure order (depth-first) of joints iteration.
+    struct RawSkeletonIterateDFTester {
+        num_joint_: i32,
+    }
+
+    impl RawSkeletonIterateDFTester {
+        fn new() -> RawSkeletonIterateDFTester {
+            return RawSkeletonIterateDFTester {
+                num_joint_: 0
+            };
+        }
+    }
+
+    impl<'a> SkeletonVisitor<'a> for RawSkeletonIterateDFTester {
+        fn visitor(&mut self, _current: &'a Joint, _parent: Option<&Joint>) {
+            match self.num_joint_ {
+                0 => {
+                    assert_eq!(_current.name == "root" && _parent.is_none(), true);
+                }
+                1 => {
+                    assert_eq!(_current.name == "j0" && _parent.unwrap().name == "root", true);
+                }
+                2 => {
+                    assert_eq!(_current.name == "j1" && _parent.unwrap().name == "root", true);
+                }
+                3 => {
+                    assert_eq!(_current.name == "j2" && _parent.unwrap().name == "j1", true);
+                }
+                4 => {
+                    assert_eq!(_current.name == "j3" && _parent.unwrap().name == "j1", true);
+                }
+                5 => {
+                    assert_eq!(_current.name == "j4" && _parent.unwrap().name == "root", true);
+                }
+                _ => {
+                    assert_eq!(true, false)
+                }
+            }
+            self.num_joint_ += 1;
+        }
+    }
+
+    // Tester object that ensure order (breadth-first) of joints iteration.
+    struct RawSkeletonIterateBFTester {
+        num_joint_: i32,
+    }
+
+    impl RawSkeletonIterateBFTester {
+        fn new() -> RawSkeletonIterateBFTester {
+            return RawSkeletonIterateBFTester {
+                num_joint_: 0
+            };
+        }
+    }
+
+    impl<'a> SkeletonVisitor<'a> for RawSkeletonIterateBFTester {
+        fn visitor(&mut self, _current: &'a Joint, _parent: Option<&Joint>) {
+            match self.num_joint_ {
+                0 => {
+                    assert_eq!(_current.name == "root" && _parent.is_none(), true);
+                }
+                1 => {
+                    assert_eq!(_current.name == "j0" && _parent.unwrap().name == "root", true);
+                }
+                2 => {
+                    assert_eq!(_current.name == "j1" && _parent.unwrap().name == "root", true);
+                }
+                3 => {
+                    assert_eq!(_current.name == "j4" && _parent.unwrap().name == "root", true);
+                }
+                4 => {
+                    assert_eq!(_current.name == "j2" && _parent.unwrap().name == "j1", true);
+                }
+                5 => {
+                    assert_eq!(_current.name == "j3" && _parent.unwrap().name == "j1", true);
+                }
+                _ => {
+                    assert_eq!(true, false)
+                }
+            }
+            self.num_joint_ += 1;
+        }
+    }
+
+    #[test]
+    fn skeleton_builder() {
+        /*
+        5 joints
+
+           *
+           |
+          root
+          / |  \
+         j0 j1 j4
+            / \
+           j2 j3
+        */
+        let mut raw_skeleton = RawSkeleton::new();
+        raw_skeleton.roots.resize(1, Joint::new());
+        let root = &mut raw_skeleton.roots[0];
+        root.name = "root".to_string();
+
+        root.children.resize(3, Joint::new());
+        root.children[0].name = "j0".to_string();
+        root.children[1].name = "j1".to_string();
+        root.children[2].name = "j4".to_string();
+
+        root.children[1].children.resize(2, Joint::new());
+        root.children[1].children[0].name = "j2".to_string();
+        root.children[1].children[1].name = "j3".to_string();
+
+        assert_eq!(raw_skeleton.validate(), true);
+        assert_eq!(raw_skeleton.num_joints(), 6);
+
+        iterate_joints_df(&raw_skeleton, &mut RawSkeletonIterateDFTester::new());
+        iterate_joints_bf(&raw_skeleton, &mut RawSkeletonIterateBFTester::new());
     }
 }

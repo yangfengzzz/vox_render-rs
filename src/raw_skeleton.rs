@@ -9,6 +9,7 @@
 use crate::transform::Transform;
 
 // Offline skeleton joint type.
+#[derive(Clone)]
 pub struct Joint {
     // Children joints.
     pub children: Vec<Joint>,
@@ -18,6 +19,16 @@ pub struct Joint {
 
     // Joint bind pose transformation in local space.
     pub transform: Transform,
+}
+
+impl Joint {
+    pub fn new() -> Joint {
+        return Joint {
+            children: vec![],
+            name: "".to_string(),
+            transform: Transform::identity(),
+        };
+    }
 }
 
 // Off-line skeleton type.

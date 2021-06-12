@@ -11,6 +11,7 @@ use crate::vec_float::Float3;
 
 // Stores an affine transformation with separate translation, rotation and scale
 // attributes.
+#[derive(Clone)]
 pub struct Transform {
     // Translation affine transformation component.
     pub translation: Float3,
