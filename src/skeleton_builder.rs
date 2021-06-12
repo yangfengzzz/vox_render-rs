@@ -36,14 +36,14 @@ impl SkeletonBuilder {
         let linear_joints = &iterate_joints_df(_raw_skeleton, &mut lister).linear_joints;
         debug_assert!(linear_joints.len() as i32 == num_joints);
 
-        // step3: Copy names
+        // step3: Allocates all skeleton members.
+        skeleton.allocate(num_joints as usize);
+
+        // step4: Copy names
         for i in 0..num_joints as usize {
             let current = linear_joints[i].joint;
             skeleton.joint_names_[i] = current.name.clone();
         }
-
-        // step4: Allocates all skeleton members.
-        skeleton.allocate(num_joints as usize);
 
         // step5: Transfers sorted joints hierarchy to the new skeleton.
         for i in 0..num_joints as usize {
@@ -264,5 +264,24 @@ mod skeleton_builder {
 
         iterate_joints_df(&raw_skeleton, &mut RawSkeletonIterateDFTester::new());
         iterate_joints_bf(&raw_skeleton, &mut RawSkeletonIterateBFTester::new());
+    }
+
+    #[test]
+    fn build() {
+        // 1 joint: the root.
+        {
+            let mut raw_skeleton = RawSkeleton::new();
+            raw_skeleton.roots.resize(1, Joint::new());
+            let root = &mut raw_skeleton.roots[0];
+            root.name = "root".to_string();
+
+            assert_eq!(raw_skeleton.validate(), true);
+            assert_eq!(raw_skeleton.num_joints(), 1);
+
+            let skeleton = SkeletonBuilder::apply(&raw_skeleton);
+            assert_eq!(skeleton.is_some(), true);
+            assert_eq!(skeleton.as_ref().unwrap().num_joints(), 1);
+            assert_eq!(skeleton.as_ref().unwrap().joint_parents()[0], crate::skeleton::Constants::KNoParent as i16);
+        }
     }
 }

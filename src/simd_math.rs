@@ -3640,10 +3640,6 @@ mod ozz_simd_math {
         expect_simd_float_eq!(f4, 1.0, -1.0, 2.0, -3.0);
     }
 
-    fn load_float_ptr() {
-        todo!()
-    }
-
     #[test]
     fn get_float() {
         let f = SimdFloat4::load(1.0, 2.0, 3.0, 4.0);
@@ -3668,10 +3664,6 @@ mod ozz_simd_math {
         expect_simd_float_eq!(a.set_i(b, 1), 1.0, 5.0, 3.0, 4.0);
         expect_simd_float_eq!(a.set_i(b, 2), 1.0, 2.0, 5.0, 4.0);
         expect_simd_float_eq!(a.set_i(b, 3), 1.0, 2.0, 3.0, 5.0);
-    }
-
-    fn store_float_ptr() {
-        todo!()
     }
 
     #[test]
