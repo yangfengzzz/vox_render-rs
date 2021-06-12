@@ -35,7 +35,7 @@ pub enum Constants {
 // to closely match with the way runtime algorithms use them. Joint hierarchy is
 // packed as an array of parent jont indices (16 bits), stored in depth-first
 // order. This is enough to traverse the whole joint hierarchy. See
-// IterateJointsDF() from skeleton_utils.h that implements a depth-first
+// iterate_joints_df() from skeleton_utils.h that implements a depth-first
 // traversal utility.
 pub struct Skeleton {
     // Bind pose of every joint in local space.
