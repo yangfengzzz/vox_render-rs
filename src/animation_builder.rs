@@ -109,7 +109,7 @@ impl AnimationBuilder {
 }
 
 pub fn align(_value: u16, _alignment: usize) -> u16 {
-    return ((_value as usize + (_alignment - 1)) & (0 - _alignment)) as u16;
+    return ((_value as usize + (_alignment - 1)) & _alignment.overflowing_neg().0) as u16;
 }
 
 //--------------------------------------------------------------------------------------------------
@@ -384,8 +384,9 @@ fn copy_to_animation_quat<_SrcKey: KeyType<Quaternion>, _SortingKey: SortingType
 //--------------------------------------------------------------------------------------------------
 #[cfg(test)]
 mod animation_builder {
-    use crate::raw_animation::{RawAnimation, JointTrack};
+    use crate::raw_animation::{RawAnimation, JointTrack, TranslationKey};
     use crate::animation_builder::AnimationBuilder;
+    use crate::vec_float::Float3;
 
     #[test]
     fn error() {
@@ -412,7 +413,7 @@ mod animation_builder {
         {  // Building an animation with too much tracks fails.
             let mut raw_animation = RawAnimation::new();
             raw_animation.duration = 1.0;
-            raw_animation.tracks.resize( crate::skeleton::Constants::KMaxJoints as usize + 1, JointTrack::new());
+            raw_animation.tracks.resize(crate::skeleton::Constants::KMaxJoints as usize + 1, JointTrack::new());
             assert_eq!(raw_animation.validate(), false);
 
             // Builds animation
@@ -438,6 +439,239 @@ mod animation_builder {
             // Builds animation
             let anim = AnimationBuilder::apply(&raw_animation);
             assert_eq!(anim.is_some(), true);
+        }
+    }
+
+    #[test]
+    fn build() {
+        {  // Building an Animation with unsorted keys fails.
+            let mut raw_animation = RawAnimation::new();
+            raw_animation.duration = 1.0;
+            raw_animation.tracks.resize(1, JointTrack::new());
+
+            // Adds 2 unordered keys
+            let first_key = TranslationKey { time: 0.8, value: Float3::zero() };
+            raw_animation.tracks[0].translations.push(first_key);
+            let second_key = TranslationKey { time: 0.2, value: Float3::zero() };
+            raw_animation.tracks[0].translations.push(second_key);
+
+            // Builds animation
+            assert_eq!(AnimationBuilder::apply(&raw_animation).is_some(), false);
+        }
+
+        {  // Building an Animation with invalid key frame's time fails.
+            let mut raw_animation = RawAnimation::new();
+            raw_animation.duration = 1.0;
+            raw_animation.tracks.resize(1, JointTrack::new());
+
+            // Adds a key with a time greater than animation duration.
+            let first_key = TranslationKey { time: 2.0, value: Float3::zero() };
+            raw_animation.tracks[0].translations.push(first_key);
+
+            // Builds animation
+            assert_eq!(AnimationBuilder::apply(&raw_animation).is_some(), false);
+        }
+
+        {  // Building an Animation with unsorted key frame's time fails.
+            let mut raw_animation = RawAnimation::new();
+            raw_animation.duration = 1.0;
+            raw_animation.tracks.resize(2, JointTrack::new());
+
+            // Adds 2 unsorted keys.
+            let first_key = TranslationKey { time: 0.7, value: Float3::zero() };
+            raw_animation.tracks[0].translations.push(first_key);
+            let second_key = TranslationKey { time: 0.1, value: Float3::zero() };
+            raw_animation.tracks[0].translations.push(second_key);
+
+            // Builds animation
+            assert_eq!(AnimationBuilder::apply(&raw_animation).is_some(), false);
+        }
+
+        {  // Building an Animation with equal key frame's time fails.
+            let mut raw_animation = RawAnimation::new();
+            raw_animation.duration = 1.0;
+            raw_animation.tracks.resize(2, JointTrack::new());
+
+            // Adds 2 unsorted keys.
+            let key = TranslationKey { time: 0.7, value: Float3::zero() };
+            raw_animation.tracks[0].translations.push(key.clone());
+            raw_animation.tracks[0].translations.push(key);
+
+            // Builds animation
+            assert_eq!(AnimationBuilder::apply(&raw_animation).is_some(), false);
+        }
+
+        {  // Building a valid Animation with empty tracks succeeds.
+            let mut raw_animation = RawAnimation::new();
+            raw_animation.duration = 46.0;
+            raw_animation.tracks.resize(46, JointTrack::new());
+
+            // Builds animation
+            let anim = AnimationBuilder::apply(&raw_animation);
+            assert_eq!(anim.is_some(), true);
+            assert_eq!(anim.as_ref().unwrap().duration(), 46.0);
+            assert_eq!(anim.as_ref().unwrap().num_tracks(), 46);
+        }
+
+        {  // Building a valid Animation with 1 track succeeds.
+            let mut raw_animation = RawAnimation::new();
+            raw_animation.duration = 46.0;
+            raw_animation.tracks.resize(1, JointTrack::new());
+
+            let first_key = TranslationKey { time: 0.7, value: Float3::zero() };
+            raw_animation.tracks[0].translations.push(first_key);
+
+            // Builds animation
+            let anim = AnimationBuilder::apply(&raw_animation);
+            assert_eq!(anim.is_some(), true);
+            assert_eq!(anim.as_ref().unwrap().duration(), 46.0);
+            assert_eq!(anim.as_ref().unwrap().num_tracks(), 1);
+        }
+    }
+
+    #[test]
+    fn name() {
+        {  // Building an unnamed animation.
+            let mut raw_animation = RawAnimation::new();
+            raw_animation.duration = 1.0;
+            raw_animation.tracks.resize(46, JointTrack::new());
+
+            // Builds animation
+            let anim = AnimationBuilder::apply(&raw_animation);
+            assert_eq!(anim.is_some(), true);
+
+            // Should
+            assert_eq!(anim.as_ref().unwrap().name(), "");
+        }
+
+        {  // Building an unnamed animation.
+            let mut raw_animation = RawAnimation::new();
+            raw_animation.duration = 1.0;
+            raw_animation.tracks.resize(46, JointTrack::new());
+            raw_animation.name = "46".to_string();
+
+            // Builds animation
+            let anim = AnimationBuilder::apply(&raw_animation);
+            assert_eq!(anim.is_some(), true);
+
+            // Should
+            assert_eq!(anim.as_ref().unwrap().name(), "46");
+        }
+    }
+
+    #[test]
+    fn sort() {
+        {
+            let mut raw_animation = RawAnimation::new();
+            raw_animation.duration = 1.0;
+            raw_animation.tracks.resize(4, JointTrack::new());
+
+            // Raw animation inputs.
+            //     0              1
+            // --------------------
+            // 0 - A     B        |
+            // 1 - C  D  E        |
+            // 2 - F  G     H  I  J
+            // 3 - K  L  M  N     |
+
+            // Final animation.
+            //     0              1
+            // --------------------
+            // 0 - 0     4       11
+            // 1 - 1  5  8       12
+            // 2 - 2  6     9 14 16
+            // 3 - 3  7 10 13    15
+
+            let a = TranslationKey {
+                time: 0.0 * raw_animation.duration,
+                value: Float3::new(1.0, 0.0, 0.0),
+            };
+            raw_animation.tracks[0].translations.push(a);
+
+            let b = TranslationKey {
+                time: 0.4 * raw_animation.duration,
+                value: Float3::new(3.0, 0.0, 0.0),
+            };
+            raw_animation.tracks[0].translations.push(b);
+
+            let c = TranslationKey {
+                time: 0.0 * raw_animation.duration,
+                value: Float3::new(2.0, 0.0, 0.0),
+            };
+            raw_animation.tracks[1].translations.push(c);
+
+            let d = TranslationKey {
+                time: 0.2 * raw_animation.duration,
+                value: Float3::new(6.0, 0.0, 0.0),
+            };
+            raw_animation.tracks[1].translations.push(d);
+
+            let e = TranslationKey {
+                time: 0.4 * raw_animation.duration,
+                value: Float3::new(8.0, 0.0, 0.0),
+            };
+            raw_animation.tracks[1].translations.push(e);
+
+            let f = TranslationKey {
+                time: 0.0 * raw_animation.duration,
+                value: Float3::new(12.0, 0.0, 0.0),
+            };
+            raw_animation.tracks[2].translations.push(f);
+
+            let g = TranslationKey {
+                time: 0.2 * raw_animation.duration,
+                value: Float3::new(11.0, 0.0, 0.0),
+            };
+            raw_animation.tracks[2].translations.push(g);
+
+            let h = TranslationKey {
+                time: 0.6 * raw_animation.duration,
+                value: Float3::new(9.0, 0.0, 0.0),
+            };
+            raw_animation.tracks[2].translations.push(h);
+
+            let i = TranslationKey {
+                time: 0.8 * raw_animation.duration,
+                value: Float3::new(7.0, 0.0, 0.0),
+            };
+            raw_animation.tracks[2].translations.push(i);
+
+            let j = TranslationKey {
+                time: 1.0 * raw_animation.duration,
+                value: Float3::new(5.0, 0.0, 0.0),
+            };
+            raw_animation.tracks[2].translations.push(j);
+
+            let k = TranslationKey {
+                time: 0.0 * raw_animation.duration,
+                value: Float3::new(1.0, 0.0, 0.0),
+            };
+            raw_animation.tracks[3].translations.push(k);
+
+            let l = TranslationKey {
+                time: 0.2 * raw_animation.duration,
+                value: Float3::new(2.0, 0.0, 0.0),
+            };
+            raw_animation.tracks[3].translations.push(l);
+
+            let m = TranslationKey {
+                time: 0.4 * raw_animation.duration,
+                value: Float3::new(3.0, 0.0, 0.0),
+            };
+            raw_animation.tracks[3].translations.push(m);
+
+            let n = TranslationKey {
+                time: 0.6 * raw_animation.duration,
+                value: Float3::new(4.0, 0.0, 0.0),
+            };
+            raw_animation.tracks[3].translations.push(n);
+
+            // Builds animation
+            let animation = AnimationBuilder::apply(&raw_animation);
+            assert_eq!(animation.is_some(), true);
+
+            // Duration must be maintained.
+            assert_eq!(animation.as_ref().unwrap().duration(), raw_animation.duration);
         }
     }
 }
