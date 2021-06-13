@@ -127,3 +127,279 @@ impl FixedRateSamplingTime {
 
     pub fn num_keys(&self) -> usize { return self.num_keys_; }
 }
+
+//--------------------------------------------------------------------------------------------------
+//--------------------------------------------------------------------------------------------------
+//--------------------------------------------------------------------------------------------------
+#[cfg(test)]
+mod utils {
+    use crate::raw_animation::JointTrack;
+    use crate::transform::Transform;
+    use crate::raw_animation_utils::*;
+    use crate::math_test_helper::*;
+    use crate::*;
+
+    #[test]
+    fn sampling_track_empty() {
+        let track = JointTrack {
+            translations: vec![],
+            rotations: vec![],
+            scales: vec![],
+        };
+        let mut output = Transform::identity();
+
+        assert_eq!(sample_track(&track, 0.0, &mut output), true);
+
+        expect_float3_eq!(output.translation, 0.0, 0.0, 0.0);
+        expect_quaternion_eq!(output.rotation, 0.0, 0.0, 0.0, 1.0);
+        expect_float3_eq!(output.scale, 1.0, 1.0, 1.0);
+    }
+
+    #[test]
+    fn sampling_track_invalid() {
+        // Key order
+        {
+            let mut track = JointTrack {
+                translations: vec![],
+                rotations: vec![],
+                scales: vec![],
+            };
+
+            let t0 = TranslationKey { time: 0.9, value: Float3::new(1.0, 2.0, 4.0) };
+            track.translations.push(t0);
+            let t1 = TranslationKey { time: 0.1, value: Float3::new(2.0, 4.0, 8.0) };
+            track.translations.push(t1);
+
+            let mut output = Transform::identity();
+            assert_eq!(sample_track(&track, 0.0, &mut output), false);
+        }
+
+        // Negative time
+        {
+            let mut track = JointTrack {
+                translations: vec![],
+                rotations: vec![],
+                scales: vec![],
+            };
+
+            let t0 = TranslationKey { time: -1.0, value: Float3::new(1.0, 2.0, 4.0) };
+            track.translations.push(t0);
+
+            let mut output = Transform::identity();
+            assert_eq!(sample_track(&track, 0.0, &mut output), false);
+        }
+    }
+
+    #[test]
+    fn sampling_track() {
+        let mut track = JointTrack {
+            translations: vec![],
+            rotations: vec![],
+            scales: vec![],
+        };
+
+        let t0 = TranslationKey { time: 0.1, value: Float3::new(1.0, 2.0, 4.0) };
+        track.translations.push(t0);
+        let t1 = TranslationKey { time: 0.9, value: Float3::new(2.0, 4.0, 8.0) };
+        track.translations.push(t1);
+
+        let r0 = RotationKey {
+            time: 0.0,
+            value: Quaternion::new(0.70710677, 0.0, 0.0, 0.70710677),
+        };
+        track.rotations.push(r0);
+        let r1 = RotationKey {
+            // /!\ Negated (other hemisphepre) quaternion
+            time: 0.5,
+            value: -Quaternion::new(0.0, 0.70710677, 0.0, 0.70710677),
+        };
+        track.rotations.push(r1);
+        let r2 = RotationKey {
+            time: 1.0,
+            value: Quaternion::new(0.0, 0.70710677, 0.0, 0.70710677),
+        };
+        track.rotations.push(r2);
+
+        let s0 = ScaleKey { time: 0.5, value: Float3::new(-1.0, -2.0, -4.0) };
+        track.scales.push(s0);
+
+        let mut output = Transform::identity();
+
+        // t = -.1
+        assert_eq!(sample_track(&track, -0.1, &mut output), true);
+        expect_float3_eq!(output.translation, 1.0, 2.0, 4.0);
+        expect_quaternion_eq!(output.rotation, 0.70710677, 0.0, 0.0, 0.70710677);
+        expect_float3_eq!(output.scale, -1.0, -2.0, -4.0);
+
+        // t = 0
+        assert_eq!(sample_track(&track, 0.0, &mut output), true);
+        expect_float3_eq!(output.translation, 1.0, 2.0, 4.0);
+        expect_quaternion_eq!(output.rotation, 0.70710677, 0.0, 0.0, 0.70710677);
+        expect_float3_eq!(output.scale, -1.0, -2.0, -4.0);
+
+        // t = .1
+        assert_eq!(sample_track(&track, 0.1, &mut output), true);
+        expect_float3_eq!(output.translation, 1.0, 2.0, 4.0);
+        expect_quaternion_eq!(output.rotation, 0.6172133, 0.1543033, 0.0, 0.7715167);
+        expect_float3_eq!(output.scale, -1.0, -2.0, -4.0);
+
+        // t = .4999999
+        assert_eq!(sample_track(&track, 0.4999999, &mut output), true);
+        expect_float3_eq!(output.translation, 1.5, 3.0, 6.0);
+        expect_quaternion_eq!(output.rotation, 0.0, 0.70710677, 0.0, 0.70710677);
+        expect_float3_eq!(output.scale, -1.0, -2.0, -4.0);
+
+        // t = .5
+        assert_eq!(sample_track(&track, 0.5, &mut output), true);
+        expect_float3_eq!(output.translation, 1.5, 3.0, 6.0);
+        expect_quaternion_eq!(output.rotation, 0.0, 0.70710677, 0.0, 0.70710677);
+        expect_float3_eq!(output.scale, -1.0, -2.0, -4.0);
+
+        // t = .75
+        assert_eq!(sample_track(&track, 0.75, &mut output), true);
+        // Fixed up based on dot with previous quaternion
+        expect_quaternion_eq!(output.rotation, 0.0, -0.70710677, 0.0, -0.70710677);
+        expect_float3_eq!(output.scale, -1.0, -2.0, -4.0);
+
+        // t= .9
+        assert_eq!(sample_track(&track, 0.9, &mut output), true);
+        expect_float3_eq!(output.translation, 2.0, 4.0, 8.0);
+        expect_quaternion_eq!(output.rotation, 0.0, -0.70710677, 0.0, -0.70710677);
+        expect_float3_eq!(output.scale, -1.0, -2.0, -4.0);
+
+        // t= 1.
+        assert_eq!(sample_track(&track, 1.0, &mut output), true);
+        expect_float3_eq!(output.translation, 2.0, 4.0, 8.0);
+        expect_quaternion_eq!(output.rotation, 0.0, 0.70710677, 0.0, 0.70710677);
+        expect_float3_eq!(output.scale, -1.0, -2.0, -4.0);
+
+        // t= 1.1
+        assert_eq!(sample_track(&track, 1.1, &mut output), true);
+        expect_float3_eq!(output.translation, 2.0, 4.0, 8.0);
+        expect_quaternion_eq!(output.rotation, 0.0, 0.70710677, 0.0, 0.70710677);
+        expect_float3_eq!(output.scale, -1.0, -2.0, -4.0);
+    }
+
+    #[test]
+    fn sampling_animation() {
+        // Building an Animation with unsorted keys fails.
+        let mut raw_animation = RawAnimation::new();
+        raw_animation.duration = 2.0;
+        raw_animation.tracks.push(JointTrack {
+            translations: vec![],
+            rotations: vec![],
+            scales: vec![],
+        });
+        raw_animation.tracks.push(JointTrack {
+            translations: vec![],
+            rotations: vec![],
+            scales: vec![],
+        });
+
+        let a = TranslationKey { time: 0.2, value: Float3::new(-1.0, 0.0, 0.0) };
+        raw_animation.tracks[0].translations.push(a);
+
+        let b = TranslationKey { time: 0.0, value: Float3::new(2.0, 0.0, 0.0) };
+        raw_animation.tracks[1].translations.push(b);
+        let c = TranslationKey { time: 0.2, value: Float3::new(6.0, 0.0, 0.0) };
+        raw_animation.tracks[1].translations.push(c);
+        let d = TranslationKey { time: 0.4, value: Float3::new(8.0, 0.0, 0.0) };
+        raw_animation.tracks[1].translations.push(d);
+
+        let mut output = [Transform::identity(), Transform::identity()];
+
+        // Too small
+        {
+            let mut small = [Transform::identity(); 1];
+            assert_eq!(sample_animation(&raw_animation, 0.0, &mut small), false);
+        }
+
+        // Invalid, cos track are longer than duration
+        {
+            raw_animation.duration = 0.1;
+            assert_eq!(sample_animation(&raw_animation, 0.0, &mut output), false);
+            raw_animation.duration = 2.0;
+        }
+
+        assert_eq!(sample_animation(&raw_animation, -0.1, &mut output), true);
+        expect_float3_eq!(output[0].translation, -1.0, 0.0, 0.0);
+        expect_quaternion_eq!(output[0].rotation, 0.0, 0.0, 0.0, 1.0);
+        expect_float3_eq!(output[0].scale, 1.0, 1.0, 1.0);
+        expect_float3_eq!(output[1].translation, 2.0, 0.0, 0.0);
+        expect_quaternion_eq!(output[1].rotation, 0.0, 0.0, 0.0, 1.0);
+        expect_float3_eq!(output[1].scale, 1.0, 1.0, 1.0);
+
+        assert_eq!(sample_animation(&raw_animation, 0.0, &mut output), true);
+        expect_float3_eq!(output[0].translation, -1.0, 0.0, 0.0);
+        expect_float3_eq!(output[1].translation, 2.0, 0.0, 0.0);
+
+        assert_eq!(sample_animation(&raw_animation, 0.2, &mut output), true);
+        expect_float3_eq!(output[0].translation, -1.0, 0.0, 0.0);
+        expect_float3_eq!(output[1].translation, 6.0, 0.0, 0.0);
+
+        assert_eq!(sample_animation(&raw_animation, 0.3, &mut output), true);
+        expect_float3_eq!(output[0].translation, -1.0, 0.0, 0.0);
+        expect_float3_eq!(output[1].translation, 7.0, 0.0, 0.0);
+
+        assert_eq!(sample_animation(&raw_animation, 0.4, &mut output), true);
+        expect_float3_eq!(output[0].translation, -1.0, 0.0, 0.0);
+        expect_float3_eq!(output[1].translation, 8.0, 0.0, 0.0);
+
+        assert_eq!(sample_animation(&raw_animation, 2.0, &mut output), true);
+        expect_float3_eq!(output[0].translation, -1.0, 0.0, 0.0);
+        expect_float3_eq!(output[1].translation, 8.0, 0.0, 0.0);
+
+        assert_eq!(sample_animation(&raw_animation, 3.0, &mut output), true);
+        expect_float3_eq!(output[0].translation, -1.0, 0.0, 0.0);
+        expect_float3_eq!(output[1].translation, 8.0, 0.0, 0.0);
+    }
+
+    #[test]
+    fn fixed_rate_sampling_time() {
+        {  // From 0
+            let it = FixedRateSamplingTime::new(1.0, 30.0);
+            assert_eq!(it.num_keys(), 31);
+
+            assert_eq!(it.time(0), 0.0);
+            assert_eq!(it.time(1), 1.0 / 30.0);
+            assert_eq!(it.time(2), 2.0 / 30.0);
+            expect_near!(it.time(29), 29.0 / 30.0, f32::EPSILON);
+            assert_eq!(it.time(30), 1.0);
+            // EXPECT_ASSERTION(it.time(31), "_key < num_keys");
+        }
+
+        {  // Offset
+            let it = FixedRateSamplingTime::new(3.0, 100.0);
+            assert_eq!(it.num_keys(), 301);
+
+            assert_eq!(it.time(0), 0.0);
+            assert_eq!(it.time(1), 1.0 / 100.0);
+            assert_eq!(it.time(2), 2.0 / 100.0);
+            assert_eq!(it.time(299), 299.0 / 100.0);
+            assert_eq!(it.time(300), 3.0);
+        }
+
+        {  // Ceil
+            let it = FixedRateSamplingTime::new(1.001, 30.0);
+            assert_eq!(it.num_keys(), 32);
+
+            assert_eq!(it.time(0), 0.0);
+            assert_eq!(it.time(1), 1.0 / 30.0);
+            assert_eq!(it.time(2), 2.0 / 30.0);
+            expect_near!(it.time(29), 29.0 / 30.0, f32::EPSILON);
+            assert_eq!(it.time(30), 1.0);
+            assert_eq!(it.time(31), 1.001);
+        }
+
+        {  // Long
+            let it = FixedRateSamplingTime::new(1000.0, 30.0);
+            assert_eq!(it.num_keys(), 30001);
+
+            assert_eq!(it.time(0), 0.0);
+            assert_eq!(it.time(1), 1.0 / 30.0);
+            assert_eq!(it.time(2), 2.0 / 30.0);
+            expect_near!(it.time(29999), 29999.0 / 30.0, 1.0e-4);
+            assert_eq!(it.time(30000), 1000.0);
+        }
+    }
+}
