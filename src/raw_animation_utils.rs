@@ -141,11 +141,7 @@ mod utils {
 
     #[test]
     fn sampling_track_empty() {
-        let track = JointTrack {
-            translations: vec![],
-            rotations: vec![],
-            scales: vec![],
-        };
+        let track = JointTrack::new();
         let mut output = Transform::identity();
 
         assert_eq!(sample_track(&track, 0.0, &mut output), true);
@@ -159,11 +155,7 @@ mod utils {
     fn sampling_track_invalid() {
         // Key order
         {
-            let mut track = JointTrack {
-                translations: vec![],
-                rotations: vec![],
-                scales: vec![],
-            };
+            let mut track = JointTrack::new();
 
             let t0 = TranslationKey { time: 0.9, value: Float3::new(1.0, 2.0, 4.0) };
             track.translations.push(t0);
@@ -176,11 +168,7 @@ mod utils {
 
         // Negative time
         {
-            let mut track = JointTrack {
-                translations: vec![],
-                rotations: vec![],
-                scales: vec![],
-            };
+            let mut track = JointTrack::new();
 
             let t0 = TranslationKey { time: -1.0, value: Float3::new(1.0, 2.0, 4.0) };
             track.translations.push(t0);
@@ -192,11 +180,7 @@ mod utils {
 
     #[test]
     fn sampling_track() {
-        let mut track = JointTrack {
-            translations: vec![],
-            rotations: vec![],
-            scales: vec![],
-        };
+        let mut track = JointTrack::new();
 
         let t0 = TranslationKey { time: 0.1, value: Float3::new(1.0, 2.0, 4.0) };
         track.translations.push(t0);
@@ -285,16 +269,7 @@ mod utils {
         // Building an Animation with unsorted keys fails.
         let mut raw_animation = RawAnimation::new();
         raw_animation.duration = 2.0;
-        raw_animation.tracks.push(JointTrack {
-            translations: vec![],
-            rotations: vec![],
-            scales: vec![],
-        });
-        raw_animation.tracks.push(JointTrack {
-            translations: vec![],
-            rotations: vec![],
-            scales: vec![],
-        });
+        raw_animation.tracks.resize(2, JointTrack::new());
 
         let a = TranslationKey { time: 0.2, value: Float3::new(-1.0, 0.0, 0.0) };
         raw_animation.tracks[0].translations.push(a);

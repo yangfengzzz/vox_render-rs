@@ -41,6 +41,7 @@ fn validate_track<T, _Key: KeyType<T>>(_track: &Vec<_Key>,
 
 //--------------------------------------------------------------------------------------------------
 // Defines a raw translation key frame.
+#[derive(Clone)]
 pub struct TranslationKey {
     // Key frame time.
     pub time: f32,
@@ -68,6 +69,7 @@ impl KeyType<Float3> for TranslationKey {
 
 //--------------------------------------------------------------------------------------------------
 // Defines a raw rotation key frame.
+#[derive(Clone)]
 pub struct RotationKey {
     // Key frame time.
     pub time: f32,
@@ -95,6 +97,7 @@ impl KeyType<Quaternion> for RotationKey {
 
 //--------------------------------------------------------------------------------------------------
 // Defines a raw scaling key frame.
+#[derive(Clone)]
 pub struct ScaleKey {
     // Key frame time.
     pub time: f32,
@@ -123,6 +126,7 @@ impl KeyType<Float3> for ScaleKey {
 //--------------------------------------------------------------------------------------------------
 // Defines a track of key frames for a bone, including translation, rotation
 // and scale.
+#[derive(Clone)]
 pub struct JointTrack {
     pub translations: Vec<TranslationKey>,
     pub rotations: Vec<RotationKey>,
@@ -130,6 +134,14 @@ pub struct JointTrack {
 }
 
 impl JointTrack {
+    pub fn new() -> JointTrack {
+        return JointTrack {
+            translations: vec![],
+            rotations: vec![],
+            scales: vec![],
+        };
+    }
+
     // Validates track. See RawAnimation::validate for more details.
     // Use an infinite value for _duration if unknown. This will validate
     // keyframe orders, but not maximum duration.

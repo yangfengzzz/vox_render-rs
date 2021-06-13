@@ -378,3 +378,66 @@ fn copy_to_animation_quat<_SrcKey: KeyType<Quaternion>, _SortingKey: SortingType
         }
     }
 }
+
+//--------------------------------------------------------------------------------------------------
+//--------------------------------------------------------------------------------------------------
+//--------------------------------------------------------------------------------------------------
+#[cfg(test)]
+mod animation_builder {
+    use crate::raw_animation::{RawAnimation, JointTrack};
+    use crate::animation_builder::AnimationBuilder;
+
+    #[test]
+    fn error() {
+        {  // Building an empty Animation fails because animation duration
+            // must be >= 0.
+            let mut raw_animation = RawAnimation::new();
+            raw_animation.duration = -1.0;  // Negative duration.
+            assert_eq!(raw_animation.validate(), false);
+
+            // Builds animation
+            assert_eq!(AnimationBuilder::apply(&raw_animation).is_none(), true);
+        }
+
+        {  // Building an empty Animation fails because animation duration
+            // must be >= 0.
+            let mut raw_animation = RawAnimation::new();
+            raw_animation.duration = 0.0;  // Invalid duration.
+            assert_eq!(raw_animation.validate(), false);
+
+            // Builds animation
+            assert_eq!(AnimationBuilder::apply(&raw_animation).is_none(), true);
+        }
+
+        {  // Building an animation with too much tracks fails.
+            let mut raw_animation = RawAnimation::new();
+            raw_animation.duration = 1.0;
+            raw_animation.tracks.resize( crate::skeleton::Constants::KMaxJoints as usize + 1, JointTrack::new());
+            assert_eq!(raw_animation.validate(), false);
+
+            // Builds animation
+            assert_eq!(AnimationBuilder::apply(&raw_animation).is_none(), true);
+        }
+
+        {  // Building default animation succeeds.
+            let raw_animation = RawAnimation::new();
+            assert_eq!(raw_animation.duration, 1.0);
+            assert_eq!(raw_animation.validate(), true);
+
+            // Builds animation
+            let anim = AnimationBuilder::apply(&raw_animation);
+            assert_eq!(anim.is_some(), true);
+        }
+
+        {  // Building an animation with max joints succeeds.
+            let mut raw_animation = RawAnimation::new();
+            raw_animation.tracks.resize(crate::skeleton::Constants::KMaxJoints as usize, JointTrack::new());
+            assert_eq!(raw_animation.num_tracks(), crate::skeleton::Constants::KMaxJoints as i32);
+            assert_eq!(raw_animation.validate(), true);
+
+            // Builds animation
+            let anim = AnimationBuilder::apply(&raw_animation);
+            assert_eq!(anim.is_some(), true);
+        }
+    }
+}
