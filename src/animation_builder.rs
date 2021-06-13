@@ -16,7 +16,7 @@ use std::cmp::Ordering;
 // Defines the class responsible of building runtime animation instances from
 // offline raw animations.
 // No optimization at all is performed on the raw animation.
-struct AnimationBuilder {}
+pub struct AnimationBuilder {}
 
 impl AnimationBuilder {
     // Creates an Animation based on _raw_animation and *this builder parameters.
@@ -24,9 +24,92 @@ impl AnimationBuilder {
     // See RawAnimation::Validate() for more details about failure reasons.
     // The animation is returned as an unique_ptr as ownership is given back to
     // the caller.
-    pub fn apply(_raw_animation: &RawAnimation) -> Animation {
-        todo!()
+    pub fn apply(_input: &RawAnimation) -> Option<Animation> {
+        // Tests _raw_animation validity.
+        if !_input.validate() {
+            return None;
+        }
+
+        // Everything is fine, allocates and fills the animation.
+        // Nothing can fail now.
+        let mut animation = Animation::new();
+
+        // Sets duration.
+        let duration = _input.duration;
+        let inv_duration = 1.0 / _input.duration;
+        animation.duration_ = duration;
+        // A _duration == 0 would create some division by 0 during sampling.
+        // Also we need at least to keys with different times, which cannot be done
+        // if duration is 0.
+        debug_assert!(duration > 0.0);  // This case is handled by Validate().
+
+        // Sets tracks count. Can be safely casted to uint16_t as number of tracks as
+        // already been validated.
+        let num_tracks = _input.num_tracks() as u16;
+        animation.num_tracks_ = num_tracks as i32;
+        let num_soa_tracks = align(num_tracks, 4);
+
+        // Declares and preallocates tracks to sort.
+        let mut translations: usize = 0;
+        let mut rotations: usize = 0;
+        let mut scales: usize = 0;
+        for i in 0..num_tracks as usize {
+            let raw_track = &_input.tracks[i];
+            translations += raw_track.translations.len() + 2;  // +2 because worst case
+            rotations += raw_track.rotations.len() + 2;        // needs to add the
+            scales += raw_track.scales.len() + 2;              // first and last keys.
+        }
+        let mut sorting_translations: Vec<SortingTranslationKey> = Vec::new();
+        sorting_translations.reserve(translations);
+        let mut sorting_rotations: Vec<SortingRotationKey> = Vec::new();
+        sorting_rotations.reserve(rotations);
+        let mut sorting_scales: Vec<SortingScaleKey> = Vec::new();
+        sorting_scales.reserve(scales);
+
+        // Filters RawAnimation keys and copies them to the output sorting structure.
+        for i in 0..num_tracks {
+            let raw_track = &_input.tracks[i as usize];
+            copy_raw(&raw_track.translations, i, duration, &mut sorting_translations);
+            copy_raw(&raw_track.rotations, i, duration, &mut sorting_rotations);
+            copy_raw(&raw_track.scales, i, duration, &mut sorting_scales);
+        }
+
+        // Add enough identity keys to match soa requirements.
+        for i in 0..num_soa_tracks {
+            push_back_identity_key(i, 0.0, &mut sorting_translations);
+            push_back_identity_key(i, duration, &mut sorting_translations);
+
+            push_back_identity_key(i, 0.0, &mut sorting_rotations);
+            push_back_identity_key(i, duration, &mut sorting_rotations);
+
+            push_back_identity_key(i, 0.0, &mut sorting_scales);
+            push_back_identity_key(i, duration, &mut sorting_scales);
+        }
+
+        // Allocate animation members.
+        animation.allocate(sorting_translations.len(),
+                           sorting_rotations.len(),
+                           sorting_scales.len());
+
+        // Copy sorted keys to final animation.
+        copy_to_animation(&mut sorting_translations, &mut animation.translations_,
+                          inv_duration);
+        copy_to_animation_quat(&mut sorting_rotations, &mut animation.rotations_,
+                               inv_duration);
+        copy_to_animation(&mut sorting_scales, &mut animation.scales_,
+                          inv_duration);
+
+        // Copy animation's name.
+        if animation.name_.is_none() {
+            animation.name_ = Some(_input.name.clone());
+        }
+
+        return Some(animation);  // Success.
     }
+}
+
+pub fn align(_value: u16, _alignment: usize) -> u16 {
+    return ((_value as usize + (_alignment - 1)) & (0 - _alignment)) as u16;
 }
 
 //--------------------------------------------------------------------------------------------------
@@ -295,11 +378,3 @@ fn copy_to_animation_quat<_SrcKey: KeyType<Quaternion>, _SortingKey: SortingType
         }
     }
 }
-
-
-
-
-
-
-
-

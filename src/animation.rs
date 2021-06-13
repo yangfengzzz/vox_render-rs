@@ -20,19 +20,19 @@ use crate::animation_keyframe::*;
 // time, then by track number.
 pub struct Animation {
     // Duration of the animation clip.
-    duration_: f32,
+    pub(crate) duration_: f32,
 
     // The number of joint tracks. Can differ from the data stored in translation/
     // rotation/scale buffers because of SoA requirements.
-    num_tracks_: i32,
+    pub(crate) num_tracks_: i32,
 
     // Animation name.
-    name_: Option<String>,
+    pub(crate) name_: Option<String>,
 
     // Stores all translation/rotation/scale keys begin and end of buffers.
-    translations_: Vec<Float3Key>,
-    rotations_: Vec<QuaternionKey>,
-    scales_: Vec<Float3Key>,
+    pub(crate) translations_: Vec<Float3Key>,
+    pub(crate) rotations_: Vec<QuaternionKey>,
+    pub(crate) scales_: Vec<Float3Key>,
 }
 
 impl Animation {
