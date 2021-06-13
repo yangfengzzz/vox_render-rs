@@ -14,6 +14,8 @@ pub trait KeyType<T> {
 
     fn value(&self) -> T;
 
+    fn set_value(&mut self, value: T);
+
     fn identity() -> T;
 }
 
@@ -56,6 +58,10 @@ impl KeyType<Float3> for TranslationKey {
         return self.value;
     }
 
+    fn set_value(&mut self, value: Float3) {
+        self.value = value;
+    }
+
     // Provides identity transformation for a translation key.
     fn identity() -> Float3 { return Float3::zero(); }
 }
@@ -79,6 +85,10 @@ impl KeyType<Quaternion> for RotationKey {
         return self.value;
     }
 
+    fn set_value(&mut self, value: Quaternion) {
+        self.value = value;
+    }
+
     // Provides identity transformation for a rotation key.
     fn identity() -> Quaternion { return Quaternion::identity(); }
 }
@@ -100,6 +110,10 @@ impl KeyType<Float3> for ScaleKey {
 
     fn value(&self) -> Float3 {
         return self.value;
+    }
+
+    fn set_value(&mut self, value: Float3) {
+        self.value = value;
     }
 
     // Provides identity transformation for a scale key.
