@@ -9,20 +9,18 @@
 use crate::vec_float::Float3;
 use crate::quaternion::Quaternion;
 
-pub trait KeyType {
-    type T;
-
+pub trait KeyType<T> {
     fn time(&self) -> f32;
 
-    fn value(&self) -> Self::T;
+    fn value(&self) -> T;
 
-    fn identity() -> Self::T;
+    fn identity() -> T;
 }
 
 // Implements key frames' time range and ordering checks.
 // See AnimationBuilder::Create for more details.
-fn validate_track<_Key: KeyType>(_track: &Vec<_Key>,
-                                 _duration: f32) -> bool {
+fn validate_track<T, _Key: KeyType<T>>(_track: &Vec<_Key>,
+                                       _duration: f32) -> bool {
     let mut previous_time = -1.0;
     for k in 0.._track.len() {
         let frame_time = _track[k].time();
@@ -49,9 +47,7 @@ pub struct TranslationKey {
     pub value: Float3,
 }
 
-impl KeyType for TranslationKey {
-    type T = Float3;
-
+impl KeyType<Float3> for TranslationKey {
     fn time(&self) -> f32 {
         return self.time;
     }
@@ -74,9 +70,7 @@ pub struct RotationKey {
     pub value: Quaternion,
 }
 
-impl KeyType for RotationKey {
-    type T = Quaternion;
-
+impl KeyType<Quaternion> for RotationKey {
     fn time(&self) -> f32 {
         return self.time;
     }
@@ -99,9 +93,7 @@ pub struct ScaleKey {
     pub value: Float3,
 }
 
-impl KeyType for ScaleKey {
-    type T = Float3;
-
+impl KeyType<Float3> for ScaleKey {
     fn time(&self) -> f32 {
         return self.time;
     }
