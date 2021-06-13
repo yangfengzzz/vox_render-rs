@@ -33,3 +33,4 @@ pub mod animation_keyframe;
 pub mod raw_animation;
 pub mod raw_animation_utils;
 pub mod animation;
+pub mod animation_builder;

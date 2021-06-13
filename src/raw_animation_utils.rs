@@ -69,9 +69,9 @@ pub fn sample_animation(_animation: &RawAnimation, _time: f32, _transforms: &mut
     return true;
 }
 
-pub fn sample_component<T, _Key: KeyType<T>>(_track: &Vec<_Key>,
-                                             _lerp: fn(_a: &T, _b: &T, _alpha: f32) -> T,
-                                             _time: f32) -> T {
+pub fn sample_component<_Key: KeyType>(_track: &Vec<_Key>,
+                                       _lerp: fn(_a: &_Key::T, _b: &_Key::T, _alpha: f32) -> _Key::T,
+                                       _time: f32) -> _Key::T {
     return if _track.len() == 0 {
         // Return identity if there's no key for this track.
         _Key::identity()
