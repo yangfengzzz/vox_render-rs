@@ -146,9 +146,13 @@ fn make_delta<T, _RawTrack: KeyType<T> + raw_animation::KeyType<T, ImplType=_Raw
 
 #[cfg(test)]
 mod additive_animation_builder {
-    use crate::raw_animation::{RawAnimation, JointTrack};
+    use crate::raw_animation::*;
     use crate::additive_animation_builder::AdditiveAnimationBuilder;
     use crate::transform::Transform;
+    use crate::vec_float::Float3;
+    use crate::quaternion::Quaternion;
+    use crate::math_test_helper::*;
+    use crate::*;
 
     #[test]
     fn error() {
@@ -176,11 +180,260 @@ mod additive_animation_builder {
             output.duration = -1.0;
             output.tracks.resize(1, JointTrack::new());
 
-            let empty_ref_pose_range:Vec<Transform> = Vec::new();
+            let empty_ref_pose_range: Vec<Transform> = Vec::new();
 
             assert_eq!(AdditiveAnimationBuilder::apply_pos(&input, &empty_ref_pose_range, &mut output), false);
             assert_eq!(output.duration, RawAnimation::new().duration);
             assert_eq!(output.num_tracks(), 0);
+        }
+    }
+
+    #[test]
+    fn build() {
+        let mut input = RawAnimation::new();
+        input.duration = 1.0;
+        input.tracks.resize(3, JointTrack::new());
+
+        // First track is empty
+        {
+            // input.tracks[0]
+        }
+
+        // 2nd track
+        // 1 key at the beginning
+        {
+            let key = TranslationKey {
+                time: 0.0,
+                value: Float3::new(2.0, 3.0, 4.0),
+            };
+            input.tracks[1].translations.push(key);
+        }
+        {
+            let key = RotationKey {
+                time: 0.0,
+                value: Quaternion::new(0.70710677, 0.0, 0.0, 0.70710677),
+            };
+            input.tracks[1].rotations.push(key);
+        }
+        {
+            let key = ScaleKey { time: 0.0, value: Float3::new(5.0, 6.0, 7.0) };
+            input.tracks[1].scales.push(key);
+        }
+
+        // 3rd track
+        // 2 keys after the beginning
+        {
+            let key0 = TranslationKey {
+                time: 0.5,
+                value: Float3::new(2.0, 3.0, 4.0),
+            };
+            input.tracks[2].translations.push(key0);
+            let key1 = TranslationKey {
+                time: 0.7,
+                value: Float3::new(20.0, 30.0, 40.0),
+            };
+            input.tracks[2].translations.push(key1);
+        }
+        {
+            let key0 = RotationKey {
+                time: 0.5,
+                value: Quaternion::new(0.70710677, 0.0, 0.0, 0.70710677),
+            };
+            input.tracks[2].rotations.push(key0);
+            let key1 = RotationKey {
+                time: 0.7,
+                value: Quaternion::new(-0.70710677, 0.0, 0.0, 0.70710677),
+            };
+            input.tracks[2].rotations.push(key1);
+        }
+        {
+            let key0 = ScaleKey { time: 0.5, value: Float3::new(5.0, 6.0, 7.0) };
+            input.tracks[2].scales.push(key0);
+            let key1 = ScaleKey {
+                time: 0.7,
+                value: Float3::new(50.0, 60.0, 70.0),
+            };
+            input.tracks[2].scales.push(key1);
+        }
+
+        // Builds animation with very little tolerance.
+        {
+            let mut output = RawAnimation::new();
+            assert_eq!(AdditiveAnimationBuilder::apply(&input, &mut output), true);
+            assert_eq!(output.num_tracks(), 3);
+
+            // 1st track.
+            {
+                assert_eq!(output.tracks[0].translations.len(), 0);
+                assert_eq!(output.tracks[0].rotations.len(), 0);
+                assert_eq!(output.tracks[0].scales.len(), 0);
+            }
+
+            // 2nd track.
+            {
+                let translations = &output.tracks[1].translations;
+                assert_eq!(translations.len(), 1);
+                assert_eq!(translations[0].time, 0.0);
+                expect_float3_eq!(translations[0].value, 0.0, 0.0, 0.0);
+                let rotations = &output.tracks[1].rotations;
+                assert_eq!(rotations.len(), 1);
+                assert_eq!(rotations[0].time, 0.0);
+                expect_quaternion_eq!(rotations[0].value, 0.0, 0.0, 0.0, 1.0);
+                let scales = &output.tracks[1].scales;
+                assert_eq!(scales.len(), 1);
+                assert_eq!(scales[0].time, 0.0);
+                expect_float3_eq!(scales[0].value, 1.0, 1.0, 1.0);
+            }
+
+            // 3rd track.
+            {
+                let translations = &output.tracks[2].translations;
+                assert_eq!(translations.len(), 2);
+                assert_eq!(translations[0].time, 0.5);
+                expect_float3_eq!(translations[0].value, 0.0, 0.0, 0.0);
+                assert_eq!(translations[1].time, 0.7);
+                expect_float3_eq!(translations[1].value, 18.0, 27.0, 36.0);
+                let rotations = &output.tracks[2].rotations;
+                assert_eq!(rotations.len(), 2);
+                assert_eq!(rotations[0].time, 0.5);
+                expect_quaternion_eq!(rotations[0].value, 0.0, 0.0, 0.0, 1.0);
+                assert_eq!(rotations[1].time, 0.7);
+                expect_quaternion_eq!(rotations[1].value, -1.0, 0.0, 0.0, 0.0);
+                let scales = &output.tracks[2].scales;
+                assert_eq!(scales.len(), 2);
+                assert_eq!(scales[0].time, 0.5);
+                expect_float3_eq!(scales[0].value, 1.0, 1.0, 1.0);
+                assert_eq!(scales[1].time, 0.7);
+                expect_float3_eq!(scales[1].value, 10.0, 10.0, 10.0);
+            }
+        }
+    }
+
+    #[test]
+    fn build_ref_pose() {
+        let mut input = RawAnimation::new();
+        input.duration = 1.0;
+        input.tracks.resize(3, JointTrack::new());
+
+        // First track is empty
+        {
+            // input.tracks[0]
+        }
+
+        // 2nd track
+        // 1 key at the beginning
+        {
+            let key = TranslationKey {
+                time: 0.0,
+                value: Float3::new(2.0, 3.0, 4.0),
+            };
+            input.tracks[1].translations.push(key);
+        }
+        {
+            let key = RotationKey {
+                time: 0.0,
+                value: Quaternion::new(0.70710677, 0.0, 0.0, 0.70710677),
+            };
+            input.tracks[1].rotations.push(key);
+        }
+        {
+            let key = ScaleKey { time: 0.0, value: Float3::new(5.0, 6.0, 7.0) };
+            input.tracks[1].scales.push(key);
+        }
+
+        // 3rd track
+        // 2 keys after the beginning
+        {
+            let key0 = TranslationKey {
+                time: 0.5,
+                value: Float3::new(2.0, 3.0, 4.0),
+            };
+            input.tracks[2].translations.push(key0);
+            let key1 = TranslationKey {
+                time: 0.7,
+                value: Float3::new(20.0, 30.0, 40.0),
+            };
+            input.tracks[2].translations.push(key1);
+        }
+        {
+            let key0 = RotationKey {
+                time: 0.5,
+                value: Quaternion::new(0.70710677, 0.0, 0.0, 0.70710677),
+            };
+            input.tracks[2].rotations.push(key0);
+            let key1 = RotationKey {
+                time: 0.7,
+                value: Quaternion::new(-0.70710677, 0.0, 0.0, 0.70710677),
+            };
+            input.tracks[2].rotations.push(key1);
+        }
+        {
+            let key0 = ScaleKey { time: 0.5, value: Float3::new(5.0, 6.0, 7.0) };
+            input.tracks[2].scales.push(key0);
+            let key1 = ScaleKey { time: 0.7, value: Float3::new(50.0, 60.0, 70.0) };
+            input.tracks[2].scales.push(key1);
+        }
+
+        // Builds animation with a custom refpose & very little tolerance
+        {
+            let mut ref_pose = [Transform::identity(), Transform::identity(), Transform::identity()];
+            ref_pose[0] = Transform::identity();
+            ref_pose[1].translation = Float3::new(1.0, 1.0, 1.0);
+            ref_pose[1].rotation = Quaternion::new(0.0, 0.0, 0.70710677, 0.70710677);
+            ref_pose[1].scale = Float3::new(1.0, -1.0, 2.0);
+            ref_pose[2].translation = input.tracks[2].translations[0].value;
+            ref_pose[2].rotation = input.tracks[2].rotations[0].value;
+            ref_pose[2].scale = input.tracks[2].scales[0].value;
+
+            let mut output = RawAnimation::new();
+            assert_eq!(
+                AdditiveAnimationBuilder::apply_pos(&input, &ref_pose.to_vec(), &mut output), true);
+            assert_eq!(output.num_tracks(), 3);
+
+            // 1st track.
+            {
+                assert_eq!(output.tracks[0].translations.len(), 0);
+                assert_eq!(output.tracks[0].rotations.len(), 0);
+                assert_eq!(output.tracks[0].scales.len(), 0);
+            }
+
+            // 2nd track.
+            {
+                let translations = &output.tracks[1].translations;
+                assert_eq!(translations.len(), 1);
+                assert_eq!(translations[0].time, 0.0);
+                expect_float3_eq!(translations[0].value, 1.0, 2.0, 3.0);
+                let rotations = &output.tracks[1].rotations;
+                assert_eq!(rotations.len(), 1);
+                assert_eq!(rotations[0].time, 0.0);
+                expect_quaternion_eq!(rotations[0].value, 0.5, 0.5, -0.5, 0.5);
+                let scales = &output.tracks[1].scales;
+                assert_eq!(scales.len(), 1);
+                assert_eq!(scales[0].time, 0.0);
+                expect_float3_eq!(scales[0].value, 5.0, -6.0, 3.5);
+            }
+
+            // 3rd track.
+            {
+                let translations = &output.tracks[2].translations;
+                assert_eq!(translations.len(), 2);
+                assert_eq!(translations[0].time, 0.5);
+                expect_float3_eq!(translations[0].value, 0.0, 0.0, 0.0);
+                assert_eq!(translations[1].time, 0.7);
+                expect_float3_eq!(translations[1].value, 18.0, 27.0, 36.0);
+                let rotations = &output.tracks[2].rotations;
+                assert_eq!(rotations.len(), 2);
+                assert_eq!(rotations[0].time, 0.5);
+                expect_quaternion_eq!(rotations[0].value, 0.0, 0.0, 0.0, 1.0);
+                assert_eq!(rotations[1].time, 0.7);
+                expect_quaternion_eq!(rotations[1].value, -1.0, 0.0, 0.0, 0.0);
+                let scales = &output.tracks[2].scales;
+                assert_eq!(scales.len(), 2);
+                assert_eq!(scales[0].time, 0.5);
+                expect_float3_eq!(scales[0].value, 1.0, 1.0, 1.0);
+                assert_eq!(scales[1].time, 0.7);
+                expect_float3_eq!(scales[1].value, 10.0, 10.0, 10.0);
+            }
         }
     }
 }
