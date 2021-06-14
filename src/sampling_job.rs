@@ -484,7 +484,7 @@ impl<'a> SamplingCache<'a> {
     pub fn step(&mut self, _animation: &'a Animation, _ratio: f32) {
         // The cache is invalidated if animation has changed or if it is being rewind.
         if self.animation_.is_none() || self.animation_.unwrap() as *const _ != _animation as *const _ || _ratio < self.ratio_ {
-            self.animation_ = Some(&_animation);
+            self.animation_ = Some(_animation);
             self.translation_cursor_ = 0;
             self.rotation_cursor_ = 0;
             self.scale_cursor_ = 0;
@@ -495,19 +495,9 @@ impl<'a> SamplingCache<'a> {
     pub fn invalidate(&mut self) {
         self.animation_ = None;
         self.ratio_ = 0.0;
-        self.max_soa_tracks_ = 0;
-        self.soa_translations_ = vec![];
-        self.soa_rotations_ = vec![];
-        self.soa_scales_ = vec![];
-        self.translation_keys_ = vec![];
-        self.rotation_keys_ = vec![];
-        self.scale_keys_ = vec![];
         self.translation_cursor_ = 0;
         self.rotation_cursor_ = 0;
         self.scale_cursor_ = 0;
-        self.outdated_translations_ = vec![];
-        self.outdated_rotations_ = vec![];
-        self.outdated_scales_ = vec![];
     }
 
     pub fn resize(&mut self, _max_tracks: i32) {
