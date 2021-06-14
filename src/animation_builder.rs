@@ -384,9 +384,13 @@ fn copy_to_animation_quat<_SrcKey: KeyType<Quaternion>, _SortingKey: SortingType
 //--------------------------------------------------------------------------------------------------
 #[cfg(test)]
 mod animation_builder {
-    use crate::raw_animation::{RawAnimation, JointTrack, TranslationKey};
+    use crate::raw_animation::*;
     use crate::animation_builder::AnimationBuilder;
     use crate::vec_float::Float3;
+    use crate::math_test_helper::*;
+    use crate::simd_math::*;
+    use crate::*;
+    use crate::soa_transform::SoaTransform;
 
     #[test]
     fn error() {
@@ -672,6 +676,50 @@ mod animation_builder {
 
             // Duration must be maintained.
             assert_eq!(animation.as_ref().unwrap().duration(), raw_animation.duration);
+
+            // Needs to sample to test the animation.
+            let mut job = crate::sampling_job::SamplingJob::new();
+            job.cache.resize(1);
+            job.output.resize(1, SoaTransform::identity());
+            job.animation = animation.as_ref();
+            // Samples and compares the two animations
+            {  // Samples at t = 0
+                job.ratio = 0.0;
+                job.run();
+
+                expect_soa_float3_eq_est!(job.output[0].translation, 1.0, 2.0, 12.0, 1.0, 0.0,
+                                        0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0);
+            }
+            {  // Samples at t = .2
+                job.ratio = 0.2;
+                job.run();
+                expect_soa_float3_eq_est!(job.output[0].translation, 2.0, 6.0, 11.0, 2.0, 0.0,
+                                        0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0);
+            }
+            {  // Samples at t = .4
+                job.ratio = 0.4;
+                job.run();
+                expect_soa_float3_eq_est!(job.output[0].translation, 3.0, 8.0, 10.0, 3.0, 0.0,
+                                        0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0);
+            }
+            {  // Samples at t = .6
+                job.ratio = 0.6;
+                job.run();
+                expect_soa_float3_eq_est!(job.output[0].translation, 3.0, 8.0, 9.0, 4.0, 0.0,
+                                        0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0);
+            }
+            {  // Samples at t = .8
+                job.ratio = 0.8;
+                job.run();
+                expect_soa_float3_eq_est!(job.output[0].translation, 3.0, 8.0, 7.0, 4.0, 0.0,
+                                        0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0);
+            }
+            {  // Samples at t = 1
+                job.ratio = 1.0;
+                job.run();
+                expect_soa_float3_eq_est!(job.output[0].translation, 3.0, 8.0, 5.0, 4.0, 0.0,
+                                        0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0);
+            }
         }
     }
 }
