@@ -204,6 +204,11 @@ fn update_cache_cursor<_Key: KeyframeType>(_ratio: f32, _num_soa_tracks: i32,
         // Process next key.
         cursor += 1;
     }
+
+    debug_assert!(cursor <= _keys.len() as i32);
+
+    // Updates cursor output.
+    *_cursor = cursor as i32;
 }
 
 fn decompress_float3(_k0: &Float3Key, _k1: &Float3Key,
@@ -313,7 +318,7 @@ fn update_interp_keyframes_float3(_num_soa_tracks: i32, _keys: &Vec<Float3Key>,
         _outdated[j] = 0;  // Reset outdated entries as all will be processed.
         let mut i = j * 8;
         while outdated != 0 {
-            if outdated & 1 == 0 {
+            if (outdated & 1) == 0 {
                 continue;
             }
             let base = i * 4 * 2;  // * soa size * 2 keys
@@ -733,6 +738,21 @@ mod sampling_job {
             assert_eq!(job.validate(), true);
             assert_eq!(job.run(), true);
 
+            println!("{}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}",
+                     job.ratio,
+                     job.output[0].translation.x.get_x(),
+                     job.output[0].translation.x.get_y(),
+                     job.output[0].translation.x.get_z(),
+                     job.output[0].translation.x.get_w(),
+                     job.output[0].translation.y.get_x(),
+                     job.output[0].translation.y.get_y(),
+                     job.output[0].translation.y.get_z(),
+                     job.output[0].translation.y.get_w(),
+                     job.output[0].translation.z.get_x(),
+                     job.output[0].translation.z.get_y(),
+                     job.output[0].translation.z.get_z(),
+                     job.output[0].translation.z.get_w());
+
             expect_soa_float3_eq_est!(
                 job.output[0].translation, result[i].trans[0], result[i].trans[1],
                 result[i].trans[2], result[i].trans[3], result[i].trans[4],
@@ -745,6 +765,114 @@ mod sampling_job {
             expect_soa_float3_eq_est!(job.output[0].scale, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0,
                                     1.0, 1.0, 1.0, 1.0, 1.0);
         }
+    }
+
+    #[test]
+    fn cache() {
+        let mut raw_animation = RawAnimation::new();
+        raw_animation.duration = 46.0;
+        raw_animation.tracks.resize(1, JointTrack::new());  // Adds a joint.
+        let empty_key = TranslationKey {
+            time: 0.0,
+            value: TranslationKey::identity(),
+        };
+        raw_animation.tracks[0].translations.push(empty_key);
+
+        let mut animations: [Option<Animation>; 2] = [None, None];
+        {
+            let tkey = TranslationKey {
+                time: 0.3,
+                value: Float3::new(1.0, -1.0, 5.0),
+            };
+            raw_animation.tracks[0].translations[0] = tkey;
+
+            animations[0] = AnimationBuilder::apply(&raw_animation);
+            assert_eq!(animations[0].is_some(), true);
+        }
+        {
+            let tkey = TranslationKey {
+                time: 0.3,
+                value: Float3::new(-1.0, 1.0, -5.0),
+            };
+            raw_animation.tracks[0].translations[0] = tkey;
+
+            animations[1] = AnimationBuilder::apply(&raw_animation);
+            assert_eq!(animations[1].is_some(), true);
+        }
+
+        let mut job = SamplingJob::new();
+        job.animation = animations[0].as_ref();
+        job.cache.resize(1);
+        job.ratio = 0.0;
+        job.output.resize(1, SoaTransform::identity());
+
+        assert_eq!(job.validate(), true);
+        assert_eq!(job.run(), true);
+        expect_soa_float3_eq_est!(job.output[0].translation, 1.0, 0.0, 0.0, 0.0, -1.0, 0.0,
+                                0.0, 0.0, 5.0, 0.0, 0.0, 0.0);
+        expect_soa_quaternion_eq_est!(job.output[0].rotation, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0,
+                                    0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0, 1.0, 1.0, 1.0);
+        expect_soa_float3_eq_est!(job.output[0].scale, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0,
+                                1.0, 1.0, 1.0, 1.0, 1.0);
+
+        // Re-uses cache.
+        assert_eq!(job.validate(), true);
+        assert_eq!(job.run(), true);
+        expect_soa_float3_eq_est!(job.output[0].translation, 1.0, 0.0, 0.0, 0.0, -1.0, 0.0,
+                                0.0, 0.0, 5.0, 0.0, 0.0, 0.0);
+
+        // Invalidates cache.
+        job.cache.invalidate();
+
+        assert_eq!(job.validate(), true);
+        assert_eq!(job.run(), true);
+        expect_soa_float3_eq_est!(job.output[0].translation, 1.0, 0.0, 0.0, 0.0, -1.0, 0.0,
+                                0.0, 0.0, 5.0, 0.0, 0.0, 0.0);
+
+        // Changes animation.
+        job.animation = animations[1].as_ref();
+        assert_eq!(job.validate(), true);
+        assert_eq!(job.run(), true);
+        expect_soa_float3_eq_est!(job.output[0].translation, -1.0, 0.0, 0.0, 0.0, 1.0, 0.0,
+                                0.0, 0.0, -5.0, 0.0, 0.0, 0.0);
+        expect_soa_quaternion_eq_est!(job.output[0].rotation, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0,
+                                    0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0, 1.0, 1.0, 1.0);
+        expect_soa_float3_eq_est!(job.output[0].scale, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0,
+                                1.0, 1.0, 1.0, 1.0, 1.0);
+
+        // Invalidates and changes animation.
+        job.animation = animations[1].as_ref();
+        assert_eq!(job.validate(), true);
+        assert_eq!(job.run(), true);
+        expect_soa_float3_eq_est!(job.output[0].translation, -1.0, 0.0, 0.0, 0.0, 1.0, 0.0,
+                                0.0, 0.0, -5.0, 0.0, 0.0, 0.0);
+    }
+    
+    #[test]
+    fn cache_resize() {
+        let mut raw_animation = RawAnimation::new();
+        raw_animation.duration = 46.0;
+        raw_animation.tracks.resize(7, JointTrack::new());
+
+        let animation = AnimationBuilder::apply(&raw_animation);
+        assert_eq!(animation.is_some(), true);
+
+        let mut job = SamplingJob::new();
+        job.animation = animation.as_ref();
+        job.ratio = 0.0;
+        job.output.resize(7, SoaTransform::identity());
+
+        // Cache is too small
+        assert_eq!(job.validate(), false);
+
+        // Cache is ok.
+        job.cache.resize(7);
+        assert_eq!(job.validate(), true);
+        assert_eq!(job.run(), true);
+
+        // Cache is too small
+        job.cache.resize(1);
+        assert_eq!(job.validate(), false);
     }
 }
 
