@@ -10,6 +10,9 @@ use crate::vec_float::Float3;
 use crate::quaternion::Quaternion;
 
 pub trait KeyType<T> {
+    type ImplType;
+    fn new(time: f32, value: T) -> Self::ImplType;
+
     fn time(&self) -> f32;
 
     fn value(&self) -> T;
@@ -51,6 +54,15 @@ pub struct TranslationKey {
 }
 
 impl KeyType<Float3> for TranslationKey {
+    type ImplType = TranslationKey;
+
+    fn new(time: f32, value: Float3) -> Self::ImplType {
+        return TranslationKey {
+            time,
+            value,
+        };
+    }
+
     fn time(&self) -> f32 {
         return self.time;
     }
@@ -79,6 +91,15 @@ pub struct RotationKey {
 }
 
 impl KeyType<Quaternion> for RotationKey {
+    type ImplType = RotationKey;
+
+    fn new(time: f32, value: Quaternion) -> Self::ImplType {
+        return RotationKey {
+            time,
+            value,
+        };
+    }
+
     fn time(&self) -> f32 {
         return self.time;
     }
@@ -107,6 +128,15 @@ pub struct ScaleKey {
 }
 
 impl KeyType<Float3> for ScaleKey {
+    type ImplType = ScaleKey;
+
+    fn new(time: f32, value: Float3) -> Self::ImplType {
+        return ScaleKey {
+            time,
+            value,
+        };
+    }
+
     fn time(&self) -> f32 {
         return self.time;
     }
