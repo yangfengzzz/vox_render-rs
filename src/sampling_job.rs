@@ -250,13 +250,13 @@ fn decompress_quaternion(_k0: &QuaternionKey, _k1: &QuaternionKey,
     let k_int2float = SimdFloat4::load1(1.0 / (32767.0 * crate::math_constant::K_SQRT2));
     let mut cpnt = [
         k_int2float *
-            SimdFloat4::from_int(SimdInt4::load_ptr(cmp_keys[0])),
+            SimdFloat4::from_int(SimdInt4::load(cmp_keys[0][0], cmp_keys[0][1], cmp_keys[0][2], cmp_keys[0][3])),
         k_int2float *
-            SimdFloat4::from_int(SimdInt4::load_ptr(cmp_keys[1])),
+            SimdFloat4::from_int(SimdInt4::load(cmp_keys[1][0], cmp_keys[1][1], cmp_keys[1][2], cmp_keys[1][3])),
         k_int2float *
-            SimdFloat4::from_int(SimdInt4::load_ptr(cmp_keys[2])),
+            SimdFloat4::from_int(SimdInt4::load(cmp_keys[2][0], cmp_keys[2][1], cmp_keys[2][2], cmp_keys[2][3])),
         k_int2float *
-            SimdFloat4::from_int(SimdInt4::load_ptr(cmp_keys[3])),
+            SimdFloat4::from_int(SimdInt4::load(cmp_keys[3][0], cmp_keys[3][1], cmp_keys[3][2], cmp_keys[3][3])),
     ];
 
     // Get back length of 4th component. Favors performance over accuracy by using
