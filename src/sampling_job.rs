@@ -643,4 +643,127 @@ mod sampling_job {
             assert_eq!(job.run(), true);
         }
     }
+
+    #[test]
+    fn sampling() {
+        // Building an Animation with unsorted keys fails.
+        let mut raw_animation = RawAnimation::new();
+        raw_animation.duration = 1.0;
+        raw_animation.tracks.resize(4, JointTrack::new());
+
+        // Raw animation inputs.
+        //     0                 1
+        // -----------------------
+        // 0 - |  A              |
+        // 1 - |                 |
+        // 2 - B  C   D   E      F
+        // 3 - |  G       H      |
+
+        // Final animation.
+        //     0                 1
+        // -----------------------
+        // 0 - A-1               4
+        // 1 - 1                 5
+        // 2 - B2 C6  D8 E10    F11
+        // 3 - 3  G7     H9      12
+
+        struct Data {
+            sample_time: f32,
+            trans: [f32; 12],
+        }
+
+        impl Data {
+            fn new(sample_time: f32, trans: [f32; 12]) -> Data {
+                return Data {
+                    sample_time,
+                    trans,
+                };
+            }
+        }
+
+        let result = [
+            Data::new(-0.2, [-1.0, 0.0, 2.0, 7.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]),
+            Data::new(0.0, [-1.0, 0.0, 2.0, 7.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]),
+            Data::new(0.0000001, [-1.0, 0.0, 2.0, 7.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]),
+            Data::new(0.1, [-1.0, 0.0, 4.0, 7.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]),
+            Data::new(0.2, [-1.0, 0.0, 6.0, 7.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]),
+            Data::new(0.3, [-1.0, 0.0, 7.0, 7.5, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]),
+            Data::new(0.4, [-1.0, 0.0, 8.0, 8.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]),
+            Data::new(0.3999999, [-1.0, 0.0, 8.0, 8.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]),
+            Data::new(0.4000001, [-1.0, 0.0, 8.0, 8.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]),
+            Data::new(0.5, [-1.0, 0.0, 9.0, 8.5, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]),
+            Data::new(0.6, [-1.0, 0.0, 10.0, 9.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]),
+            Data::new(0.9999999, [-1.0, 0.0, 11.0, 9.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]),
+            Data::new(1.0, [-1.0, 0.0, 11.0, 9.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]),
+            Data::new(1.000001, [-1.0, 0.0, 11.0, 9.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]),
+            Data::new(0.5, [-1.0, 0.0, 9.0, 8.5, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]),
+            Data::new(0.9999999, [-1.0, 0.0, 11.0, 9.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]),
+            Data::new(0.0000001, [-1.0, 0.0, 2.0, 7.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0])];
+
+        let a = TranslationKey { time: 0.2, value: Float3::new(-1.0, 0.0, 0.0) };
+        raw_animation.tracks[0].translations.push(a);
+
+        let b = TranslationKey { time: 0.0, value: Float3::new(2.0, 0.0, 0.0) };
+        raw_animation.tracks[2].translations.push(b);
+        let c = TranslationKey { time: 0.2, value: Float3::new(6.0, 0.0, 0.0) };
+        raw_animation.tracks[2].translations.push(c);
+        let d = TranslationKey { time: 0.4, value: Float3::new(8.0, 0.0, 0.0) };
+        raw_animation.tracks[2].translations.push(d);
+        let e = TranslationKey { time: 0.6, value: Float3::new(10.0, 0.0, 0.0) };
+        raw_animation.tracks[2].translations.push(e);
+        let f = TranslationKey { time: 1.0, value: Float3::new(11.0, 0.0, 0.0) };
+        raw_animation.tracks[2].translations.push(f);
+
+        let g = TranslationKey { time: 0.2, value: Float3::new(7.0, 0.0, 0.0) };
+        raw_animation.tracks[3].translations.push(g);
+        let h = TranslationKey { time: 0.6, value: Float3::new(9.0, 0.0, 0.0) };
+        raw_animation.tracks[3].translations.push(h);
+
+        // Builds animation
+        let animation = AnimationBuilder::apply(&raw_animation);
+        assert_eq!(animation.is_some(), true);
+
+        let mut job = SamplingJob::new();
+        job.animation = animation.as_ref();
+        job.cache.resize(4);
+        job.output.resize(1, SoaTransform::identity());
+
+        for i in 0..result.len() {
+            job.ratio = result[i].sample_time / animation.as_ref().unwrap().duration();
+            assert_eq!(job.validate(), true);
+            assert_eq!(job.run(), true);
+
+            expect_soa_float3_eq_est!(
+                job.output[0].translation, result[i].trans[0], result[i].trans[1],
+                result[i].trans[2], result[i].trans[3], result[i].trans[4],
+                result[i].trans[5], result[i].trans[6], result[i].trans[7],
+                result[i].trans[8], result[i].trans[9], result[i].trans[10],
+                result[i].trans[11]);
+            expect_soa_quaternion_eq_est!(job.output[0].rotation, 0.0, 0.0, 0.0, 0.0, 0.0,
+                                        0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 1.0, 1.0,
+                                        1.0, 1.0);
+            expect_soa_float3_eq_est!(job.output[0].scale, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0,
+                                    1.0, 1.0, 1.0, 1.0, 1.0);
+        }
+    }
 }
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
