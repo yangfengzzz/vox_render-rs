@@ -13,6 +13,12 @@
 // Decompression is efficient because it's done on SoA data and cached during
 // sampling.
 
+pub trait KeyframeType {
+    fn ratio(&self) -> f32;
+
+    fn track(&self) -> u16;
+}
+
 // Defines the float3 key frame type, used for translations and scales.
 // Translation values are stored as half precision floats with 16 bits per
 // component.
@@ -30,6 +36,16 @@ impl Float3Key {
             track: 0,
             value: [0, 0, 0],
         };
+    }
+}
+
+impl KeyframeType for Float3Key {
+    fn ratio(&self) -> f32 {
+        return self.ratio;
+    }
+
+    fn track(&self) -> u16 {
+        return self.track;
     }
 }
 
@@ -73,3 +89,12 @@ impl QuaternionKey {
     }
 }
 
+impl KeyframeType for QuaternionKey {
+    fn ratio(&self) -> f32 {
+        return self.ratio;
+    }
+
+    fn track(&self) -> u16 {
+        return self.track;
+    }
+}

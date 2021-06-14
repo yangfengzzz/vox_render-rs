@@ -11,6 +11,7 @@ use crate::soa_float::SoaFloat3;
 use crate::soa_quaternion::SoaQuaternion;
 use crate::animation::Animation;
 use crate::soa_transform::SoaTransform;
+use crate::animation_keyframe::KeyframeType;
 
 // Samples an animation at a given time ratio in the unit interval [0,1] (where
 // 0 is the beginning of the animation, 1 is the end), to output the
@@ -76,6 +77,66 @@ impl<'a> SamplingJob<'a> {
         valid &= self.cache.max_soa_tracks() >= num_soa_tracks;
 
         return valid;
+    }
+}
+
+fn update_cache_cursor<_Key: KeyframeType>(_ratio: f32, _num_soa_tracks: i32,
+                                           _keys: &Vec<_Key>, _cursor: &mut i32,
+                                           _cache: &mut Vec<i32>, _outdated: &mut Vec<u8>) {
+    debug_assert!(_num_soa_tracks >= 1);
+    let num_tracks = _num_soa_tracks * 4;
+    debug_assert!(num_tracks * 2 <= _keys.len() as i32);
+
+    let mut cursor;
+    if *_cursor == 0 {
+        // Initializes interpolated entries with the first 2 sets of key frames.
+        // The sorting algorithm ensures that the first 2 key frames of a track
+        // are consecutive.
+        for i in 0.._num_soa_tracks {
+            let in_index0 = i * 4;                   // * soa size
+            let in_index1 = in_index0 + num_tracks;  // 2nd row.
+            let out_index = i as usize * 4 * 2;
+            _cache[out_index + 0] = in_index0 + 0;
+            _cache[out_index + 1] = in_index1 + 0;
+            _cache[out_index + 2] = in_index0 + 1;
+            _cache[out_index + 3] = in_index1 + 1;
+            _cache[out_index + 4] = in_index0 + 2;
+            _cache[out_index + 5] = in_index1 + 2;
+            _cache[out_index + 6] = in_index0 + 3;
+            _cache[out_index + 7] = in_index1 + 3;
+        }
+        cursor = num_tracks * 2;  // New cursor position.
+
+        // All entries are outdated. It cares to only flag valid soa entries as
+        // this is the exit condition of other algorithms.
+        let num_outdated_flags = (_num_soa_tracks + 7) / 8;
+        for i in 0..num_outdated_flags as usize - 1 {
+            _outdated[i] = 0xff;
+        }
+        _outdated[num_outdated_flags as usize - 1] = 0xff >> (num_outdated_flags * 8 - _num_soa_tracks);
+    } else {
+        cursor = *_cursor;  // Might be == end()
+        debug_assert!(cursor >= num_tracks * 2 && cursor <= _keys.len() as i32);
+    }
+
+    // Search for the keys that matches _ratio.
+    // Iterates while the cache is not updated with left and right keys required
+    // for interpolation at time ratio _ratio, for all tracks. Thanks to the
+    // keyframe sorting, the loop can end as soon as it finds a key greater that
+    // _ratio. It will mean that all the keys lower than _ratio have been
+    // processed, meaning all cache entries are up to date.
+    while cursor < _keys.len() as i32 &&
+        _keys[_cache[_keys[cursor as usize].track() as usize * 2 + 1] as usize].ratio() <= _ratio {
+        let track = _keys[cursor as usize].track();
+
+        // Flag this soa entry as outdated.
+        _outdated[track as usize / 32] |= 1 << ((track & 0x1f) / 4);
+        // Updates cache.
+        let base = track as usize * 2;
+        _cache[base] = _cache[base + 1];
+        _cache[base + 1] = cursor as i32;
+        // Process next key.
+        cursor += 1;
     }
 }
 
