@@ -6,12 +6,12 @@
  * // property of any third parties.
  */
 
-use crate::simd_math::SimdFloat4;
+use crate::simd_math::*;
 use crate::soa_float::SoaFloat3;
 use crate::soa_quaternion::SoaQuaternion;
 use crate::animation::Animation;
 use crate::soa_transform::SoaTransform;
-use crate::animation_keyframe::KeyframeType;
+use crate::animation_keyframe::*;
 
 // Samples an animation at a given time ratio in the unit interval [0,1] (where
 // 0 is the beginning of the animation, 1 is the end), to output the
@@ -137,6 +137,104 @@ fn update_cache_cursor<_Key: KeyframeType>(_ratio: f32, _num_soa_tracks: i32,
         _cache[base + 1] = cursor as i32;
         // Process next key.
         cursor += 1;
+    }
+}
+
+fn decompress_float3(_k0: &Float3Key, _k1: &Float3Key,
+                     _k2: &Float3Key, _k3: &Float3Key,
+                     _soa_float3: &mut SoaFloat3) {
+    _soa_float3.x = SimdFloat4::new(half_to_float_simd(SimdInt4::load(
+        _k0.value[0] as i32, _k1.value[0] as i32, _k2.value[0] as i32, _k3.value[0] as i32).data));
+    _soa_float3.y = SimdFloat4::new(half_to_float_simd(SimdInt4::load(
+        _k0.value[1] as i32, _k1.value[1] as i32, _k2.value[1] as i32, _k3.value[1] as i32).data));
+    _soa_float3.z = SimdFloat4::new(half_to_float_simd(SimdInt4::load(
+        _k0.value[2] as i32, _k1.value[2] as i32, _k2.value[2] as i32, _k3.value[2] as i32).data));
+}
+
+// Defines a mapping table that defines components assignation in the output
+// quaternion.
+const K_CPNT_MAPPING: [[i32; 4]; 4] = [[0, 0, 1, 2], [0, 0, 1, 2], [0, 1, 0, 2], [0, 1, 2, 0]];
+
+fn decompress_quaternion(_k0: &QuaternionKey, _k1: &QuaternionKey,
+                         _k2: &QuaternionKey, _k3: &QuaternionKey,
+                         _quaternion: &mut SoaQuaternion) {
+    // Selects proper mapping for each key.
+    let m0 = &K_CPNT_MAPPING[_k0.largest as usize];
+    let m1 = &K_CPNT_MAPPING[_k1.largest as usize];
+    let m2 = &K_CPNT_MAPPING[_k2.largest as usize];
+    let m3 = &K_CPNT_MAPPING[_k3.largest as usize];
+
+    // Prepares an array of input values, according to the mapping required to
+    // restore quaternion largest component.
+    let mut cmp_keys: [[i32; 4]; 4] = [
+        [_k0.value[m0[0] as usize] as i32, _k1.value[m1[0] as usize] as i32, _k2.value[m2[0] as usize] as i32, _k3.value[m3[0] as usize] as i32],
+        [_k0.value[m0[1] as usize] as i32, _k1.value[m1[1] as usize] as i32, _k2.value[m2[1] as usize] as i32, _k3.value[m3[1] as usize] as i32],
+        [_k0.value[m0[2] as usize] as i32, _k1.value[m1[2] as usize] as i32, _k2.value[m2[2] as usize] as i32, _k3.value[m3[2] as usize] as i32],
+        [_k0.value[m0[3] as usize] as i32, _k1.value[m1[3] as usize] as i32, _k2.value[m2[3] as usize] as i32, _k3.value[m3[3] as usize] as i32],
+    ];
+
+    // Resets largest component to 0. Overwriting here avoids 16 branching
+    // above.
+    cmp_keys[_k0.largest as usize][0] = 0;
+    cmp_keys[_k1.largest as usize][1] = 0;
+    cmp_keys[_k2.largest as usize][2] = 0;
+    cmp_keys[_k3.largest as usize][3] = 0;
+
+    // Rebuilds quaternion from quantized values.
+    let k_int2float = SimdFloat4::load1(1.0 / (32767.0 * crate::math_constant::K_SQRT2));
+    let mut cpnt = [
+        k_int2float *
+            SimdFloat4::from_int(SimdInt4::load_ptr(cmp_keys[0])),
+        k_int2float *
+            SimdFloat4::from_int(SimdInt4::load_ptr(cmp_keys[1])),
+        k_int2float *
+            SimdFloat4::from_int(SimdInt4::load_ptr(cmp_keys[2])),
+        k_int2float *
+            SimdFloat4::from_int(SimdInt4::load_ptr(cmp_keys[3])),
+    ];
+
+    // Get back length of 4th component. Favors performance over accuracy by using
+    // x * RSqrtEst(x) instead of Sqrt(x).
+    // ww0 cannot be 0 because we 're recomputing the largest component.
+    let dot = cpnt[0] * cpnt[0] + cpnt[1] * cpnt[1] + cpnt[2] * cpnt[2] + cpnt[3] * cpnt[3];
+    let ww0 = SimdFloat4::load1(1e-16).max(SimdFloat4::one() - dot);
+    let w0 = ww0 * ww0.rsqrt_est();
+    // Re-applies 4th component' s sign.
+    let sign = SimdInt4::load(_k0.sign as i32, _k1.sign as i32, _k2.sign as i32, _k3.sign as i32).shift_l::<31>();
+    let restored = w0.or_fi(sign);
+
+    // Re-injects the largest component inside the SoA structure.
+    cpnt[_k0.largest as usize] = cpnt[_k0.largest as usize].or_ff(restored.and_fi(SimdInt4::mask_f000()));
+    cpnt[_k1.largest as usize] = cpnt[_k1.largest as usize].or_ff(restored.and_fi(SimdInt4::mask_0f00()));
+    cpnt[_k2.largest as usize] = cpnt[_k2.largest as usize].or_ff(restored.and_fi(SimdInt4::mask_00f0()));
+    cpnt[_k3.largest as usize] = cpnt[_k3.largest as usize].or_ff(restored.and_fi(SimdInt4::mask_000f()));
+
+    // Stores result.
+    _quaternion.x = cpnt[0];
+    _quaternion.y = cpnt[1];
+    _quaternion.z = cpnt[2];
+    _quaternion.w = cpnt[3];
+}
+
+fn interpolates(_anim_ratio: f32, _num_soa_tracks: i32,
+                _translations: &Vec<InterpSoaFloat3>, _rotations: &Vec<InterpSoaQuaternion>,
+                _scales: &Vec<InterpSoaFloat3>, _output: &mut Vec<SoaTransform>) {
+    let anim_ratio = SimdFloat4::load1(_anim_ratio);
+    for i in 0.._num_soa_tracks as usize {
+        // Prepares interpolation coefficients.
+        let interp_t_ratio =
+            (anim_ratio - _translations[i].ratio[0]) * (_translations[i].ratio[1] - _translations[i].ratio[0]).rcp_est();
+        let interp_r_ratio =
+            (anim_ratio - _rotations[i].ratio[0]) * (_rotations[i].ratio[1] - _rotations[i].ratio[0]).rcp_est();
+        let interp_s_ratio =
+            (anim_ratio - _scales[i].ratio[0]) * (_scales[i].ratio[1] - _scales[i].ratio[0]).rcp_est();
+
+        // Processes interpolations.
+        // The lerp of the rotation uses the shortest path, because opposed
+        // quaternions were negated during animation build stage (AnimationBuilder).
+        _output[i].translation = _translations[i].value[0].lerp(&_translations[i].value[1], interp_t_ratio);
+        _output[i].rotation = _rotations[i].value[0].nlerp_est(&_rotations[i].value[1], interp_r_ratio);
+        _output[i].scale = _scales[i].value[0].lerp(&_scales[i].value[1], interp_s_ratio);
     }
 }
 
