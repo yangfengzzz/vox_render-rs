@@ -425,6 +425,52 @@ impl DecimateType<ScaleKey> for ScaleAdapter {
     }
 }
 
+#[cfg(test)]
+mod animation_optimizer {
+    use crate::animation_optimizer::AnimationOptimizer;
+    use crate::raw_animation::{RawAnimation, JointTrack};
+    use crate::skeleton::Skeleton;
+    use crate::raw_skeleton::{RawSkeleton, Joint};
+    use crate::skeleton_builder::SkeletonBuilder;
+
+    #[test]
+    fn error() {
+        let optimizer = AnimationOptimizer::new();
+
+        {  // Invalid input animation.
+            let mut raw_skeleton = RawSkeleton::new();
+            raw_skeleton.roots.resize(1, Joint::new());
+            let skeleton = SkeletonBuilder::apply(&raw_skeleton);
+            assert_eq!(skeleton.is_some(), true);
+
+            let mut input = RawAnimation::new();
+            input.duration = -1.0;
+            assert_eq!(input.validate(), false);
+
+            // Builds animation
+            let mut output = RawAnimation::new();
+            output.duration = -1.0;
+            output.tracks.resize(1, JointTrack::new());
+            assert_eq!(optimizer.apply(&input, skeleton.as_ref().unwrap(), &mut output), false);
+            assert_eq!(output.duration, RawAnimation::new().duration);
+            assert_eq!(output.num_tracks(), 0);
+        }
+
+        {  // Invalid skeleton.
+            let skeleton = Skeleton::new();
+
+            let mut input = RawAnimation::new();
+            input.tracks.resize(1, JointTrack::new());
+            assert_eq!(input.validate(), true);
+
+            // Builds animation
+            let mut output = RawAnimation::new();
+            assert_eq!(optimizer.apply(&input, &skeleton, &mut output), false);
+            assert_eq!(output.duration, RawAnimation::new().duration);
+            assert_eq!(output.num_tracks(), 0);
+        }
+    }
+}
 
 
 
