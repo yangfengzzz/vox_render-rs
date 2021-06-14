@@ -78,6 +78,72 @@ impl<'a> SamplingJob<'a> {
 
         return valid;
     }
+
+    // Runs job's sampling task.
+    // The job is validated before any operation is performed, see Validate() for
+    // more details.
+    // Returns false if *this job is not valid.
+    pub fn run(&mut self) -> bool {
+        if !self.validate() {
+            return false;
+        }
+
+        let num_soa_tracks = self.animation.as_ref().unwrap().num_soa_tracks();
+        if num_soa_tracks == 0 {  // Early out if animation contains no joint.
+            return true;
+        }
+
+        // Clamps ratio in range [0,duration].
+        let anim_ratio = f32::clamp(self.ratio, 0.0, 1.0);
+
+        // Step the cache to this potentially new animation and ratio.
+        debug_assert!(self.cache.max_soa_tracks() >= num_soa_tracks);
+        self.cache.step(self.animation.as_ref().unwrap(), anim_ratio);
+
+        // Fetch key frames from the animation to the cache a r = anim_ratio.
+        // Then updates outdated soa hot values.
+        update_cache_cursor(anim_ratio, num_soa_tracks,
+                            self.animation.as_ref().unwrap().translations(),
+                            &mut self.cache.translation_cursor_,
+                            &mut self.cache.translation_keys_,
+                            &mut self.cache.outdated_translations_);
+        update_interp_keyframes_float3(num_soa_tracks,
+                                       self.animation.as_ref().unwrap().translations(),
+                                       &mut self.cache.translation_keys_,
+                                       &mut self.cache.outdated_translations_,
+                                       &mut self.cache.soa_translations_);
+
+        update_cache_cursor(anim_ratio, num_soa_tracks,
+                            self.animation.as_ref().unwrap().rotations(),
+                            &mut self.cache.rotation_cursor_,
+                            &mut self.cache.rotation_keys_,
+                            &mut self.cache.outdated_rotations_);
+        update_interp_keyframes_quaternion(num_soa_tracks,
+                                           self.animation.as_ref().unwrap().rotations(),
+                                           &mut self.cache.rotation_keys_,
+                                           &mut self.cache.outdated_rotations_,
+                                           &mut self.cache.soa_rotations_);
+
+        update_cache_cursor(anim_ratio, num_soa_tracks,
+                            self.animation.as_ref().unwrap().scales(),
+                            &mut self.cache.scale_cursor_,
+                            &mut self.cache.scale_keys_,
+                            &mut self.cache.outdated_scales_);
+        update_interp_keyframes_float3(num_soa_tracks,
+                                       self.animation.as_ref().unwrap().scales(),
+                                       &mut self.cache.scale_keys_,
+                                       &mut self.cache.outdated_scales_,
+                                       &mut self.cache.soa_scales_);
+
+        // Interpolates soa hot data.
+        interpolates(anim_ratio, num_soa_tracks,
+                     &self.cache.soa_translations_,
+                     &self.cache.soa_rotations_,
+                     &self.cache.soa_scales_,
+                     &mut self.output);
+
+        return true;
+    }
 }
 
 fn update_cache_cursor<_Key: KeyframeType>(_ratio: f32, _num_soa_tracks: i32,
@@ -235,6 +301,78 @@ fn interpolates(_anim_ratio: f32, _num_soa_tracks: i32,
         _output[i].translation = _translations[i].value[0].lerp(&_translations[i].value[1], interp_t_ratio);
         _output[i].rotation = _rotations[i].value[0].nlerp_est(&_rotations[i].value[1], interp_r_ratio);
         _output[i].scale = _scales[i].value[0].lerp(&_scales[i].value[1], interp_s_ratio);
+    }
+}
+
+fn update_interp_keyframes_float3(_num_soa_tracks: i32, _keys: &Vec<Float3Key>,
+                                  _interp: &Vec<i32>, _outdated: &mut Vec<u8>,
+                                  _interp_keys: &mut Vec<InterpSoaFloat3>) {
+    let num_outdated_flags = (_num_soa_tracks + 7) / 8;
+    for j in 0..num_outdated_flags as usize {
+        let mut outdated = _outdated[j];
+        _outdated[j] = 0;  // Reset outdated entries as all will be processed.
+        let mut i = j * 8;
+        while outdated != 0 {
+            if outdated & 1 == 0 {
+                continue;
+            }
+            let base = i * 4 * 2;  // * soa size * 2 keys
+
+            // Decompress left side keyframes and store them in soa structures.
+            let k00 = &_keys[_interp[base + 0] as usize];
+            let k10 = &_keys[_interp[base + 2] as usize];
+            let k20 = &_keys[_interp[base + 4] as usize];
+            let k30 = &_keys[_interp[base + 6] as usize];
+            _interp_keys[i].ratio[0] = SimdFloat4::load(k00.ratio, k10.ratio, k20.ratio, k30.ratio);
+            decompress_float3(k00, k10, k20, k30, &mut _interp_keys[i].value[0]);
+
+            // Decompress right side keyframes and store them in soa structures.
+            let k01 = &_keys[_interp[base + 1] as usize];
+            let k11 = &_keys[_interp[base + 3] as usize];
+            let k21 = &_keys[_interp[base + 5] as usize];
+            let k31 = &_keys[_interp[base + 7] as usize];
+            _interp_keys[i].ratio[1] = SimdFloat4::load(k01.ratio, k11.ratio, k21.ratio, k31.ratio);
+            decompress_float3(k01, k11, k21, k31, &mut _interp_keys[i].value[1]);
+
+            outdated >>= 1;
+            i += 1;
+        }
+    }
+}
+
+fn update_interp_keyframes_quaternion(_num_soa_tracks: i32, _keys: &Vec<QuaternionKey>,
+                                      _interp: &Vec<i32>, _outdated: &mut Vec<u8>,
+                                      _interp_keys: &mut Vec<InterpSoaQuaternion>) {
+    let num_outdated_flags = (_num_soa_tracks + 7) / 8;
+    for j in 0..num_outdated_flags as usize {
+        let mut outdated = _outdated[j];
+        _outdated[j] = 0;  // Reset outdated entries as all will be processed.
+        let mut i = j * 8;
+        while outdated != 0 {
+            if outdated & 1 == 0 {
+                continue;
+            }
+            let base = i * 4 * 2;  // * soa size * 2 keys
+
+            // Decompress left side keyframes and store them in soa structures.
+            let k00 = &_keys[_interp[base + 0] as usize];
+            let k10 = &_keys[_interp[base + 2] as usize];
+            let k20 = &_keys[_interp[base + 4] as usize];
+            let k30 = &_keys[_interp[base + 6] as usize];
+            _interp_keys[i].ratio[0] = SimdFloat4::load(k00.ratio, k10.ratio, k20.ratio, k30.ratio);
+            decompress_quaternion(k00, k10, k20, k30, &mut _interp_keys[i].value[0]);
+
+            // Decompress right side keyframes and store them in soa structures.
+            let k01 = &_keys[_interp[base + 1] as usize];
+            let k11 = &_keys[_interp[base + 3] as usize];
+            let k21 = &_keys[_interp[base + 5] as usize];
+            let k31 = &_keys[_interp[base + 7] as usize];
+            _interp_keys[i].ratio[1] = SimdFloat4::load(k01.ratio, k11.ratio, k21.ratio, k31.ratio);
+            decompress_quaternion(k01, k11, k21, k31, &mut _interp_keys[i].value[1]);
+
+            outdated >>= 1;
+            i += 1;
+        }
     }
 }
 
