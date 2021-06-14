@@ -16,7 +16,7 @@ pub struct SkeletonBuilder {}
 impl SkeletonBuilder {
     // Creates a Skeleton based on _raw_skeleton and *this builder parameters.
     // Returns a Skeleton instance on success, an empty unique_ptr on failure. See
-    // RawSkeleton::Validate() for more details about failure reasons.
+    // RawSkeleton::validate() for more details about failure reasons.
     // The skeleton is returned as an unique_ptr as ownership is given back to the
     // caller.
     pub fn apply(_raw_skeleton: &RawSkeleton) -> Option<Skeleton> {

@@ -21,7 +21,7 @@ pub struct AnimationBuilder {}
 impl AnimationBuilder {
     // Creates an Animation based on _raw_animation and *this builder parameters.
     // Returns a valid Animation on success.
-    // See RawAnimation::Validate() for more details about failure reasons.
+    // See RawAnimation::validate() for more details about failure reasons.
     // The animation is returned as an unique_ptr as ownership is given back to
     // the caller.
     pub fn apply(_input: &RawAnimation) -> Option<Animation> {
@@ -41,7 +41,7 @@ impl AnimationBuilder {
         // A _duration == 0 would create some division by 0 during sampling.
         // Also we need at least to keys with different times, which cannot be done
         // if duration is 0.
-        debug_assert!(duration > 0.0);  // This case is handled by Validate().
+        debug_assert!(duration > 0.0);  // This case is handled by validate().
 
         // Sets tracks count. Can be safely casted to uint16_t as number of tracks as
         // already been validated.

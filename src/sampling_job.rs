@@ -27,13 +27,13 @@ pub struct SamplingJob<'a> {
     // current time in the animation , divided by animation duration.
     // This ratio is clamped before job execution in order to resolves any
     // approximation issue on range bounds.
-    ratio: f32,
+    pub ratio: f32,
 
     // The animation to sample.
-    animation: &'a Animation,
+    pub animation: Option<&'a Animation>,
 
     // A cache object that must be big enough to sample *this animation.
-    cache: SamplingCache<'a>,
+    pub cache: SamplingCache<'a>,
 
     // Job output.
     // The output range to be filled with sampled joints during job execution.
@@ -41,9 +41,45 @@ pub struct SamplingJob<'a> {
     // then remaining SoaTransform are left unchanged.
     // If there are more joints in the animation, then the last joints are not
     // sampled.
-    output: Vec<SoaTransform>,
+    pub output: Vec<SoaTransform>,
 }
 
+impl<'a> SamplingJob<'a> {
+    pub fn new() -> SamplingJob<'a> {
+        return SamplingJob {
+            ratio: 0.0,
+            animation: None,
+            cache: SamplingCache::new_default(),
+            output: vec![],
+        };
+    }
+
+    // Validates job parameters. Returns true for a valid job, or false otherwise:
+    // -if any input pointer is nullptr
+    // -if output range is invalid.
+    pub fn validate(&self) -> bool {
+        // Don't need any early out, as jobs are valid in most of the performance
+        // critical cases.
+        // Tests are written in multiple lines in order to avoid branches.
+        let mut valid = true;
+
+        // Test for nullptr pointers.
+        if self.animation.is_none() {
+            return false;
+        }
+        valid &= !self.output.is_empty();
+
+        let num_soa_tracks = self.animation.as_ref().unwrap().num_soa_tracks();
+        valid &= self.output.len() >= num_soa_tracks as usize;
+
+        // Tests cache size.
+        valid &= self.cache.max_soa_tracks() >= num_soa_tracks;
+
+        return valid;
+    }
+}
+
+//--------------------------------------------------------------------------------------------------
 // Declares the cache object used by the workload to take advantage of the
 // frame coherency of animation sampling.
 pub struct SamplingCache<'a> {
@@ -134,6 +170,10 @@ impl<'a> SamplingCache<'a> {
         cache.resize(_max_tracks);
         return cache;
     }
+
+    // The maximum number of tracks that the cache can handle.
+    pub fn max_tracks(&self) -> i32 { return self.max_soa_tracks_ * 4; }
+    pub fn max_soa_tracks(&self) -> i32 { return self.max_soa_tracks_; }
 
     // Steps the cache in order to use it for a potentially new animation and
     // ratio. If the _animation is different from the animation currently cached,
