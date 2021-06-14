@@ -529,3 +529,118 @@ impl<'a> SamplingCache<'a> {
         self.outdated_scales_.resize(num_outdated as usize, 0);
     }
 }
+
+//--------------------------------------------------------------------------------------------------
+//--------------------------------------------------------------------------------------------------
+//--------------------------------------------------------------------------------------------------
+#[cfg(test)]
+mod sampling_job {
+    use crate::raw_animation::*;
+    use crate::animation_builder::AnimationBuilder;
+    use crate::vec_float::Float3;
+    use crate::math_test_helper::*;
+    use crate::simd_math::*;
+    use crate::*;
+    use crate::soa_transform::SoaTransform;
+    use crate::sampling_job::SamplingJob;
+    use crate::animation::Animation;
+
+    #[test]
+    fn job_validity() {
+        let mut raw_animation = RawAnimation::new();
+        raw_animation.duration = 1.0;
+        raw_animation.tracks.resize(1, JointTrack::new());
+
+        let animation = AnimationBuilder::apply(&raw_animation);
+        assert_eq!(animation.is_some(), true);
+
+        {  // Empty/default job
+            let mut job = SamplingJob::new();
+            assert_eq!(job.validate(), false);
+            assert_eq!(job.run(), false);
+        }
+
+        {  // Invalid output
+            let mut job = SamplingJob::new();
+            job.animation = animation.as_ref();
+            job.cache.resize(1);
+            assert_eq!(job.validate(), false);
+            assert_eq!(job.run(), false);
+        }
+
+        {  // Invalid animation.
+            let mut job = SamplingJob::new();
+            job.cache.resize(1);
+            job.output.resize(1, SoaTransform::identity());
+            assert_eq!(job.validate(), false);
+            assert_eq!(job.run(), false);
+        }
+
+        {  // Invalid cache.
+            let mut job = SamplingJob::new();
+            job.animation = animation.as_ref();
+            job.output.resize(1, SoaTransform::identity());
+            assert_eq!(job.validate(), false);
+            assert_eq!(job.run(), false);
+        }
+
+        {  // Invalid cache size.
+            let mut job = SamplingJob::new();
+            job.animation = animation.as_ref();
+            job.cache.resize(0);
+            job.output.resize(1, SoaTransform::identity());
+            assert_eq!(job.validate(), false);
+            assert_eq!(job.run(), false);
+        }
+
+        {  // Invalid job with smaller output.
+            let mut job = SamplingJob::new();
+            job.ratio = 2155.0;  // Any time ratio can be set, it's clamped in unit interval.
+            job.animation = animation.as_ref();
+            job.cache.resize(1);
+            job.output.clear();
+            assert_eq!(job.validate(), false);
+            assert_eq!(job.run(), false);
+        }
+
+        {  // Valid job.
+            let mut job = SamplingJob::new();
+            job.ratio = 2155.0;  // Any time can be set.
+            job.animation = animation.as_ref();
+            job.cache.resize(1);
+            job.output.resize(1, SoaTransform::identity());
+            assert_eq!(job.validate(), true);
+            assert_eq!(job.run(), true);
+        }
+
+        {  // Valid job with bigger cache.
+            let mut job = SamplingJob::new();
+            job.ratio = 2155.0;  // Any time can be set.
+            job.animation = animation.as_ref();
+            job.cache.resize(2);
+            job.output.resize(1, SoaTransform::identity());
+            assert_eq!(job.validate(), true);
+            assert_eq!(job.run(), true);
+        }
+
+        {  // Valid job with bigger output.
+            let mut job = SamplingJob::new();
+            job.ratio = 2155.0;  // Any time can be set.
+            job.animation = animation.as_ref();
+            job.cache.resize(1);
+            job.output.resize(2, SoaTransform::identity());
+            assert_eq!(job.validate(), true);
+            assert_eq!(job.run(), true);
+        }
+
+        {  // Default animation.
+            let default_animation = Animation::new();
+            let mut job = SamplingJob::new();
+            job.animation = Some(&default_animation);
+            job.cache.resize(1);
+            job.output.resize(1, SoaTransform::identity());
+            assert_eq!(job.validate(), true);
+            assert_eq!(job.run(), true);
+        }
+    }
+}

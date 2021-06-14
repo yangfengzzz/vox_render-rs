@@ -687,6 +687,20 @@ mod animation_builder {
                 job.ratio = 0.0;
                 job.run();
 
+                println!("{}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}",
+                         job.output[0].translation.x.get_x(),
+                         job.output[0].translation.x.get_y(),
+                         job.output[0].translation.x.get_z(),
+                         job.output[0].translation.x.get_w(),
+                         job.output[0].translation.y.get_x(),
+                         job.output[0].translation.y.get_y(),
+                         job.output[0].translation.y.get_z(),
+                         job.output[0].translation.y.get_w(),
+                         job.output[0].translation.z.get_x(),
+                         job.output[0].translation.z.get_y(),
+                         job.output[0].translation.z.get_z(),
+                         job.output[0].translation.z.get_w());
+
                 expect_soa_float3_eq_est!(job.output[0].translation, 1.0, 2.0, 12.0, 1.0, 0.0,
                                         0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0);
             }
