@@ -7,7 +7,7 @@
  */
 
 use std::collections::BTreeMap;
-use crate::raw_animation::{RawAnimation, TranslationKey, RotationKey, ScaleKey};
+use crate::raw_animation::{RawAnimation, TranslationKey, RotationKey, ScaleKey, JointTrack};
 use crate::skeleton::Skeleton;
 use crate::skeleton_utils::{JointVisitor, iterate_joints_df, iterate_joints_df_reverse};
 use crate::raw_animation_utils::{lerp_translation, lerp_rotation, lerp_scale};
@@ -80,8 +80,57 @@ impl AnimationOptimizer {
     // *_output must be a valid RawAnimation instance.
     // Returns false on failure and resets _output to an empty animation.
     // See RawAnimation::Validate() for more details about failure reasons.
-    pub fn apply(_input: &RawAnimation, _skeleton: &Skeleton, _output: &mut RawAnimation) -> bool {
-        todo!()
+    pub fn apply(&self, _input: &RawAnimation, _skeleton: &Skeleton, _output: &mut RawAnimation) -> bool {
+        // Reset output animation to default.
+        *_output = RawAnimation::new();
+
+        // Validate animation.
+        if !_input.validate() {
+            return false;
+        }
+
+        let num_tracks = _input.num_tracks();
+
+        // Validates the skeleton matches the animation.
+        if num_tracks != _skeleton.num_joints() {
+            return false;
+        }
+
+        // First computes bone lengths, that will be used when filtering.
+        let hierarchy = HierarchyBuilder::new(&_input, &_skeleton, &self);
+
+        // Rebuilds output animation.
+        _output.name = _input.name.clone();
+        _output.duration = _input.duration;
+        _output.tracks.resize(num_tracks as usize, JointTrack::new());
+
+        for i in 0..num_tracks as usize {
+            let input = &_input.tracks[i];
+            let output = &mut _output.tracks[i];
+
+            // Gets joint specs back.
+            let joint_length = hierarchy.specs[i].length;
+            let parent = _skeleton.joint_parents()[i];
+            let parent_scale = match parent != crate::skeleton::Constants::KNoParent as i16 {
+                true => hierarchy.specs[parent as usize].scale,
+                false => 1.0
+            };
+            let tolerance = hierarchy.specs[i].tolerance;
+
+            // Filters independently T, R and S tracks.
+            // This joint translation is affected by parent scale.
+            let tadap = PositionAdapter::new(parent_scale);
+            crate::decimate::decimate(&input.translations, &tadap, tolerance, &mut output.translations);
+            // This joint rotation affects children translations/length.
+            let radap = RotationAdapter::new(joint_length);
+            crate::decimate::decimate(&input.rotations, &radap, tolerance, &mut output.rotations);
+            // This joint scale affects children translations/length.
+            let sadap = ScaleAdapter::new(joint_length);
+            crate::decimate::decimate(&input.scales, &sadap, tolerance, &mut output.scales);
+        }
+
+        // Output animation is always valid though.
+        return _output.validate();
     }
 }
 
@@ -146,7 +195,7 @@ impl<'a> HierarchyBuilder<'a> {
         iterate_joints_df(_skeleton, ComputeScaleForward::new(&mut builder.specs, &builder.animation, &builder.optimizer), None);
 
         // Computes hierarchical length, iterating skeleton backward (leaf to root).
-        iterate_joints_df_reverse(_skeleton, ComputeLengthBackward::new(&mut builder.specs, &builder.animation, &builder.optimizer));
+        iterate_joints_df_reverse(_skeleton, ComputeLengthBackward::new(&mut builder.specs, &builder.animation));
 
         return builder;
     }
@@ -219,18 +268,13 @@ struct ComputeLengthBackward<'a> {
 
     // Targeted animation.
     animation: &'a RawAnimation,
-
-    // Useful to access settings and compute hierarchy length.
-    optimizer: &'a AnimationOptimizer,
 }
 
 impl<'a> ComputeLengthBackward<'a> {
-    fn new(specs: &'a mut Vec<Spec>, animation: &'a RawAnimation,
-           optimizer: &'a AnimationOptimizer) -> ComputeLengthBackward<'a> {
+    fn new(specs: &'a mut Vec<Spec>, animation: &'a RawAnimation) -> ComputeLengthBackward<'a> {
         return ComputeLengthBackward {
             specs,
             animation,
-            optimizer,
         };
     }
 }
@@ -265,6 +309,12 @@ impl<'a> JointVisitor for ComputeLengthBackward<'a> {
 }
 
 //--------------------------------------------------------------------------------------------------
+pub trait DecimateType<Key> {
+    fn decimable(&self, _: &Key) -> bool;
+    fn lerp(&self, _left: &Key, _right: &Key, _ref: &Key) -> Key;
+    fn distance(&self, _a: &Key, _b: &Key) -> f32;
+}
+
 struct PositionAdapter {
     scale_: f32,
 }
@@ -275,7 +325,9 @@ impl PositionAdapter {
             scale_: _scale
         };
     }
+}
 
+impl DecimateType<TranslationKey> for PositionAdapter {
     fn decimable(&self, _: &TranslationKey) -> bool {
         return true;
     }
@@ -307,7 +359,9 @@ impl RotationAdapter {
             radius_: _radius
         };
     }
+}
 
+impl DecimateType<RotationKey> for RotationAdapter {
     fn decimable(&self, _: &RotationKey) -> bool {
         return true;
     }
@@ -348,7 +402,9 @@ impl ScaleAdapter {
             length_: _length
         };
     }
+}
 
+impl DecimateType<ScaleKey> for ScaleAdapter {
     fn decimable(&self, _: &ScaleKey) -> bool {
         return true;
     }

@@ -37,3 +37,4 @@ pub mod animation_builder;
 pub mod sampling_job;
 pub mod additive_animation_builder;
 pub mod animation_optimizer;
+pub mod decimate;
