@@ -8,6 +8,29 @@
 
 use std::ops::{Add, Sub, Neg, Mul, Div, BitAnd};
 
+pub trait FloatType: Clone {
+    type ImplType;
+    // Constructs an uninitialized vector.
+    fn new_default() -> Self::ImplType;
+}
+
+// Declares a 1d float vector.
+#[derive(Clone, Copy)]
+pub struct Float {
+    pub x: f32,
+}
+
+impl FloatType for Float {
+    type ImplType = Float;
+    #[inline]
+    fn new_default() -> Self::ImplType {
+        return Float {
+            x: 0.0
+        };
+    }
+}
+
+//--------------------------------------------------------------------------------------------------
 // Declares a 2d float vector.
 #[derive(Clone, Copy)]
 pub struct Float2 {
@@ -15,16 +38,18 @@ pub struct Float2 {
     pub y: f32,
 }
 
-impl Float2 {
-    // Constructs an uninitialized vector.
+impl FloatType for Float2 {
+    type ImplType = Float2;
     #[inline]
-    pub fn new_default() -> Float2 {
+    fn new_default() -> Self::ImplType {
         return Float2 {
             x: 0.0,
             y: 0.0,
         };
     }
+}
 
+impl Float2 {
     // Constructs a vector initialized with _f value.
     #[inline]
     pub fn new_scalar(_f: f32) -> Float2 {
@@ -69,17 +94,19 @@ pub struct Float3 {
     pub z: f32,
 }
 
-impl Float3 {
-    // Constructs an uninitialized vector.
+impl FloatType for Float3 {
+    type ImplType = Float3;
     #[inline]
-    pub fn new_default() -> Float3 {
+    fn new_default() -> Self::ImplType {
         return Float3 {
             x: 0.0,
             y: 0.0,
             z: 0.0,
         };
     }
+}
 
+impl Float3 {
     // Constructs a vector initialized with _f value.
     #[inline]
     pub fn new_scalar(_f: f32) -> Float3 {
@@ -151,10 +178,10 @@ pub struct Float4 {
     pub w: f32,
 }
 
-impl Float4 {
-    // Constructs an uninitialized vector.
+impl FloatType for Float4 {
+    type ImplType = Float4;
     #[inline]
-    pub fn new_default() -> Float4 {
+    fn new_default() -> Self::ImplType {
         return Float4 {
             x: 0.0,
             y: 0.0,
@@ -162,7 +189,9 @@ impl Float4 {
             w: 0.0,
         };
     }
+}
 
+impl Float4 {
     // Constructs a vector initialized with _f value.
     #[inline]
     pub fn new_scalar(_f: f32) -> Float4 {

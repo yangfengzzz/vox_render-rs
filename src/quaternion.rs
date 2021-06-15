@@ -17,10 +17,10 @@ pub struct Quaternion {
     pub w: f32,
 }
 
-impl Quaternion {
-    // Constructs an uninitialized quaternion.
+impl FloatType for Quaternion {
+    type ImplType = Quaternion;
     #[inline]
-    pub fn new_default() -> Quaternion {
+    fn new_default() -> Self::ImplType {
         return Quaternion {
             x: 0.0,
             y: 0.0,
@@ -28,7 +28,9 @@ impl Quaternion {
             w: 0.0,
         };
     }
+}
 
+impl Quaternion {
     // Constructs a quaternion from 4 floating point values.
     #[inline]
     pub fn new(_x: f32, _y: f32, _z: f32, _w: f32) -> Quaternion {

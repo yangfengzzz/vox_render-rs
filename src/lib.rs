@@ -22,8 +22,6 @@ pub mod soa_quaternion;
 pub mod soa_transform;
 pub mod soa_float4x4;
 
-pub mod raw_track;
-
 pub mod raw_skeleton;
 pub mod skeleton;
 pub mod skeleton_builder;
@@ -38,3 +36,6 @@ pub mod sampling_job;
 pub mod additive_animation_builder;
 pub mod animation_optimizer;
 pub mod decimate;
+
+pub mod raw_track;
+pub mod track;
