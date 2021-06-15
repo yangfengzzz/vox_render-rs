@@ -227,7 +227,11 @@ impl<'a> ComputeScaleForward<'a> {
 
 impl<'a> JointVisitor for ComputeScaleForward<'a> {
     fn visitor(&mut self, _joint: i32, _parent: i32) {
-        let parent_scale = self.specs[_parent as usize].scale;
+        let parent_scale = if _parent != crate::skeleton::Constants::KNoParent as i32 {
+            self.specs[_parent as usize].scale
+        } else {
+            0.0
+        };
         let joint_scale = self.specs[_joint as usize].scale;
 
         let joint_spec = &mut self.specs[_joint as usize];
