@@ -7,10 +7,10 @@
  */
 
 use std::collections::BTreeMap;
-use crate::raw_animation::{RawAnimation, TranslationKey, RotationKey, ScaleKey, JointTrack};
+use crate::raw_animation::*;
 use crate::skeleton::Skeleton;
-use crate::skeleton_utils::{JointVisitor, iterate_joints_df, iterate_joints_df_reverse};
-use crate::raw_animation_utils::{lerp_translation, lerp_rotation, lerp_scale};
+use crate::skeleton_utils::*;
+use crate::raw_animation_utils::*;
 
 // Optimization settings.
 #[derive(Clone)]
@@ -427,11 +427,13 @@ impl DecimateType<ScaleKey> for ScaleAdapter {
 
 #[cfg(test)]
 mod animation_optimizer {
-    use crate::animation_optimizer::AnimationOptimizer;
-    use crate::raw_animation::{RawAnimation, JointTrack};
+    use crate::animation_optimizer::{AnimationOptimizer, Setting};
+    use crate::raw_animation::{RawAnimation, JointTrack, TranslationKey, ScaleKey, RotationKey};
     use crate::skeleton::Skeleton;
     use crate::raw_skeleton::{RawSkeleton, Joint};
     use crate::skeleton_builder::SkeletonBuilder;
+    use crate::vec_float::Float3;
+    use crate::quaternion::Quaternion;
 
     #[test]
     fn error() {
@@ -470,8 +472,562 @@ mod animation_optimizer {
             assert_eq!(output.num_tracks(), 0);
         }
     }
+
+    #[test]
+    fn name() {
+        // Prepares a skeleton.
+        let raw_skeleton = RawSkeleton::new();
+        let skeleton = SkeletonBuilder::apply(&raw_skeleton);
+        assert_eq!(skeleton.is_some(), true);
+
+        let optimizer = AnimationOptimizer::new();
+
+        let mut input = RawAnimation::new();
+        input.name = "Test_Animation".to_string();
+        input.duration = 1.0;
+
+        assert_eq!(input.validate(), true);
+
+        let mut output = RawAnimation::new();
+        assert_eq!(optimizer.apply(&input, skeleton.as_ref().unwrap(), &mut output), true);
+        assert_eq!(output.num_tracks(), 0);
+        assert_eq!(output.name, "Test_Animation");
+    }
+
+    #[test]
+    fn optimize() {
+        // Prepares a skeleton.
+        let mut raw_skeleton = RawSkeleton::new();
+        raw_skeleton.roots.resize(1, Joint::new());
+        raw_skeleton.roots[0].children.resize(1, Joint::new());
+        raw_skeleton.roots[0].children[0].children.resize(1, Joint::new());
+        raw_skeleton.roots[0].children[0].children[0].children.resize(2, Joint::new());
+        let skeleton = SkeletonBuilder::apply(&raw_skeleton);
+        assert_eq!(skeleton.is_some(), true);
+
+        // Disable non hierarchical optimizations
+        let mut optimizer = AnimationOptimizer::new();
+
+        // Disables vertex distance.
+        optimizer.setting.distance = 0.0;
+
+        let mut input = RawAnimation::new();
+        input.duration = 1.0;
+        input.tracks.resize(5, JointTrack::new());
+
+        // Translations on track 0.
+        {
+            let key = TranslationKey { time: 0.0, value: Float3::new(4.0, 0.0, 0.0) };
+            input.tracks[0].translations.push(key);
+        }
+
+        // Translations on track 1.
+        {
+            let key = TranslationKey { time: 0.0, value: Float3::new(0.0, 0.0, 0.0) };
+            input.tracks[1].translations.push(key);
+        }
+
+        // Translations on track 2.
+        {
+            let key = TranslationKey { time: 0.0, value: Float3::new(5.0, 0.0, 0.0) };
+            input.tracks[2].translations.push(key);
+        }
+        {
+            let key = TranslationKey { time: 0.1, value: Float3::new(6.0, 0.0, 0.0) };
+            input.tracks[2].translations.push(key);
+        }
+        {  // Creates an variation.
+            let key = TranslationKey { time: 0.2, value: Float3::new(7.1, 0.0, 0.0) };
+            input.tracks[2].translations.push(key);
+        }
+        {
+            let key = TranslationKey { time: 0.3, value: Float3::new(8.0, 0.0, 0.0) };
+            input.tracks[2].translations.push(key);
+        }
+
+        // Translations on track 3.
+        {
+            let key = TranslationKey { time: 0.0, value: Float3::new(16.0, 0.0, 0.0) };
+            input.tracks[3].translations.push(key);
+        }
+        // Translations on track 4.
+        {
+            let key = TranslationKey { time: 0.0, value: Float3::new(32.0, 0.0, 0.0) };
+            input.tracks[4].translations.push(key);
+        }
+
+        assert_eq!(input.validate(), true);
+
+        // Small translation tolerance -> all key maintained
+        {
+            let mut output = RawAnimation::new();
+            optimizer.setting.tolerance = 0.01;
+            assert_eq!(optimizer.apply(&input, skeleton.as_ref().unwrap(), &mut output), true);
+            assert_eq!(output.num_tracks(), 5);
+
+            let translations = &output.tracks[2].translations;
+            assert_eq!(translations.len(), 4);
+            assert_eq!(translations[0].time, 0.0);
+            assert_eq!(translations[1].time, 0.1);
+            assert_eq!(translations[2].time, 0.2);
+            assert_eq!(translations[3].time, 0.3);
+        }
+
+        // High translation tolerance -> all key interpolated
+        {
+            let mut output = RawAnimation::new();
+            optimizer.setting.tolerance = 0.1;
+            assert_eq!(optimizer.apply(&input, skeleton.as_ref().unwrap(), &mut output), true);
+            assert_eq!(output.num_tracks(), 5);
+
+            let translations = &output.tracks[2].translations;
+            assert_eq!(translations.len(), 2);
+            assert_eq!(translations[0].time, 0.0);
+            assert_eq!(translations[1].time, 0.3);
+        }
+
+        // Introduces a 10x scaling upstream that amplifies error
+        // Scaling on track 0
+        {
+            let key = ScaleKey { time: 0.0, value: Float3::new(10.0, 0.0, 0.0) };
+            input.tracks[0].scales.push(key);
+        }
+
+        // High translation tolerance -> keys aren't interpolated because of scale
+        // effect.
+        {
+            let mut output = RawAnimation::new();
+            optimizer.setting.tolerance = 0.1;
+            assert_eq!(optimizer.apply(&input, skeleton.as_ref().unwrap(), &mut output), true);
+            assert_eq!(output.num_tracks(), 5);
+
+            let translations = &output.tracks[2].translations;
+            assert_eq!(translations.len(), 4);
+        }
+
+        // Very high tolerance
+        {
+            let mut output = RawAnimation::new();
+            optimizer.setting.tolerance = 1.0;
+            assert_eq!(optimizer.apply(&input, skeleton.as_ref().unwrap(), &mut output), true);
+            assert_eq!(output.num_tracks(), 5);
+
+            let translations = &output.tracks[2].translations;
+            assert_eq!(translations.len(), 2);
+        }
+
+        // Introduces a -10x scaling upstream that amplifies error
+        // Scaling on track 0
+        { input.tracks[0].scales[0].value = Float3::new(0.0, -10.0, 0.0); }
+
+        // High translation tolerance -> keys aren't interpolated because of scale
+        // effect.
+        {
+            let mut output = RawAnimation::new();
+            optimizer.setting.tolerance = 0.1;
+            assert_eq!(optimizer.apply(&input, skeleton.as_ref().unwrap(), &mut output), true);
+            assert_eq!(output.num_tracks(), 5);
+
+            let translations = &output.tracks[2].translations;
+            assert_eq!(translations.len(), 4);
+            assert_eq!(translations[0].time, 0.0);
+            assert_eq!(translations[1].time, 0.1);
+            assert_eq!(translations[2].time, 0.2);
+            assert_eq!(translations[3].time, 0.3);
+        }
+
+        // Very high tolerance
+        {
+            let mut output = RawAnimation::new();
+            optimizer.setting.tolerance = 1.0;
+            assert_eq!(optimizer.apply(&input, skeleton.as_ref().unwrap(), &mut output), true);
+            assert_eq!(output.num_tracks(), 5);
+
+            let translations = &output.tracks[2].translations;
+            assert_eq!(translations.len(), 2);
+            assert_eq!(translations[0].time, 0.0);
+            assert_eq!(translations[1].time, 0.3);
+        }
+
+        // Compensate scale on next joint
+        {
+            let key = ScaleKey { time: 0.0, value: Float3::new(0.1, 0.0, 0.0) };
+            input.tracks[1].scales.push(key);
+        }
+
+        // High translation tolerance -> keys ar interpolated because of scale
+        // compensation.
+        {
+            let mut output = RawAnimation::new();
+            optimizer.setting.tolerance = 1.0;
+            assert_eq!(optimizer.apply(&input, skeleton.as_ref().unwrap(), &mut output), true);
+            assert_eq!(output.num_tracks(), 5);
+
+            let translations = &output.tracks[2].translations;
+            assert_eq!(translations.len(), 2);
+        }
+
+        // Remove scaling compensation
+        { input.tracks[1].scales.clear(); }
+
+        // Introduces a .1x scaling upstream that amplifies error
+        // Scaling on track 0
+        { input.tracks[0].scales[0].value = Float3::new(0.0, 0.0, 0.1); }
+
+        // High translation tolerance -> keys aren't interpolated because of scale
+        // effect.
+        {
+            let mut output = RawAnimation::new();
+            optimizer.setting.tolerance = 0.001;
+            assert_eq!(optimizer.apply(&input, skeleton.as_ref().unwrap(), &mut output), true);
+            assert_eq!(output.num_tracks(), 5);
+
+            let translations = &output.tracks[2].translations;
+            assert_eq!(translations.len(), 4);
+            assert_eq!(translations[0].time, 0.0);
+            assert_eq!(translations[1].time, 0.1);
+            assert_eq!(translations[2].time, 0.2);
+            assert_eq!(translations[3].time, 0.3);
+        }
+
+        // Very high translation tolerance
+        {
+            let mut output = RawAnimation::new();
+            optimizer.setting.tolerance = 0.01;
+            assert_eq!(optimizer.apply(&input, skeleton.as_ref().unwrap(), &mut output), true);
+            assert_eq!(output.num_tracks(), 5);
+
+            let translations = &output.tracks[2].translations;
+            assert_eq!(translations.len(), 2);
+            assert_eq!(translations[0].time, 0.0);
+            assert_eq!(translations[1].time, 0.3);
+        }
+
+        // Remove scaling
+        { input.tracks[0].scales.clear(); }
+
+        // Rotations on track 0.
+        {
+            let key = RotationKey {
+                time: 0.0,
+                value: Quaternion::from_euler(0.0, 0.0, 0.0),
+            };
+            input.tracks[0].rotations.push(key);
+        }
+        {                                     // Include error
+            let angle_error = 2.5e-3;  // creates an arc of .1m at 40m.
+            let key = RotationKey {
+                time: 0.1,
+                value: Quaternion::from_euler(crate::math_constant::K_PI_4 + angle_error,
+                                              0.0, 0.0),
+            };
+            input.tracks[0].rotations.push(key);
+        }
+        {
+            let key = RotationKey {
+                time: 0.2,
+                value: Quaternion::from_euler(crate::math_constant::K_PI_2, 0.0, 0.0),
+            };
+            input.tracks[0].rotations.push(key);
+        }
+
+        // Big enough tolerance -> keys rejected
+        {
+            let mut output = RawAnimation::new();
+            optimizer.setting.tolerance = 0.3;
+            optimizer.setting.distance = 40.0;
+            assert_eq!(optimizer.apply(&input, skeleton.as_ref().unwrap(), &mut output), true);
+            assert_eq!(output.num_tracks(), 5);
+
+            let rotations = &output.tracks[0].rotations;
+            assert_eq!(rotations.len(), 2);
+
+            let translations = &output.tracks[2].translations;
+            assert_eq!(translations.len(), 2);
+        }
+
+        // Small enough tolerance -> keys rejected
+        {
+            let mut output = RawAnimation::new();
+            optimizer.setting.tolerance = 0.05;
+            optimizer.setting.distance = 40.0;
+            assert_eq!(optimizer.apply(&input, skeleton.as_ref().unwrap(), &mut output), true);
+            assert_eq!(output.num_tracks(), 5);
+
+            let rotations = &output.tracks[0].rotations;
+            assert_eq!(rotations.len(), 3);
+
+            let translations = &output.tracks[2].translations;
+            assert_eq!(translations.len(), 4);
+        }
+
+        // Back to default
+        optimizer.setting = Setting::new_default();
+
+        // Small translation tolerance -> all key maintained
+        {
+            let mut output = RawAnimation::new();
+            optimizer.setting.tolerance = 0.01;
+            assert_eq!(optimizer.apply(&input, skeleton.as_ref().unwrap(), &mut output), true);
+            assert_eq!(output.num_tracks(), 5);
+
+            let rotations = &output.tracks[0].rotations;
+            assert_eq!(rotations.len(), 3);
+
+            let translations = &output.tracks[2].translations;
+            assert_eq!(translations.len(), 4);
+        }
+
+        // Introduces a .1x scaling upstream that lowers error
+        // Scaling on track 0
+        {
+            let key = ScaleKey { time: 0.0, value: Float3::new(0.0, 0.1, 0.0) };
+            input.tracks[1].scales.push(key);
+        }
+
+        // Small translation tolerance, but scaled down -> keys rejected
+        {
+            let mut output = RawAnimation::new();
+            optimizer.setting.tolerance = 0.011;
+            assert_eq!(optimizer.apply(&input, skeleton.as_ref().unwrap(), &mut output), true);
+            assert_eq!(output.num_tracks(), 5);
+
+            let rotations = &output.tracks[0].rotations;
+            assert_eq!(rotations.len(), 2);
+
+            let translations = &output.tracks[2].translations;
+            assert_eq!(translations.len(), 2);
+        }
+
+        // More vertex distance -> keys are maintained (translation unaffected)
+        {
+            let mut output = RawAnimation::new();
+            optimizer.setting.tolerance = 0.01;
+            optimizer.setting.distance = 1.0;
+            assert_eq!(optimizer.apply(&input, skeleton.as_ref().unwrap(), &mut output), true);
+            assert_eq!(output.num_tracks(), 5);
+
+            let rotations = &output.tracks[0].rotations;
+            assert_eq!(rotations.len(), 3);
+
+            let translations = &output.tracks[2].translations;
+            assert_eq!(translations.len(), 2);
+        }
+
+        // Remove scaling
+        { input.tracks[2].scales.clear(); }
+    }
+
+    #[test]
+    fn optimize_override() {
+        // Prepares a skeleton.
+        let mut raw_skeleton = RawSkeleton::new();
+        raw_skeleton.roots.resize(1, Joint::new());
+        raw_skeleton.roots[0].children.resize(1, Joint::new());
+        raw_skeleton.roots[0].children[0].children.resize(1, Joint::new());
+        raw_skeleton.roots[0].children[0].children[0].children.resize(2, Joint::new());
+        let skeleton = SkeletonBuilder::apply(&raw_skeleton);
+        assert_eq!(skeleton.is_some(), true);
+
+        // Disable non hierarchical optimizations
+        let mut optimizer = AnimationOptimizer::new();
+        let loose_setting = Setting::new(1e-2,   // 1cm
+                                         1e-3);  // 1mm
+        // Disables vertex distance.
+        optimizer.setting.distance = 0.0;
+
+        let mut input = RawAnimation::new();
+        input.duration = 1.0;
+        input.tracks.resize(5, JointTrack::new());
+
+        // Translations on track 0.
+        {
+            let key = TranslationKey { time: 0.0, value: Float3::new(0.4, 0.0, 0.0) };
+            input.tracks[0].translations.push(key);
+        }
+
+        // Rotations on track 0.
+        {
+            let key = RotationKey {
+                time: 0.0,
+                value: Quaternion::from_euler(0.0, 0.0, 0.0),
+            };
+            input.tracks[1].rotations.push(key);
+        }
+        {                                   // Includes an error that
+            let angle_error = 1e-3;  // creates an arc of 1mm at 1m.
+            let key = RotationKey {
+                time: 0.1,
+                value: Quaternion::from_euler(crate::math_constant::K_PI_4 + angle_error,
+                                              0.0, 0.0),
+            };
+            input.tracks[1].rotations.push(key);
+        }
+        {
+            let key = RotationKey {
+                time: 0.2,
+                value: Quaternion::from_euler(crate::math_constant::K_PI_2, 0.0, 0.0),
+            };
+            input.tracks[1].rotations.push(key);
+        }
+
+        // Translations on track 1.
+        {
+            let key = TranslationKey { time: 0.0, value: Float3::new(0.0, 0.0, 0.0) };
+            input.tracks[1].translations.push(key);
+        }
+
+        // Translations on track 2.
+        {
+            let key = TranslationKey { time: 0.0, value: Float3::new(0.05, 0.0, 0.0) };
+            input.tracks[2].translations.push(key);
+        }
+        {
+            let key = TranslationKey { time: 0.1, value: Float3::new(0.06, 0.0, 0.0) };
+            input.tracks[2].translations.push(key);
+        }
+        {  // Creates a variation.
+            let trans_err = 5e-4;
+            let key = TranslationKey { time: 0.2, value: Float3::new(0.07 + trans_err, 0.0, 0.0) };
+            input.tracks[2].translations.push(key);
+        }
+        {
+            let key = TranslationKey { time: 0.3, value: Float3::new(0.08, 0.0, 0.0) };
+            input.tracks[2].translations.push(key);
+        }
+
+        // Translations on track 3.
+        {
+            let key = TranslationKey { time: 0.0, value: Float3::new(0.16, 0.0, 0.0) };
+            input.tracks[3].translations.push(key);
+        }
+        // Translations on track 4.
+        {
+            let key = TranslationKey { time: 0.0, value: Float3::new(0.32, 0.0, 0.0) };
+            input.tracks[4].translations.push(key);
+        }
+
+        assert_eq!(input.validate(), true);
+
+        // Default global tolerances
+        {
+            let mut output = RawAnimation::new();
+            optimizer.setting = loose_setting.clone();
+            assert_eq!(optimizer.apply(&input, skeleton.as_ref().unwrap(), &mut output), true);
+            assert_eq!(output.num_tracks(), 5);
+
+            let rotations = &output.tracks[1].rotations;
+            assert_eq!(rotations.len(), 2);
+            assert_eq!(rotations[0].time, 0.0);
+            assert_eq!(rotations[1].time, 0.2);
+
+            let translations = &output.tracks[2].translations;
+            assert_eq!(translations.len(), 2);
+            assert_eq!(translations[0].time, 0.0);
+            assert_eq!(translations[1].time, 0.3);
+        }
+
+        // Overriding root has no effect on its child, even with small tolerance.
+        {
+            let mut output = RawAnimation::new();
+            optimizer.setting = loose_setting.clone();
+            let joint_override = Setting::new(1e-6, 1e6);
+            optimizer.joints_setting_override.insert(0, joint_override);
+            assert_eq!(optimizer.apply(&input, skeleton.as_ref().unwrap(), &mut output), true);
+            assert_eq!(output.num_tracks(), 5);
+
+            let rotations = &output.tracks[1].rotations;
+            assert_eq!(rotations.len(), 2);
+
+            let translations = &output.tracks[2].translations;
+            assert_eq!(translations.len(), 2);
+
+            optimizer.joints_setting_override.clear();
+        }
+
+        // Overriding a joint has effect on itself.
+        {
+            let mut output = RawAnimation::new();
+            optimizer.setting = loose_setting.clone();
+            let joint_override = Setting::new(1e-3,  // 1mm
+                                              1e-2);  // 1cm
+            optimizer.joints_setting_override.insert(1, joint_override);
+            assert_eq!(optimizer.apply(&input, skeleton.as_ref().unwrap(), &mut output), true);
+            assert_eq!(output.num_tracks(), 5);
+
+            let rotations = &output.tracks[1].rotations;
+            assert_eq!(rotations.len(), 2);
+
+            let translations = &output.tracks[2].translations;
+            assert_eq!(translations.len(), 2);
+
+            optimizer.joints_setting_override.clear();
+        }
+
+        // Overriding leaf has effect up to the root though.
+        {
+            let mut output = RawAnimation::new();
+            optimizer.setting = loose_setting.clone();
+            let joint_override = Setting::new(1e-3,  // 1mm
+                                              10.0);   // 10m
+            optimizer.joints_setting_override.insert(2, joint_override);
+            assert_eq!(optimizer.apply(&input, skeleton.as_ref().unwrap(), &mut output), true);
+            assert_eq!(output.num_tracks(), 5);
+
+            let rotations = &output.tracks[1].rotations;
+            assert_eq!(rotations.len(), 3);
+
+            let translations = &output.tracks[2].translations;
+            assert_eq!(translations.len(), 2);
+
+            optimizer.joints_setting_override.clear();
+        }
+
+        // Scale at root affects rotation and translation.
+        {
+            let key = ScaleKey { time: 0.0, value: Float3::new(0.1, 2.0, 0.1) };
+            input.tracks[0].scales.push(key);
+
+            let mut output = RawAnimation::new();
+            optimizer.setting = loose_setting.clone();
+            let joint_override = Setting::new(1.0e-3,  // > 1mm
+                                              1.0);    // 1m
+            optimizer.joints_setting_override.insert(1, joint_override.clone());
+            optimizer.joints_setting_override.insert(2, joint_override.clone());
+            assert_eq!(optimizer.apply(&input, skeleton.as_ref().unwrap(), &mut output), true);
+            assert_eq!(output.num_tracks(), 5);
+
+            let rotations = &output.tracks[1].rotations;
+            assert_eq!(rotations.len(), 3);
+
+            let translations = &output.tracks[2].translations;
+            assert_eq!(translations.len(), 3);
+
+            optimizer.joints_setting_override.clear();
+            input.tracks[0].scales.clear();
+        }
+
+        // Scale at leaf doesn't affect anything but the leaf.
+        {
+            let key = ScaleKey { time: 0.0, value: Float3::new(0.1, 2.0, 0.1) };
+            input.tracks[4].scales.push(key);
+
+            let mut output = RawAnimation::new();
+            optimizer.setting = loose_setting.clone();
+            let joint_override = Setting::new(1e-3,  // < 1mm
+                                              0.5);   // .5m
+            optimizer.joints_setting_override.insert(1, joint_override);
+            assert_eq!(optimizer.apply(&input, skeleton.as_ref().unwrap(), &mut output), true);
+            assert_eq!(output.num_tracks(), 5);
+
+            let rotations = &output.tracks[1].rotations;
+            assert_eq!(rotations.len(), 2);
+
+            let translations = &output.tracks[2].translations;
+            assert_eq!(translations.len(), 2);
+
+            optimizer.joints_setting_override.clear();
+            input.tracks[4].scales.clear();
+        }
+    }
 }
-
-
-
-
