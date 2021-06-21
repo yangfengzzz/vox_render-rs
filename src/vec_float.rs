@@ -12,22 +12,8 @@ pub trait FloatType: Clone {
     type ImplType;
     // Constructs an uninitialized vector.
     fn new_default() -> Self::ImplType;
-}
-
-// Declares a 1d float vector.
-#[derive(Clone, Copy)]
-pub struct Float {
-    pub x: f32,
-}
-
-impl FloatType for Float {
-    type ImplType = Float;
-    #[inline]
-    fn new_default() -> Self::ImplType {
-        return Float {
-            x: 0.0
-        };
-    }
+    // Constructs a vector initialized with _f value.
+    fn new_scalar(_f: f32) -> Self::ImplType;
 }
 
 //--------------------------------------------------------------------------------------------------
@@ -47,18 +33,17 @@ impl FloatType for Float2 {
             y: 0.0,
         };
     }
-}
 
-impl Float2 {
-    // Constructs a vector initialized with _f value.
     #[inline]
-    pub fn new_scalar(_f: f32) -> Float2 {
+    fn new_scalar(_f: f32) -> Self::ImplType {
         return Float2 {
             x: _f,
             y: _f,
         };
     }
+}
 
+impl Float2 {
     // Constructs a vector initialized with _x and _y values.
     #[inline]
     pub fn new(_x: f32, _y: f32) -> Float2 {
@@ -104,19 +89,18 @@ impl FloatType for Float3 {
             z: 0.0,
         };
     }
-}
 
-impl Float3 {
-    // Constructs a vector initialized with _f value.
     #[inline]
-    pub fn new_scalar(_f: f32) -> Float3 {
+    fn new_scalar(_f: f32) -> Self::ImplType {
         return Float3 {
             x: _f,
             y: _f,
             z: _f,
         };
     }
+}
 
+impl Float3 {
     // Constructs a vector initialized with _x, _y and _z values.
     #[inline]
     pub fn new(_x: f32, _y: f32, _z: f32) -> Float3 {
@@ -189,12 +173,9 @@ impl FloatType for Float4 {
             w: 0.0,
         };
     }
-}
 
-impl Float4 {
-    // Constructs a vector initialized with _f value.
     #[inline]
-    pub fn new_scalar(_f: f32) -> Float4 {
+    fn new_scalar(_f: f32) -> Self::ImplType {
         return Float4 {
             x: _f,
             y: _f,
@@ -202,7 +183,9 @@ impl Float4 {
             w: _f,
         };
     }
+}
 
+impl Float4 {
     // Constructs a vector initialized with _x, _y, _z and _w values.
     #[inline]
     pub fn new(_x: f32, _y: f32, _z: f32, _w: f32) -> Float4 {
