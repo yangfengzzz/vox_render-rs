@@ -70,7 +70,7 @@ impl TrackBuilder {
             let src_key = &keyframes[i];
             track.ratios_[i] = src_key.ratio.clone();
             track.values_[i] = src_key.value.clone();
-            track.steps_[i / 8] |= (((src_key.interpolation == RawTrackInterpolation::KStep) as usize) << (i & 7)) as u8;
+            track.steps_[i / 8] |= ((matches!(src_key.interpolation, RawTrackInterpolation::KStep) as usize) << (i & 7)) as u8;
         }
 
         // Copy track's name.
@@ -124,7 +124,7 @@ impl TrackBuilder {
             let src_key = &keyframes[i];
             track.ratios_[i] = src_key.ratio.clone();
             track.values_[i] = src_key.value.clone();
-            track.steps_[i / 8] |= (((src_key.interpolation == RawTrackInterpolation::KStep) as usize) << (i & 7)) as u8;
+            track.steps_[i / 8] |= ((matches!(src_key.interpolation, RawTrackInterpolation::KStep) as usize) << (i & 7)) as u8;
         }
 
         // Copy track's name.

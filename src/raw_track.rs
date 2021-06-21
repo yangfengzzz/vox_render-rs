@@ -19,12 +19,6 @@ pub enum RawTrackInterpolation {
     // interpolated.
 }
 
-impl PartialEq for RawTrackInterpolation {
-    fn eq(&self, other: &Self) -> bool {
-        self == other
-    }
-}
-
 // Keyframe data structure.
 #[derive(Clone)]
 pub struct RawTrackKeyframe<ValueType> {
