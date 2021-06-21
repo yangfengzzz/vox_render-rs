@@ -10,6 +10,7 @@ use crate::vec_float::*;
 use crate::quaternion::Quaternion;
 
 // Interpolation mode.
+#[derive(Clone)]
 pub enum RawTrackInterpolation {
     // All values following this key, up to the next key, are equal.
     KStep,
@@ -18,7 +19,14 @@ pub enum RawTrackInterpolation {
     // interpolated.
 }
 
+impl PartialEq for RawTrackInterpolation {
+    fn eq(&self, other: &Self) -> bool {
+        self == other
+    }
+}
+
 // Keyframe data structure.
+#[derive(Clone)]
 pub struct RawTrackKeyframe<ValueType> {
     pub interpolation: RawTrackInterpolation,
     pub ratio: f32,

@@ -21,16 +21,16 @@ use std::marker::PhantomData;
 // start by looking up the keyframes to interpolate indeed.
 pub struct Track<ValueType> {
     // Keyframe ratios (0 is the beginning of the track, 1 is the end).
-    ratios_: Vec<f32>,
+    pub(crate) ratios_: Vec<f32>,
 
     // Keyframe values.
-    values_: Vec<ValueType>,
+    pub(crate) values_: Vec<ValueType>,
 
     // Keyframe modes (1 bit per key): 1 for step, 0 for linear.
-    steps_: Vec<u8>,
+    pub(crate) steps_: Vec<u8>,
 
     // Track name.
-    name_: String,
+    pub(crate) name_: String,
 }
 
 impl<ValueType> Track<ValueType> {
@@ -59,18 +59,6 @@ impl<ValueType: FloatType + FloatType<ImplType=ValueType>> Track<ValueType> {
 
         // Fix up pointers. Serves larger alignment values first.
         self.values_.resize(_keys_count, ValueType::new_default());
-        self.ratios_.resize(_keys_count, 0.0);
-        self.steps_.resize((_keys_count + 7) / 8, 0);
-    }
-}
-
-impl Track<f32> {
-    // Internal destruction function.
-    pub(crate) fn allocate(&mut self, _keys_count: usize) {
-        debug_assert!(self.ratios_.len() == 0 && self.values_.len() == 0);
-
-        // Fix up pointers. Serves larger alignment values first.
-        self.values_.resize(_keys_count, 0.0);
         self.ratios_.resize(_keys_count, 0.0);
         self.steps_.resize((_keys_count + 7) / 8, 0);
     }
