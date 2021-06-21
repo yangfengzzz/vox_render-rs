@@ -89,7 +89,7 @@ impl Track<Quaternion> {
 }
 
 // Runtime track data structure instantiation.
-pub type FloatTrack = Track<f32>;
+pub type FloatTrack = Track<Float>;
 pub type Float2Track = Track<Float2>;
 pub type Float3Track = Track<Float3>;
 pub type Float4Track = Track<Float4>;
@@ -115,23 +115,6 @@ impl<ValueType: FloatType + FloatType<ImplType=ValueType>> TrackPolicy<ValueType
     #[inline]
     pub fn identity() -> ValueType {
         return ValueType::new_scalar(0.0);
-    }
-}
-
-impl TrackPolicy<f32> {
-    #[inline]
-    pub fn lerp(_a: &f32, _b: &f32, _alpha: f32) -> f32 {
-        return (_b - _a) * _alpha + _a;
-    }
-
-    #[inline]
-    pub fn distance(_a: &f32, _b: &f32) -> f32 {
-        return (_a - _b).abs();
-    }
-
-    #[inline]
-    pub fn identity() -> f32 {
-        return 0.0;
     }
 }
 

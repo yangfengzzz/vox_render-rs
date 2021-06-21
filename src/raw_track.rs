@@ -79,7 +79,7 @@ impl<ValueType> RawTrack<ValueType> {
     }
 }
 
-pub type RawFloatTrack = RawTrack<f32>;
+pub type RawFloatTrack = RawTrack<Float>;
 pub type RawFloat2Track = RawTrack<Float2>;
 pub type RawFloat3Track = RawTrack<Float3>;
 pub type RawFloat4Track = RawTrack<Float4>;

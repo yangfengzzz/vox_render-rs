@@ -25,6 +25,37 @@ pub trait FloatType: Clone {
 //--------------------------------------------------------------------------------------------------
 // Declares a 2d float vector.
 #[derive(Clone, Copy)]
+pub struct Float {
+    pub x: f32,
+}
+
+impl FloatType for Float {
+    type ImplType = Float;
+
+    fn new_default() -> Self::ImplType {
+        return Float {
+            x: 0.0
+        };
+    }
+
+    fn new_scalar(_f: f32) -> Self::ImplType {
+        return Float {
+            x: _f
+        };
+    }
+
+    fn lerp(&self, _b: &Self::ImplType, _f: f32) -> Self::ImplType {
+        return Float::new_scalar((_b.x - self.x) * _f + self.x);
+    }
+
+    fn distance(&self, _b: &Self::ImplType) -> f32 {
+        return (self.x - _b.x).abs();
+    }
+}
+
+//--------------------------------------------------------------------------------------------------
+// Declares a 2d float vector.
+#[derive(Clone, Copy)]
 pub struct Float2 {
     pub x: f32,
     pub y: f32,
