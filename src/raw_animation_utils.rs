@@ -6,7 +6,7 @@
  * // property of any third parties.
  */
 
-use crate::vec_float::Float3;
+use crate::vec_float::{Float3, FloatType};
 use crate::quaternion::Quaternion;
 use crate::raw_animation::*;
 use crate::transform::Transform;
@@ -14,7 +14,7 @@ use crate::transform::Transform;
 // Translation interpolation method.
 // This must be the same Lerp as the one used by the sampling job.
 pub fn lerp_translation(_a: &Float3, _b: &Float3, _alpha: f32) -> Float3 {
-    return Float3::lerp(_a, _b, _alpha);
+    return _a.lerp(_b, _alpha);
 }
 
 // Rotation interpolation method.

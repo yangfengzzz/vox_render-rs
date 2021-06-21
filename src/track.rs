@@ -104,12 +104,12 @@ pub struct TrackPolicy<ValueType> {
 impl<ValueType: FloatType + FloatType<ImplType=ValueType>> TrackPolicy<ValueType> {
     #[inline]
     pub fn lerp(_a: &ValueType, _b: &ValueType, _alpha: f32) -> ValueType {
-        todo!()
+        return _a.lerp(_b, _alpha);
     }
 
     #[inline]
     pub fn distance(_a: &ValueType, _b: &ValueType) -> f32 {
-        todo!()
+        return _a.distance(_b);
     }
 
     #[inline]
@@ -120,8 +120,18 @@ impl<ValueType: FloatType + FloatType<ImplType=ValueType>> TrackPolicy<ValueType
 
 impl TrackPolicy<f32> {
     #[inline]
+    pub fn lerp(_a: &f32, _b: &f32, _alpha: f32) -> f32 {
+        return (_b - _a) * _alpha + _a;
+    }
+
+    #[inline]
     pub fn distance(_a: &f32, _b: &f32) -> f32 {
         return (_a - _b).abs();
+    }
+
+    #[inline]
+    pub fn identity() -> f32 {
+        return 0.0;
     }
 }
 

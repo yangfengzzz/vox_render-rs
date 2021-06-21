@@ -14,6 +14,12 @@ pub trait FloatType: Clone {
     fn new_default() -> Self::ImplType;
     // Constructs a vector initialized with _f value.
     fn new_scalar(_f: f32) -> Self::ImplType;
+
+    // Returns the linear interpolation of _a and _b with coefficient _f.
+    // _f is not limited to range [0,1].
+    fn lerp(&self, _b: &Self::ImplType, _f: f32) -> Self::ImplType;
+
+    fn distance(&self, _b: &Self::ImplType) -> f32;
 }
 
 //--------------------------------------------------------------------------------------------------
@@ -40,6 +46,14 @@ impl FloatType for Float2 {
             x: _f,
             y: _f,
         };
+    }
+
+    fn lerp(&self, _b: &Self::ImplType, _f: f32) -> Self::ImplType {
+        return Float2::new((_b.x - self.x) * _f + self.x, (_b.y - self.y) * _f + self.y);
+    }
+
+    fn distance(&self, _b: &Self::ImplType) -> f32 {
+        return (self - _b).length();
     }
 }
 
@@ -97,6 +111,15 @@ impl FloatType for Float3 {
             y: _f,
             z: _f,
         };
+    }
+
+    fn lerp(&self, _b: &Self::ImplType, _f: f32) -> Self::ImplType {
+        return Float3::new((_b.x - self.x) * _f + self.x, (_b.y - self.y) * _f + self.y,
+                           (_b.z - self.z) * _f + self.z);
+    }
+
+    fn distance(&self, _b: &Self::ImplType) -> f32 {
+        return (self - _b).length();
     }
 }
 
@@ -182,6 +205,15 @@ impl FloatType for Float4 {
             z: _f,
             w: _f,
         };
+    }
+
+    fn lerp(&self, _b: &Self::ImplType, _f: f32) -> Self::ImplType {
+        return Float4::new((_b.x - self.x) * _f + self.x, (_b.y - self.y) * _f + self.y,
+                           (_b.z - self.z) * _f + self.z, (_b.w - self.w) * _f + self.w);
+    }
+
+    fn distance(&self, _b: &Self::ImplType) -> f32 {
+        return (self - _b).length();
     }
 }
 
@@ -697,32 +729,6 @@ impl Float2 {
         }
         let len = f32::sqrt(len2);
         return Float2::new(self.x / len, self.y / len);
-    }
-}
-
-//--------------------------------------------------------------------------------------------------
-impl Float4 {
-    // Returns the linear interpolation of _a and _b with coefficient _f.
-    // _f is not limited to range [0,1].
-    #[inline]
-    pub fn lerp(&self, _b: &Float4, _f: f32) -> Float4 {
-        return Float4::new((_b.x - self.x) * _f + self.x, (_b.y - self.y) * _f + self.y,
-                           (_b.z - self.z) * _f + self.z, (_b.w - self.w) * _f + self.w);
-    }
-}
-
-impl Float3 {
-    #[inline]
-    pub fn lerp(&self, _b: &Float3, _f: f32) -> Float3 {
-        return Float3::new((_b.x - self.x) * _f + self.x, (_b.y - self.y) * _f + self.y,
-                           (_b.z - self.z) * _f + self.z);
-    }
-}
-
-impl Float2 {
-    #[inline]
-    pub fn lerp(&self, _b: &Float2, _f: f32) -> Float2 {
-        return Float2::new((_b.x - self.x) * _f + self.x, (_b.y - self.y) * _f + self.y);
     }
 }
 
