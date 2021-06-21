@@ -23,21 +23,26 @@ impl TrackBuilder {
     // Raw*Track::Validate() for more details about failure reasons.
     // The track is returned as an unique_ptr as ownership is given back to the
     // caller.
-    pub fn apply_float(_input: &RawFloatTrack) -> FloatTrack {
+    pub fn apply_float(_input: &RawFloatTrack) -> Option<FloatTrack> {
         return TrackBuilder::build(_input);
     }
-    pub fn apply_float2(_input: &RawFloat2Track) -> Float2Track {
+    pub fn apply_float2(_input: &RawFloat2Track) -> Option<Float2Track> {
         return TrackBuilder::build(_input);
     }
-    pub fn apply_float3(_input: &RawFloat3Track) -> Float3Track {
+    pub fn apply_float3(_input: &RawFloat3Track) -> Option<Float3Track> {
         return TrackBuilder::build(_input);
     }
-    pub fn apply_float4(_input: &RawFloat4Track) -> Float4Track {
+    pub fn apply_float4(_input: &RawFloat4Track) -> Option<Float4Track> {
         return TrackBuilder::build(_input);
     }
 
     fn build<ValueType: FloatType + FloatType<ImplType=ValueType>>(
-        _input: &RawTrack<ValueType>) -> Track<ValueType> {
+        _input: &RawTrack<ValueType>) -> Option<Track<ValueType>> {
+        // Tests _raw_animation validity.
+        if !_input.validate() {
+            return None;
+        }
+
         // Everything is fine, allocates and fills the animation.
         // Nothing can fail now.
         let mut track = Track::<ValueType>::new();
@@ -73,16 +78,21 @@ impl TrackBuilder {
             track.name_ = _input.name.clone();
         }
 
-        return track;  // Success.
+        return Some(track);  // Success.
     }
 }
 
 impl TrackBuilder {
-    pub fn apply_quaternion(_input: &RawQuaternionTrack) -> QuaternionTrack {
+    pub fn apply_quaternion(_input: &RawQuaternionTrack) -> Option<QuaternionTrack> {
         return TrackBuilder::build_quat(_input);
     }
 
-    fn build_quat(_input: &RawTrack<Quaternion>) -> Track<Quaternion> {
+    fn build_quat(_input: &RawTrack<Quaternion>) -> Option<Track<Quaternion>> {
+        // Tests _raw_animation validity.
+        if !_input.validate() {
+            return None;
+        }
+
         // Everything is fine, allocates and fills the animation.
         // Nothing can fail now.
         let mut track = Track::<Quaternion>::new();
@@ -122,7 +132,7 @@ impl TrackBuilder {
             track.name_ = _input.name.clone();
         }
 
-        return track;  // Success.
+        return Some(track);  // Success.
     }
 }
 
@@ -277,3 +287,60 @@ fn fixup(_keyframes: &mut Vec<RawTrackKeyframe<Quaternion>>) {
         }
     }
 }
+
+#[cfg(test)]
+mod track_builder {
+    use crate::track_builder::TrackBuilder;
+    use crate::raw_track::*;
+    use crate::vec_float::*;
+
+    #[test]
+    fn default() {
+        {  // Building default RawFloatTrack succeeds.
+            let raw_float_track = RawFloatTrack::new();
+            assert_eq!(raw_float_track.validate(), true);
+
+            // Builds track
+            let track = TrackBuilder::apply_float(&raw_float_track);
+            assert_eq!(track.is_some(), true);
+        }
+    }
+
+    #[test]
+    fn build() {
+        {  // Building a track with unsorted keys fails.
+            let mut raw_float_track = RawFloatTrack::new();
+
+            // Adds 2 unordered keys
+            let first_key =
+                RawTrackKeyframe::new(RawTrackInterpolation::KLinear,
+                                      0.8, Float::new_scalar(0.0));
+            raw_float_track.keyframes.push(first_key);
+            let second_key =
+                RawTrackKeyframe::new(RawTrackInterpolation::KLinear,
+                                      0.2, Float::new_scalar(0.0));
+            raw_float_track.keyframes.push(second_key);
+
+            // Builds track
+            assert_eq!(raw_float_track.validate(), false);
+            assert_eq!(TrackBuilder::apply_float(&raw_float_track).is_none(), true);
+        }
+    }
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

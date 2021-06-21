@@ -33,6 +33,17 @@ pub struct RawTrackKeyframe<ValueType> {
     pub value: ValueType,
 }
 
+impl<ValueType> RawTrackKeyframe<ValueType> {
+    pub fn new(interpolation: RawTrackInterpolation, ratio: f32, value: ValueType)
+               -> RawTrackKeyframe<ValueType> {
+        return RawTrackKeyframe {
+            interpolation,
+            ratio,
+            value,
+        };
+    }
+}
+
 // Offline user-channel animation track type implementation.
 // This offline track data structure is meant to be used for user-channel
 // tracks, aka animation of variables that aren't joint transformation. It is
@@ -66,6 +77,13 @@ pub struct RawTrack<ValueType> {
 }
 
 impl<ValueType> RawTrack<ValueType> {
+    pub fn new() -> RawTrack<ValueType> {
+        return RawTrack {
+            keyframes: vec![],
+            name: "".to_string(),
+        };
+    }
+
     // Validates that all the following rules are respected:
     //  1. Keyframes' ratios are sorted in a strict ascending order.
     //  2. Keyframes' ratios are all within [0,1] range.
