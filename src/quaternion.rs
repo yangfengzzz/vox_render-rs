@@ -199,6 +199,7 @@ macro_rules! impl_neg {
 }
 impl_neg!(Quaternion);
 impl_neg!(&Quaternion);
+impl_neg!(&mut Quaternion);
 //--------------------------------------------------------------------------------------------------
 impl Quaternion {
     // Returns the conjugate of self. This is the same as the inverse if self is
