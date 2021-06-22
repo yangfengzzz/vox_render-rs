@@ -64,7 +64,7 @@ impl<'a, ValueType: FloatType + FloatType<ImplType=ValueType>> TrackSamplingJob<
         // Search for the first key frame with a ratio value greater than input ratio.
         // Our ratio is between this one and the previous one.
         let ptk1 = ratios.partition_point(|p| {
-            p > &clamped_ratio
+            p <= &clamped_ratio
         });
 
         // Deduce keys indices.
@@ -127,7 +127,7 @@ impl<'a> TrackSamplingJob<'a, QuaternionTrack, Quaternion> {
         // Search for the first key frame with a ratio value greater than input ratio.
         // Our ratio is between this one and the previous one.
         let ptk1 = ratios.partition_point(|p| {
-            p > &clamped_ratio
+            p <= &clamped_ratio
         });
 
         // Deduce keys indices.
@@ -304,7 +304,7 @@ mod track_sampling_job {
 
         sampling.ratio = 0.8;
         assert_eq!(sampling.run(), true);
-        assert_eq!(sampling.result.x, 4.6);
+        expect_near!(sampling.result.x, 4.6, f32::EPSILON * 100.0);
 
         sampling.ratio = 0.9;
         assert_eq!(sampling.run(), true);
