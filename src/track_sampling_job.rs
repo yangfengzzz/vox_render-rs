@@ -162,9 +162,13 @@ pub type QuaternionTrackSamplingJob<'a> = TrackSamplingJob<'a, QuaternionTrack, 
 
 #[cfg(test)]
 mod track_sampling_job {
-    use crate::raw_track::RawFloatTrack;
+    use crate::raw_track::*;
     use crate::track_builder::TrackBuilder;
-    use crate::track_sampling_job::FloatTrackSamplingJob;
+    use crate::track_sampling_job::*;
+    use crate::track::FloatTrack;
+    use crate::quaternion::*;
+    use crate::math_test_helper::*;
+    use crate::*;
 
     #[test]
     fn job_validity() {
@@ -198,36 +202,358 @@ mod track_sampling_job {
 
     #[test]
     fn default() {
-        todo!()
+        let default_track = FloatTrack::new();
+        let mut job = FloatTrackSamplingJob::new();
+        job.track = Some(&default_track);
+        assert_eq!(job.validate(), true);
+        assert_eq!(job.run(), true);
+        assert_eq!(job.result.x, 0.0);
     }
 
     #[test]
     fn bounds() {
-        todo!()
+        let mut raw_float_track = RawFloatTrack::new();
+
+        let key0 = RawTrackKeyframe::new(RawTrackInterpolation::KLinear, 0.0,
+                                         Float::new_scalar(0.0));
+        raw_float_track.keyframes.push(key0);
+        let key1 = RawTrackKeyframe::new(RawTrackInterpolation::KStep, 0.5,
+                                         Float::new_scalar(46.0));
+        raw_float_track.keyframes.push(key1);
+        let key2 = RawTrackKeyframe::new(RawTrackInterpolation::KLinear, 0.7,
+                                         Float::new_scalar(0.0));
+        raw_float_track.keyframes.push(key2);
+
+        // Builds track
+        let track = TrackBuilder::apply_float(&raw_float_track);
+        assert_eq!(track.is_some(), true);
+
+        // Samples to verify build output.
+        let mut sampling = FloatTrackSamplingJob::new();
+        sampling.track = track.as_ref();
+
+        sampling.ratio = 0.0 - 1.0e-7;
+        assert_eq!(sampling.run(), true);
+        assert_eq!(sampling.result.x, 0.0);
+
+        sampling.ratio = 0.0;
+        assert_eq!(sampling.run(), true);
+        assert_eq!(sampling.result.x, 0.0);
+
+        sampling.ratio = 0.5;
+        assert_eq!(sampling.run(), true);
+        assert_eq!(sampling.result.x, 46.0);
+
+        sampling.ratio = 1.0;
+        assert_eq!(sampling.run(), true);
+        assert_eq!(sampling.result.x, 0.0);
+
+        sampling.ratio = 1.0 + 1.0e-7;
+        assert_eq!(sampling.run(), true);
+        assert_eq!(sampling.result.x, 0.0);
+
+        sampling.ratio = 1.5;
+        assert_eq!(sampling.run(), true);
+        assert_eq!(sampling.result.x, 0.0);
     }
 
     #[test]
     fn float() {
-        todo!()
+        let mut raw_track = RawFloatTrack::new();
+
+        let key0 = RawTrackKeyframe::new(
+            RawTrackInterpolation::KLinear, 0.0, Float::new_scalar(0.0));
+        raw_track.keyframes.push(key0);
+        let key1 = RawTrackKeyframe::new(
+            RawTrackInterpolation::KStep, 0.5, Float::new_scalar(4.6));
+        raw_track.keyframes.push(key1);
+        let key2 = RawTrackKeyframe::new(
+            RawTrackInterpolation::KLinear, 0.7, Float::new_scalar(9.2));
+        raw_track.keyframes.push(key2);
+        let key3 = RawTrackKeyframe::new(
+            RawTrackInterpolation::KLinear, 0.9, Float::new_scalar(0.0));
+        raw_track.keyframes.push(key3);
+
+        // Builds track
+        let track = TrackBuilder::apply_float(&raw_track);
+        assert_eq!(track.is_some(), true);
+
+        // Samples to verify build output.
+        let mut sampling = FloatTrackSamplingJob::new();
+        sampling.track = track.as_ref();
+
+        sampling.ratio = 0.0;
+        assert_eq!(sampling.run(), true);
+        assert_eq!(sampling.result.x, 0.0);
+
+        sampling.ratio = 0.25;
+        assert_eq!(sampling.run(), true);
+        assert_eq!(sampling.result.x, 2.3);
+
+        sampling.ratio = 0.5;
+        assert_eq!(sampling.run(), true);
+        assert_eq!(sampling.result.x, 4.6);
+
+        sampling.ratio = 0.6;
+        assert_eq!(sampling.run(), true);
+        assert_eq!(sampling.result.x, 4.6);
+
+        sampling.ratio = 0.7;
+        assert_eq!(sampling.run(), true);
+        assert_eq!(sampling.result.x, 9.2);
+
+        sampling.ratio = 0.8;
+        assert_eq!(sampling.run(), true);
+        assert_eq!(sampling.result.x, 4.6);
+
+        sampling.ratio = 0.9;
+        assert_eq!(sampling.run(), true);
+        assert_eq!(sampling.result.x, 0.0);
+
+        sampling.ratio = 1.0;
+        assert_eq!(sampling.run(), true);
+        assert_eq!(sampling.result.x, 0.0);
     }
 
     #[test]
     fn float2() {
-        todo!()
+        let mut raw_track = RawFloat2Track::new();
+
+        let key0 = RawTrackKeyframe::new(
+            RawTrackInterpolation::KLinear, 0.0, Float2::new(0.0, 0.0));
+        raw_track.keyframes.push(key0);
+        let key1 = RawTrackKeyframe::new(
+            RawTrackInterpolation::KStep, 0.5, Float2::new(2.3, 4.6));
+        raw_track.keyframes.push(key1);
+        let key2 = RawTrackKeyframe::new(
+            RawTrackInterpolation::KLinear, 0.7, Float2::new(4.6, 9.2));
+        raw_track.keyframes.push(key2);
+        let key3 = RawTrackKeyframe::new(
+            RawTrackInterpolation::KLinear, 0.9, Float2::new(0.0, 0.0));
+        raw_track.keyframes.push(key3);
+
+        // Builds track
+        let track = TrackBuilder::apply_float2(&raw_track);
+        assert_eq!(track.is_some(), true);
+
+        // Samples to verify build output.
+        let mut sampling = Float2TrackSamplingJob::new();
+        sampling.track = track.as_ref();
+
+        sampling.ratio = 0.0;
+        assert_eq!(sampling.run(), true);
+        expect_float2_eq!(sampling.result, 0.0, 0.0);
+
+        sampling.ratio = 0.25;
+        assert_eq!(sampling.run(), true);
+        expect_float2_eq!(sampling.result, 1.15, 2.3);
+
+        sampling.ratio = 0.5;
+        assert_eq!(sampling.run(), true);
+        expect_float2_eq!(sampling.result, 2.3, 4.6);
+
+        sampling.ratio = 0.6;
+        assert_eq!(sampling.run(), true);
+        expect_float2_eq!(sampling.result, 2.3, 4.6);
+
+        sampling.ratio = 0.7;
+        assert_eq!(sampling.run(), true);
+        expect_float2_eq!(sampling.result, 4.6, 9.2);
+
+        sampling.ratio = 0.8;
+        assert_eq!(sampling.run(), true);
+        expect_float2_eq!(sampling.result, 2.3, 4.6);
+
+        sampling.ratio = 0.9;
+        assert_eq!(sampling.run(), true);
+        expect_float2_eq!(sampling.result, 0.0, 0.0);
+
+        sampling.ratio = 1.0;
+        assert_eq!(sampling.run(), true);
+        expect_float2_eq!(sampling.result, 0.0, 0.0);
     }
 
     #[test]
     fn float3() {
-        todo!()
+        let mut raw_track = RawFloat3Track::new();
+
+        let key0 = RawTrackKeyframe::new(
+            RawTrackInterpolation::KLinear, 0.0, Float3::new(0.0, 0.0, 0.0));
+        raw_track.keyframes.push(key0);
+        let key1 = RawTrackKeyframe::new(
+            RawTrackInterpolation::KStep, 0.5, Float3::new(0.0, 2.3, 4.6));
+        raw_track.keyframes.push(key1);
+        let key2 = RawTrackKeyframe::new(
+            RawTrackInterpolation::KLinear, 0.7, Float3::new(0.0, 4.6, 9.2));
+        raw_track.keyframes.push(key2);
+        let key3 = RawTrackKeyframe::new(
+            RawTrackInterpolation::KLinear, 0.9, Float3::new(0.0, 0.0, 0.0));
+        raw_track.keyframes.push(key3);
+
+        // Builds track
+        let track = TrackBuilder::apply_float3(&raw_track);
+        assert_eq!(track.is_some(), true);
+
+        // Samples to verify build output.
+        let mut sampling = Float3TrackSamplingJob::new();
+        sampling.track = track.as_ref();
+
+        sampling.ratio = 0.0;
+        assert_eq!(sampling.run(), true);
+        expect_float3_eq!(sampling.result, 0.0, 0.0, 0.0);
+
+        sampling.ratio = 0.25;
+        assert_eq!(sampling.run(), true);
+        expect_float3_eq!(sampling.result, 0.0, 1.15, 2.3);
+
+        sampling.ratio = 0.5;
+        assert_eq!(sampling.run(), true);
+        expect_float3_eq!(sampling.result, 0.0, 2.3, 4.6);
+
+        sampling.ratio = 0.6;
+        assert_eq!(sampling.run(), true);
+        expect_float3_eq!(sampling.result, 0.0, 2.3, 4.6);
+
+        sampling.ratio = 0.7;
+        assert_eq!(sampling.run(), true);
+        expect_float3_eq!(sampling.result, 0.0, 4.6, 9.2);
+
+        sampling.ratio = 0.8;
+        assert_eq!(sampling.run(), true);
+        expect_float3_eq!(sampling.result, 0.0, 2.3, 4.6);
+
+        sampling.ratio = 0.9;
+        assert_eq!(sampling.run(), true);
+        expect_float3_eq!(sampling.result, 0.0, 0.0, 0.0);
+
+        sampling.ratio = 1.0;
+        assert_eq!(sampling.run(), true);
+        expect_float3_eq!(sampling.result, 0.0, 0.0, 0.0);
     }
 
     #[test]
     fn float4() {
-        todo!()
+        let mut raw_track = RawFloat4Track::new();
+
+        let key0 = RawTrackKeyframe::new(
+            RawTrackInterpolation::KLinear, 0.0,
+            Float4::new(0.0, 0.0, 0.0, 0.0));
+        raw_track.keyframes.push(key0);
+        let key1 = RawTrackKeyframe::new(
+            RawTrackInterpolation::KStep, 0.5,
+            Float4::new(0.0, 2.3, 0.0, 4.6));
+        raw_track.keyframes.push(key1);
+        let key2 = RawTrackKeyframe::new(
+            RawTrackInterpolation::KLinear, 0.7,
+            Float4::new(0.0, 4.6, 0.0, 9.2));
+        raw_track.keyframes.push(key2);
+        let key3 = RawTrackKeyframe::new(
+            RawTrackInterpolation::KLinear, 0.9,
+            Float4::new(0.0, 0.0, 0.0, 0.0));
+        raw_track.keyframes.push(key3);
+
+        // Builds track
+        let track = TrackBuilder::apply_float4(&raw_track);
+        assert_eq!(track.is_some(), true);
+
+        // Samples to verify build output.
+        let mut sampling = Float4TrackSamplingJob::new();
+        sampling.track = track.as_ref();
+
+        sampling.ratio = 0.0;
+        assert_eq!(sampling.run(), true);
+        expect_float4_eq!(sampling.result, 0.0, 0.0, 0.0, 0.0);
+
+        sampling.ratio = 0.25;
+        assert_eq!(sampling.run(), true);
+        expect_float4_eq!(sampling.result, 0.0, 1.15, 0.0, 2.3);
+
+        sampling.ratio = 0.5;
+        assert_eq!(sampling.run(), true);
+        expect_float4_eq!(sampling.result, 0.0, 2.3, 0.0, 4.6);
+
+        sampling.ratio = 0.6;
+        assert_eq!(sampling.run(), true);
+        expect_float4_eq!(sampling.result, 0.0, 2.3, 0.0, 4.6);
+
+        sampling.ratio = 0.7;
+        assert_eq!(sampling.run(), true);
+        expect_float4_eq!(sampling.result, 0.0, 4.6, 0.0, 9.2);
+
+        sampling.ratio = 0.8;
+        assert_eq!(sampling.run(), true);
+        expect_float4_eq!(sampling.result, 0.0, 2.3, 0.0, 4.6);
+
+        sampling.ratio = 0.9;
+        assert_eq!(sampling.run(), true);
+        expect_float4_eq!(sampling.result, 0.0, 0.0, 0.0, 0.0);
+
+        sampling.ratio = 1.0;
+        assert_eq!(sampling.run(), true);
+        expect_float4_eq!(sampling.result, 0.0, 0.0, 0.0, 0.0);
     }
 
     #[test]
     fn quaternion() {
-        todo!()
+        let mut raw_track = RawQuaternionTrack::new();
+
+        let key0 = RawTrackKeyframe::new(
+            RawTrackInterpolation::KLinear, 0.0,
+            Quaternion::new(0.70710677, 0.0, 0.0, 0.70710677));
+        raw_track.keyframes.push(key0);
+        let key1 = RawTrackKeyframe::new(
+            RawTrackInterpolation::KStep, 0.5,
+            Quaternion::new(0.0, 0.70710677, 0.0, 0.70710677));
+        raw_track.keyframes.push(key1);
+        let key2 = RawTrackKeyframe::new(
+            RawTrackInterpolation::KLinear, 0.7,
+            Quaternion::new(0.70710677, 0.0, 0.0, 0.70710677));
+        raw_track.keyframes.push(key2);
+        let key3 = RawTrackKeyframe::new(
+            RawTrackInterpolation::KLinear, 0.9, Quaternion::identity());
+        raw_track.keyframes.push(key3);
+
+        // Builds track
+        let track = TrackBuilder::apply_quaternion(&raw_track);
+        assert_eq!(track.is_some(), true);
+        // Samples to verify build output.
+        let mut sampling = QuaternionTrackSamplingJob::new();
+        sampling.track = track.as_ref();
+
+        sampling.ratio = 0.0;
+        assert_eq!(sampling.run(), true);
+        expect_quaternion_eq!(sampling.result, 0.70710677, 0.0, 0.0, 0.70710677);
+
+        sampling.ratio = 0.1;
+        assert_eq!(sampling.run(), true);
+        expect_quaternion_eq!(sampling.result, 0.61721331, 0.15430345, 0.0, 0.77151674);
+
+        sampling.ratio = 0.4999999;
+        assert_eq!(sampling.run(), true);
+        expect_quaternion_eq!(sampling.result, 0.0, 0.70710677, 0.0, 0.70710677);
+
+        sampling.ratio = 0.5;
+        assert_eq!(sampling.run(), true);
+        expect_quaternion_eq!(sampling.result, 0.0, 0.70710677, 0.0, 0.70710677);
+
+        sampling.ratio = 0.6;
+        assert_eq!(sampling.run(), true);
+        expect_quaternion_eq!(sampling.result, 0.0, 0.70710677, 0.0, 0.70710677);
+
+        sampling.ratio = 0.7;
+        assert_eq!(sampling.run(), true);
+        expect_quaternion_eq!(sampling.result, 0.70710677, 0.0, 0.0, 0.70710677);
+
+        sampling.ratio = 0.8;
+        assert_eq!(sampling.run(), true);
+        expect_quaternion_eq!(sampling.result, 0.38268333, 0.0, 0.0, 0.92387962);
+
+        sampling.ratio = 0.9;
+        assert_eq!(sampling.run(), true);
+        expect_quaternion_eq!(sampling.result, 0.0, 0.0, 0.0, 1.0);
+
+        sampling.ratio = 1.0;
+        assert_eq!(sampling.run(), true);
+        expect_quaternion_eq!(sampling.result, 0.0, 0.0, 0.0, 1.0);
     }
 }
