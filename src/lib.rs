@@ -40,3 +40,4 @@ pub mod decimate;
 pub mod raw_track;
 pub mod track;
 pub mod track_builder;
+pub mod track_sampling_job;
