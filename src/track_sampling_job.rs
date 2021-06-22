@@ -159,3 +159,75 @@ pub type Float2TrackSamplingJob<'a> = TrackSamplingJob<'a, Float2Track, Float2>;
 pub type Float3TrackSamplingJob<'a> = TrackSamplingJob<'a, Float3Track, Float3>;
 pub type Float4TrackSamplingJob<'a> = TrackSamplingJob<'a, Float4Track, Float4>;
 pub type QuaternionTrackSamplingJob<'a> = TrackSamplingJob<'a, QuaternionTrack, Quaternion>;
+
+#[cfg(test)]
+mod track_sampling_job {
+    use crate::raw_track::RawFloatTrack;
+    use crate::track_builder::TrackBuilder;
+    use crate::track_sampling_job::FloatTrackSamplingJob;
+
+    #[test]
+    fn job_validity() {
+        // Building default RawFloatTrack succeeds.
+        let raw_float_track = RawFloatTrack::new();
+        assert_eq!(raw_float_track.validate(), true);
+
+        // Builds track
+        let track = TrackBuilder::apply_float(&raw_float_track);
+        assert_eq!(track.is_some(), true);
+
+        {  // Empty/default job
+            let mut job = FloatTrackSamplingJob::new();
+            assert_eq!(job.validate(), false);
+            assert_eq!(job.run(), false);
+        }
+
+        {  // Invalid track.
+            let mut job = FloatTrackSamplingJob::new();
+            assert_eq!(job.validate(), false);
+            assert_eq!(job.run(), false);
+        }
+
+        {  // Valid
+            let mut job = FloatTrackSamplingJob::new();
+            job.track = track.as_ref();
+            assert_eq!(job.validate(), true);
+            assert_eq!(job.run(), true);
+        }
+    }
+
+    #[test]
+    fn default() {
+        todo!()
+    }
+
+    #[test]
+    fn bounds() {
+        todo!()
+    }
+
+    #[test]
+    fn float() {
+        todo!()
+    }
+
+    #[test]
+    fn float2() {
+        todo!()
+    }
+
+    #[test]
+    fn float3() {
+        todo!()
+    }
+
+    #[test]
+    fn float4() {
+        todo!()
+    }
+
+    #[test]
+    fn quaternion() {
+        todo!()
+    }
+}
