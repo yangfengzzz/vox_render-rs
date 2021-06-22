@@ -406,13 +406,17 @@ mod track_builder {
         // Samples to verify build output.
         let mut sampling = FloatTrackSamplingJob::new();
         sampling.track = track.as_ref();
+        let mut result = Float::new_scalar(0.0);
+        sampling.result = Some(&mut result);
         sampling.ratio = 0.0;
         assert_eq!(sampling.run(), true);
-        assert_eq!(sampling.result.x, 0.0);
+        assert_eq!(sampling.result.as_ref().unwrap().x, 0.0);
     }
 
     #[test]
     fn build_linear() {
+        let mut result = Float::new_scalar(0.0);
+
         {  // 1 key at the beginning
             let mut raw_float_track = RawFloatTrack::new();
 
@@ -427,18 +431,19 @@ mod track_builder {
             // Samples to verify build output.
             let mut sampling = FloatTrackSamplingJob::new();
             sampling.track = track.as_ref();
+            sampling.result = Some(&mut result);
 
             sampling.ratio = 0.0;
             assert_eq!(sampling.run(), true);
-            assert_eq!(sampling.result.x, 46.0);
+            assert_eq!(sampling.result.as_ref().unwrap().x, 46.0);
 
             sampling.ratio = 0.5;
             assert_eq!(sampling.run(), true);
-            assert_eq!(sampling.result.x, 46.0);
+            assert_eq!(sampling.result.as_ref().unwrap().x, 46.0);
 
             sampling.ratio = 1.0;
             assert_eq!(sampling.run(), true);
-            assert_eq!(sampling.result.x, 46.0);
+            assert_eq!(sampling.result.as_ref().unwrap().x, 46.0);
         }
 
         {  // 1 key in the middle
@@ -455,18 +460,19 @@ mod track_builder {
             // Samples to verify build output.
             let mut sampling = FloatTrackSamplingJob::new();
             sampling.track = track.as_ref();
+            sampling.result = Some(&mut result);
 
             sampling.ratio = 0.0;
             assert_eq!(sampling.run(), true);
-            assert_eq!(sampling.result.x, 46.0);
+            assert_eq!(sampling.result.as_ref().unwrap().x, 46.0);
 
             sampling.ratio = 0.5;
             assert_eq!(sampling.run(), true);
-            assert_eq!(sampling.result.x, 46.0);
+            assert_eq!(sampling.result.as_ref().unwrap().x, 46.0);
 
             sampling.ratio = 1.0;
             assert_eq!(sampling.run(), true);
-            assert_eq!(sampling.result.x, 46.0);
+            assert_eq!(sampling.result.as_ref().unwrap().x, 46.0);
         }
 
         {  // 1 key at the end
@@ -483,18 +489,19 @@ mod track_builder {
             // Samples to verify build output.
             let mut sampling = FloatTrackSamplingJob::new();
             sampling.track = track.as_ref();
+            sampling.result = Some(&mut result);
 
             sampling.ratio = 0.0;
             assert_eq!(sampling.run(), true);
-            assert_eq!(sampling.result.x, 46.0);
+            assert_eq!(sampling.result.as_ref().unwrap().x, 46.0);
 
             sampling.ratio = 0.5;
             assert_eq!(sampling.run(), true);
-            assert_eq!(sampling.result.x, 46.0);
+            assert_eq!(sampling.result.as_ref().unwrap().x, 46.0);
 
             sampling.ratio = 1.0;
             assert_eq!(sampling.run(), true);
-            assert_eq!(sampling.result.x, 46.0);
+            assert_eq!(sampling.result.as_ref().unwrap().x, 46.0);
         }
 
         {  // 2 keys
@@ -514,26 +521,27 @@ mod track_builder {
             // Samples to verify build output.
             let mut sampling = FloatTrackSamplingJob::new();
             sampling.track = track.as_ref();
+            sampling.result = Some(&mut result);
 
             sampling.ratio = 0.0;
             assert_eq!(sampling.run(), true);
-            assert_eq!(sampling.result.x, 46.0);
+            assert_eq!(sampling.result.as_ref().unwrap().x, 46.0);
 
             sampling.ratio = 0.5;
             assert_eq!(sampling.run(), true);
-            assert_eq!(sampling.result.x, 46.0);
+            assert_eq!(sampling.result.as_ref().unwrap().x, 46.0);
 
             sampling.ratio = 0.6;
             assert_eq!(sampling.run(), true);
-            assert_eq!(sampling.result.x, 23.0);
+            assert_eq!(sampling.result.as_ref().unwrap().x, 23.0);
 
             sampling.ratio = 0.7;
             assert_eq!(sampling.run(), true);
-            assert_eq!(sampling.result.x, 0.0);
+            assert_eq!(sampling.result.as_ref().unwrap().x, 0.0);
 
             sampling.ratio = 1.0;
             assert_eq!(sampling.run(), true);
-            assert_eq!(sampling.result.x, 0.0);
+            assert_eq!(sampling.result.as_ref().unwrap().x, 0.0);
         }
 
         {  // n keys with same value
@@ -556,30 +564,31 @@ mod track_builder {
             // Samples to verify build output.
             let mut sampling = FloatTrackSamplingJob::new();
             sampling.track = track.as_ref();
+            sampling.result = Some(&mut result);
 
             sampling.ratio = 0.0;
             assert_eq!(sampling.run(), true);
-            assert_eq!(sampling.result.x, 46.0);
+            assert_eq!(sampling.result.as_ref().unwrap().x, 46.0);
 
             sampling.ratio = 0.5;
             assert_eq!(sampling.run(), true);
-            assert_eq!(sampling.result.x, 46.0);
+            assert_eq!(sampling.result.as_ref().unwrap().x, 46.0);
 
             sampling.ratio = 0.6;
             assert_eq!(sampling.run(), true);
-            assert_eq!(sampling.result.x, 46.0);
+            assert_eq!(sampling.result.as_ref().unwrap().x, 46.0);
 
             sampling.ratio = 0.7;
             assert_eq!(sampling.run(), true);
-            assert_eq!(sampling.result.x, 46.0);
+            assert_eq!(sampling.result.as_ref().unwrap().x, 46.0);
 
             sampling.ratio = 0.75;
             assert_eq!(sampling.run(), true);
-            assert_eq!(sampling.result.x, 46.0);
+            assert_eq!(sampling.result.as_ref().unwrap().x, 46.0);
 
             sampling.ratio = 1.0;
             assert_eq!(sampling.run(), true);
-            assert_eq!(sampling.result.x, 46.0);
+            assert_eq!(sampling.result.as_ref().unwrap().x, 46.0);
         }
     }
 

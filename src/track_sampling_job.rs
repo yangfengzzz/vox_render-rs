@@ -22,7 +22,7 @@ pub struct TrackSamplingJob<'a, _Track, ValueType> {
     pub track: Option<&'a _Track>,
 
     // Job output.
-    pub result: ValueType,
+    pub result: Option<&'a mut ValueType>,
 }
 
 impl<'a, ValueType: FloatType + FloatType<ImplType=ValueType>> TrackSamplingJob<'a, Track<ValueType>, ValueType> {
@@ -30,13 +30,14 @@ impl<'a, ValueType: FloatType + FloatType<ImplType=ValueType>> TrackSamplingJob<
         return TrackSamplingJob {
             ratio: 0.0,
             track: None,
-            result: ValueType::new_default(),
+            result: None,
         };
     }
 
     // Validates all parameters.
     pub fn validate(&self) -> bool {
         let mut success = true;
+        success &= self.result.is_some();
         success &= self.track.is_some();
         return success;
     }
@@ -57,7 +58,7 @@ impl<'a, ValueType: FloatType + FloatType<ImplType=ValueType>> TrackSamplingJob<
 
         // Default track returns identity.
         if ratios.len() == 0 {
-            self.result = TrackPolicy::<ValueType>::identity();
+            **self.result.as_mut().unwrap() = TrackPolicy::<ValueType>::identity();
             return true;
         }
 
@@ -73,7 +74,7 @@ impl<'a, ValueType: FloatType + FloatType<ImplType=ValueType>> TrackSamplingJob<
 
         let id0step = (self.track.as_ref().unwrap().steps()[id0 / 8] & (1 << (id0 & 7))) != 0;
         if id0step || ptk1 == ratios.len() {
-            self.result = values[id0].clone();
+            **self.result.as_mut().unwrap() = values[id0].clone();
         } else {
             // Lerp relevant keys.
             let tk0 = ratios[id0];
@@ -82,7 +83,7 @@ impl<'a, ValueType: FloatType + FloatType<ImplType=ValueType>> TrackSamplingJob<
             let alpha = (clamped_ratio - tk0) / (tk1 - tk0);
             let vk0 = &values[id0];
             let vk1 = &values[id1];
-            self.result = TrackPolicy::<ValueType>::lerp(vk0, vk1, alpha);
+            **self.result.as_mut().unwrap() = TrackPolicy::<ValueType>::lerp(vk0, vk1, alpha);
         }
         return true;
     }
@@ -93,13 +94,14 @@ impl<'a> TrackSamplingJob<'a, QuaternionTrack, Quaternion> {
         return TrackSamplingJob {
             ratio: 0.0,
             track: None,
-            result: Quaternion::new_default(),
+            result: None,
         };
     }
 
     // Validates all parameters.
     pub fn validate(&self) -> bool {
         let mut success = true;
+        success &= self.result.is_some();
         success &= self.track.is_some();
         return success;
     }
@@ -120,7 +122,7 @@ impl<'a> TrackSamplingJob<'a, QuaternionTrack, Quaternion> {
 
         // Default track returns identity.
         if ratios.len() == 0 {
-            self.result = TrackPolicy::<Quaternion>::identity();
+            **self.result.as_mut().unwrap() = TrackPolicy::<Quaternion>::identity();
             return true;
         }
 
@@ -136,7 +138,7 @@ impl<'a> TrackSamplingJob<'a, QuaternionTrack, Quaternion> {
 
         let id0step = (self.track.as_ref().unwrap().steps()[id0 / 8] & (1 << (id0 & 7))) != 0;
         if id0step || ptk1 == ratios.len() {
-            self.result = values[id0].clone();
+            **self.result.as_mut().unwrap() = values[id0].clone();
         } else {
             // Lerp relevant keys.
             let tk0 = ratios[id0];
@@ -145,7 +147,7 @@ impl<'a> TrackSamplingJob<'a, QuaternionTrack, Quaternion> {
             let alpha = (clamped_ratio - tk0) / (tk1 - tk0);
             let vk0 = &values[id0];
             let vk1 = &values[id1];
-            self.result = TrackPolicy::<Quaternion>::lerp(vk0, vk1, alpha);
+            **self.result.as_mut().unwrap() = TrackPolicy::<Quaternion>::lerp(vk0, vk1, alpha);
         }
         return true;
     }
@@ -186,8 +188,17 @@ mod track_sampling_job {
             assert_eq!(job.run(), false);
         }
 
+        {  // Invalid output
+            let mut job = FloatTrackSamplingJob::new();
+            job.track = track.as_ref();
+            assert_eq!(job.validate(), false);
+            assert_eq!(job.run(), false);
+        }
+
         {  // Invalid track.
             let mut job = FloatTrackSamplingJob::new();
+            let mut result = Float::new_scalar(0.0);
+            job.result = Some(&mut result);
             assert_eq!(job.validate(), false);
             assert_eq!(job.run(), false);
         }
@@ -195,6 +206,8 @@ mod track_sampling_job {
         {  // Valid
             let mut job = FloatTrackSamplingJob::new();
             job.track = track.as_ref();
+            let mut result = Float::new_scalar(0.0);
+            job.result = Some(&mut result);
             assert_eq!(job.validate(), true);
             assert_eq!(job.run(), true);
         }
@@ -205,13 +218,17 @@ mod track_sampling_job {
         let default_track = FloatTrack::new();
         let mut job = FloatTrackSamplingJob::new();
         job.track = Some(&default_track);
+        let mut result = Float::new_scalar(1.0);
+        job.result = Some(&mut result);
         assert_eq!(job.validate(), true);
         assert_eq!(job.run(), true);
-        assert_eq!(job.result.x, 0.0);
+        assert_eq!(job.result.as_ref().unwrap().x, 0.0);
     }
 
     #[test]
     fn bounds() {
+        let mut result = Float::new_scalar(0.0);
+
         let mut raw_float_track = RawFloatTrack::new();
 
         let key0 = RawTrackKeyframe::new(RawTrackInterpolation::KLinear, 0.0,
@@ -231,34 +248,37 @@ mod track_sampling_job {
         // Samples to verify build output.
         let mut sampling = FloatTrackSamplingJob::new();
         sampling.track = track.as_ref();
+        sampling.result = Some(&mut result);
 
         sampling.ratio = 0.0 - 1.0e-7;
         assert_eq!(sampling.run(), true);
-        assert_eq!(sampling.result.x, 0.0);
+        assert_eq!(sampling.result.as_ref().unwrap().x, 0.0);
 
         sampling.ratio = 0.0;
         assert_eq!(sampling.run(), true);
-        assert_eq!(sampling.result.x, 0.0);
+        assert_eq!(sampling.result.as_ref().unwrap().x, 0.0);
 
         sampling.ratio = 0.5;
         assert_eq!(sampling.run(), true);
-        assert_eq!(sampling.result.x, 46.0);
+        assert_eq!(sampling.result.as_ref().unwrap().x, 46.0);
 
         sampling.ratio = 1.0;
         assert_eq!(sampling.run(), true);
-        assert_eq!(sampling.result.x, 0.0);
+        assert_eq!(sampling.result.as_ref().unwrap().x, 0.0);
 
         sampling.ratio = 1.0 + 1.0e-7;
         assert_eq!(sampling.run(), true);
-        assert_eq!(sampling.result.x, 0.0);
+        assert_eq!(sampling.result.as_ref().unwrap().x, 0.0);
 
         sampling.ratio = 1.5;
         assert_eq!(sampling.run(), true);
-        assert_eq!(sampling.result.x, 0.0);
+        assert_eq!(sampling.result.as_ref().unwrap().x, 0.0);
     }
 
     #[test]
     fn float() {
+        let mut result = Float::new_scalar(0.0);
+
         let mut raw_track = RawFloatTrack::new();
 
         let key0 = RawTrackKeyframe::new(
@@ -281,42 +301,45 @@ mod track_sampling_job {
         // Samples to verify build output.
         let mut sampling = FloatTrackSamplingJob::new();
         sampling.track = track.as_ref();
+        sampling.result = Some(&mut result);
 
         sampling.ratio = 0.0;
         assert_eq!(sampling.run(), true);
-        assert_eq!(sampling.result.x, 0.0);
+        assert_eq!(sampling.result.as_ref().unwrap().x, 0.0);
 
         sampling.ratio = 0.25;
         assert_eq!(sampling.run(), true);
-        assert_eq!(sampling.result.x, 2.3);
+        assert_eq!(sampling.result.as_ref().unwrap().x, 2.3);
 
         sampling.ratio = 0.5;
         assert_eq!(sampling.run(), true);
-        assert_eq!(sampling.result.x, 4.6);
+        assert_eq!(sampling.result.as_ref().unwrap().x, 4.6);
 
         sampling.ratio = 0.6;
         assert_eq!(sampling.run(), true);
-        assert_eq!(sampling.result.x, 4.6);
+        assert_eq!(sampling.result.as_ref().unwrap().x, 4.6);
 
         sampling.ratio = 0.7;
         assert_eq!(sampling.run(), true);
-        assert_eq!(sampling.result.x, 9.2);
+        assert_eq!(sampling.result.as_ref().unwrap().x, 9.2);
 
         sampling.ratio = 0.8;
         assert_eq!(sampling.run(), true);
-        expect_near!(sampling.result.x, 4.6, f32::EPSILON * 100.0);
+        expect_near!(sampling.result.as_ref().unwrap().x, 4.6, f32::EPSILON * 100.0);
 
         sampling.ratio = 0.9;
         assert_eq!(sampling.run(), true);
-        assert_eq!(sampling.result.x, 0.0);
+        assert_eq!(sampling.result.as_ref().unwrap().x, 0.0);
 
         sampling.ratio = 1.0;
         assert_eq!(sampling.run(), true);
-        assert_eq!(sampling.result.x, 0.0);
+        assert_eq!(sampling.result.as_ref().unwrap().x, 0.0);
     }
 
     #[test]
     fn float2() {
+        let mut result = Float2::new_scalar(0.0);
+
         let mut raw_track = RawFloat2Track::new();
 
         let key0 = RawTrackKeyframe::new(
@@ -339,42 +362,45 @@ mod track_sampling_job {
         // Samples to verify build output.
         let mut sampling = Float2TrackSamplingJob::new();
         sampling.track = track.as_ref();
+        sampling.result = Some(&mut result);
 
         sampling.ratio = 0.0;
         assert_eq!(sampling.run(), true);
-        expect_float2_eq!(sampling.result, 0.0, 0.0);
+        expect_float2_eq!(sampling.result.as_ref().unwrap(), 0.0, 0.0);
 
         sampling.ratio = 0.25;
         assert_eq!(sampling.run(), true);
-        expect_float2_eq!(sampling.result, 1.15, 2.3);
+        expect_float2_eq!(sampling.result.as_ref().unwrap(), 1.15, 2.3);
 
         sampling.ratio = 0.5;
         assert_eq!(sampling.run(), true);
-        expect_float2_eq!(sampling.result, 2.3, 4.6);
+        expect_float2_eq!(sampling.result.as_ref().unwrap(), 2.3, 4.6);
 
         sampling.ratio = 0.6;
         assert_eq!(sampling.run(), true);
-        expect_float2_eq!(sampling.result, 2.3, 4.6);
+        expect_float2_eq!(sampling.result.as_ref().unwrap(), 2.3, 4.6);
 
         sampling.ratio = 0.7;
         assert_eq!(sampling.run(), true);
-        expect_float2_eq!(sampling.result, 4.6, 9.2);
+        expect_float2_eq!(sampling.result.as_ref().unwrap(), 4.6, 9.2);
 
         sampling.ratio = 0.8;
         assert_eq!(sampling.run(), true);
-        expect_float2_eq!(sampling.result, 2.3, 4.6);
+        expect_float2_eq!(sampling.result.as_ref().unwrap(), 2.3, 4.6);
 
         sampling.ratio = 0.9;
         assert_eq!(sampling.run(), true);
-        expect_float2_eq!(sampling.result, 0.0, 0.0);
+        expect_float2_eq!(sampling.result.as_ref().unwrap(), 0.0, 0.0);
 
         sampling.ratio = 1.0;
         assert_eq!(sampling.run(), true);
-        expect_float2_eq!(sampling.result, 0.0, 0.0);
+        expect_float2_eq!(sampling.result.as_ref().unwrap(), 0.0, 0.0);
     }
 
     #[test]
     fn float3() {
+        let mut result = Float3::new_scalar(0.0);
+
         let mut raw_track = RawFloat3Track::new();
 
         let key0 = RawTrackKeyframe::new(
@@ -397,42 +423,45 @@ mod track_sampling_job {
         // Samples to verify build output.
         let mut sampling = Float3TrackSamplingJob::new();
         sampling.track = track.as_ref();
+        sampling.result = Some(&mut result);
 
         sampling.ratio = 0.0;
         assert_eq!(sampling.run(), true);
-        expect_float3_eq!(sampling.result, 0.0, 0.0, 0.0);
+        expect_float3_eq!(sampling.result.as_ref().unwrap(), 0.0, 0.0, 0.0);
 
         sampling.ratio = 0.25;
         assert_eq!(sampling.run(), true);
-        expect_float3_eq!(sampling.result, 0.0, 1.15, 2.3);
+        expect_float3_eq!(sampling.result.as_ref().unwrap(), 0.0, 1.15, 2.3);
 
         sampling.ratio = 0.5;
         assert_eq!(sampling.run(), true);
-        expect_float3_eq!(sampling.result, 0.0, 2.3, 4.6);
+        expect_float3_eq!(sampling.result.as_ref().unwrap(), 0.0, 2.3, 4.6);
 
         sampling.ratio = 0.6;
         assert_eq!(sampling.run(), true);
-        expect_float3_eq!(sampling.result, 0.0, 2.3, 4.6);
+        expect_float3_eq!(sampling.result.as_ref().unwrap(), 0.0, 2.3, 4.6);
 
         sampling.ratio = 0.7;
         assert_eq!(sampling.run(), true);
-        expect_float3_eq!(sampling.result, 0.0, 4.6, 9.2);
+        expect_float3_eq!(sampling.result.as_ref().unwrap(), 0.0, 4.6, 9.2);
 
         sampling.ratio = 0.8;
         assert_eq!(sampling.run(), true);
-        expect_float3_eq!(sampling.result, 0.0, 2.3, 4.6);
+        expect_float3_eq!(sampling.result.as_ref().unwrap(), 0.0, 2.3, 4.6);
 
         sampling.ratio = 0.9;
         assert_eq!(sampling.run(), true);
-        expect_float3_eq!(sampling.result, 0.0, 0.0, 0.0);
+        expect_float3_eq!(sampling.result.as_ref().unwrap(), 0.0, 0.0, 0.0);
 
         sampling.ratio = 1.0;
         assert_eq!(sampling.run(), true);
-        expect_float3_eq!(sampling.result, 0.0, 0.0, 0.0);
+        expect_float3_eq!(sampling.result.as_ref().unwrap(), 0.0, 0.0, 0.0);
     }
 
     #[test]
     fn float4() {
+        let mut result = Float4::new_scalar(0.0);
+
         let mut raw_track = RawFloat4Track::new();
 
         let key0 = RawTrackKeyframe::new(
@@ -459,42 +488,45 @@ mod track_sampling_job {
         // Samples to verify build output.
         let mut sampling = Float4TrackSamplingJob::new();
         sampling.track = track.as_ref();
+        sampling.result = Some(&mut result);
 
         sampling.ratio = 0.0;
         assert_eq!(sampling.run(), true);
-        expect_float4_eq!(sampling.result, 0.0, 0.0, 0.0, 0.0);
+        expect_float4_eq!(sampling.result.as_ref().unwrap(), 0.0, 0.0, 0.0, 0.0);
 
         sampling.ratio = 0.25;
         assert_eq!(sampling.run(), true);
-        expect_float4_eq!(sampling.result, 0.0, 1.15, 0.0, 2.3);
+        expect_float4_eq!(sampling.result.as_ref().unwrap(), 0.0, 1.15, 0.0, 2.3);
 
         sampling.ratio = 0.5;
         assert_eq!(sampling.run(), true);
-        expect_float4_eq!(sampling.result, 0.0, 2.3, 0.0, 4.6);
+        expect_float4_eq!(sampling.result.as_ref().unwrap(), 0.0, 2.3, 0.0, 4.6);
 
         sampling.ratio = 0.6;
         assert_eq!(sampling.run(), true);
-        expect_float4_eq!(sampling.result, 0.0, 2.3, 0.0, 4.6);
+        expect_float4_eq!(sampling.result.as_ref().unwrap(), 0.0, 2.3, 0.0, 4.6);
 
         sampling.ratio = 0.7;
         assert_eq!(sampling.run(), true);
-        expect_float4_eq!(sampling.result, 0.0, 4.6, 0.0, 9.2);
+        expect_float4_eq!(sampling.result.as_ref().unwrap(), 0.0, 4.6, 0.0, 9.2);
 
         sampling.ratio = 0.8;
         assert_eq!(sampling.run(), true);
-        expect_float4_eq!(sampling.result, 0.0, 2.3, 0.0, 4.6);
+        expect_float4_eq!(sampling.result.as_ref().unwrap(), 0.0, 2.3, 0.0, 4.6);
 
         sampling.ratio = 0.9;
         assert_eq!(sampling.run(), true);
-        expect_float4_eq!(sampling.result, 0.0, 0.0, 0.0, 0.0);
+        expect_float4_eq!(sampling.result.as_ref().unwrap(), 0.0, 0.0, 0.0, 0.0);
 
         sampling.ratio = 1.0;
         assert_eq!(sampling.run(), true);
-        expect_float4_eq!(sampling.result, 0.0, 0.0, 0.0, 0.0);
+        expect_float4_eq!(sampling.result.as_ref().unwrap(), 0.0, 0.0, 0.0, 0.0);
     }
 
     #[test]
     fn quaternion() {
+        let mut result = Quaternion::new_default();
+
         let mut raw_track = RawQuaternionTrack::new();
 
         let key0 = RawTrackKeyframe::new(
@@ -519,41 +551,42 @@ mod track_sampling_job {
         // Samples to verify build output.
         let mut sampling = QuaternionTrackSamplingJob::new();
         sampling.track = track.as_ref();
+        sampling.result = Some(&mut result);
 
         sampling.ratio = 0.0;
         assert_eq!(sampling.run(), true);
-        expect_quaternion_eq!(sampling.result, 0.70710677, 0.0, 0.0, 0.70710677);
+        expect_quaternion_eq!(sampling.result.as_ref().unwrap(), 0.70710677, 0.0, 0.0, 0.70710677);
 
         sampling.ratio = 0.1;
         assert_eq!(sampling.run(), true);
-        expect_quaternion_eq!(sampling.result, 0.61721331, 0.15430345, 0.0, 0.77151674);
+        expect_quaternion_eq!(sampling.result.as_ref().unwrap(), 0.61721331, 0.15430345, 0.0, 0.77151674);
 
         sampling.ratio = 0.4999999;
         assert_eq!(sampling.run(), true);
-        expect_quaternion_eq!(sampling.result, 0.0, 0.70710677, 0.0, 0.70710677);
+        expect_quaternion_eq!(sampling.result.as_ref().unwrap(), 0.0, 0.70710677, 0.0, 0.70710677);
 
         sampling.ratio = 0.5;
         assert_eq!(sampling.run(), true);
-        expect_quaternion_eq!(sampling.result, 0.0, 0.70710677, 0.0, 0.70710677);
+        expect_quaternion_eq!(sampling.result.as_ref().unwrap(), 0.0, 0.70710677, 0.0, 0.70710677);
 
         sampling.ratio = 0.6;
         assert_eq!(sampling.run(), true);
-        expect_quaternion_eq!(sampling.result, 0.0, 0.70710677, 0.0, 0.70710677);
+        expect_quaternion_eq!(sampling.result.as_ref().unwrap(), 0.0, 0.70710677, 0.0, 0.70710677);
 
         sampling.ratio = 0.7;
         assert_eq!(sampling.run(), true);
-        expect_quaternion_eq!(sampling.result, 0.70710677, 0.0, 0.0, 0.70710677);
+        expect_quaternion_eq!(sampling.result.as_ref().unwrap(), 0.70710677, 0.0, 0.0, 0.70710677);
 
         sampling.ratio = 0.8;
         assert_eq!(sampling.run(), true);
-        expect_quaternion_eq!(sampling.result, 0.38268333, 0.0, 0.0, 0.92387962);
+        expect_quaternion_eq!(sampling.result.as_ref().unwrap(), 0.38268333, 0.0, 0.0, 0.92387962);
 
         sampling.ratio = 0.9;
         assert_eq!(sampling.run(), true);
-        expect_quaternion_eq!(sampling.result, 0.0, 0.0, 0.0, 1.0);
+        expect_quaternion_eq!(sampling.result.as_ref().unwrap(), 0.0, 0.0, 0.0, 1.0);
 
         sampling.ratio = 1.0;
         assert_eq!(sampling.run(), true);
-        expect_quaternion_eq!(sampling.result, 0.0, 0.0, 0.0, 1.0);
+        expect_quaternion_eq!(sampling.result.as_ref().unwrap(), 0.0, 0.0, 0.0, 1.0);
     }
 }
