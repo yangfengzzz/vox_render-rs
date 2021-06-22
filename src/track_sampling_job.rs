@@ -35,13 +35,56 @@ impl<'a, ValueType: FloatType + FloatType<ImplType=ValueType>> TrackSamplingJob<
     }
 
     // Validates all parameters.
-    pub fn validate() -> bool {
-        todo!()
+    pub fn validate(&self) -> bool {
+        let mut success = true;
+        success &= self.track.is_some();
+        return success;
     }
 
     // Validates and executes sampling.
-    pub fn run() -> bool {
-        todo!()
+    pub fn run(&mut self) -> bool {
+        if !self.validate() {
+            return false;
+        }
+
+        // Clamps ratio in range [0,1].
+        let clamped_ratio = self.ratio.clamp(0.0, 1.0);
+
+        // Search keyframes to interpolate.
+        let ratios = self.track.as_ref().unwrap().ratios();
+        let values = self.track.as_ref().unwrap().values();
+        debug_assert!(ratios.len() == values.len() && self.track.as_ref().unwrap().steps().len() * 8 >= values.len());
+
+        // Default track returns identity.
+        if ratios.len() == 0 {
+            self.result = TrackPolicy::<ValueType>::identity();
+            return true;
+        }
+
+        // Search for the first key frame with a ratio value greater than input ratio.
+        // Our ratio is between this one and the previous one.
+        let ptk1 = ratios.partition_point(|p| {
+            p > &clamped_ratio
+        });
+
+        // Deduce keys indices.
+        let id1 = ptk1;
+        let id0 = id1 - 1;
+
+        let id0step = (self.track.as_ref().unwrap().steps()[id0 / 8] & (1 << (id0 & 7))) != 0;
+        if id0step || ptk1 == ratios.len() {
+            self.result = values[id0].clone();
+        } else {
+            // Lerp relevant keys.
+            let tk0 = ratios[id0];
+            let tk1 = ratios[id1];
+            debug_assert!(clamped_ratio >= tk0 && clamped_ratio < tk1 && tk0 != tk1);
+            let alpha = (clamped_ratio - tk0) / (tk1 - tk0);
+            let vk0 = &values[id0];
+            let vk1 = &values[id1];
+            self.result = TrackPolicy::<ValueType>::lerp(vk0, vk1, alpha);
+        }
+        return true;
     }
 }
 
@@ -55,13 +98,56 @@ impl<'a> TrackSamplingJob<'a, QuaternionTrack, Quaternion> {
     }
 
     // Validates all parameters.
-    pub fn validate() -> bool {
-        todo!()
+    pub fn validate(&self) -> bool {
+        let mut success = true;
+        success &= self.track.is_some();
+        return success;
     }
 
     // Validates and executes sampling.
-    pub fn run() -> bool {
-        todo!()
+    pub fn run(&mut self) -> bool {
+        if !self.validate() {
+            return false;
+        }
+
+        // Clamps ratio in range [0,1].
+        let clamped_ratio = self.ratio.clamp(0.0, 1.0);
+
+        // Search keyframes to interpolate.
+        let ratios = self.track.as_ref().unwrap().ratios();
+        let values = self.track.as_ref().unwrap().values();
+        debug_assert!(ratios.len() == values.len() && self.track.as_ref().unwrap().steps().len() * 8 >= values.len());
+
+        // Default track returns identity.
+        if ratios.len() == 0 {
+            self.result = TrackPolicy::<Quaternion>::identity();
+            return true;
+        }
+
+        // Search for the first key frame with a ratio value greater than input ratio.
+        // Our ratio is between this one and the previous one.
+        let ptk1 = ratios.partition_point(|p| {
+            p > &clamped_ratio
+        });
+
+        // Deduce keys indices.
+        let id1 = ptk1;
+        let id0 = id1 - 1;
+
+        let id0step = (self.track.as_ref().unwrap().steps()[id0 / 8] & (1 << (id0 & 7))) != 0;
+        if id0step || ptk1 == ratios.len() {
+            self.result = values[id0].clone();
+        } else {
+            // Lerp relevant keys.
+            let tk0 = ratios[id0];
+            let tk1 = ratios[id1];
+            debug_assert!(clamped_ratio >= tk0 && clamped_ratio < tk1 && tk0 != tk1);
+            let alpha = (clamped_ratio - tk0) / (tk1 - tk0);
+            let vk0 = &values[id0];
+            let vk1 = &values[id1];
+            self.result = TrackPolicy::<Quaternion>::lerp(vk0, vk1, alpha);
+        }
+        return true;
     }
 }
 
