@@ -325,22 +325,117 @@ mod track_builder {
             assert_eq!(raw_float_track.validate(), false);
             assert_eq!(TrackBuilder::apply_float(&raw_float_track).is_none(), true);
         }
+
+        {  // Building a track with invalid key frame's ratio fails.
+            let mut raw_float_track = RawFloatTrack::new();
+
+            // Adds 2 unordered keys
+            let first_key =
+                RawTrackKeyframe::new(RawTrackInterpolation::KLinear,
+                                      1.80, Float::new_scalar(0.0));
+            raw_float_track.keyframes.push(first_key);
+
+            // Builds track
+            assert_eq!(raw_float_track.validate(), false);
+            assert_eq!(TrackBuilder::apply_float(&raw_float_track).is_none(), true);
+        }
+
+        {  // Building a track with equal key frame's ratio fails.
+            let mut raw_float_track = RawFloatTrack::new();
+
+            // Adds 2 unordered keys
+            let first_key =
+                RawTrackKeyframe::new(RawTrackInterpolation::KLinear,
+                                      0.8, Float::new_scalar(0.0));
+            raw_float_track.keyframes.push(first_key);
+            let second_key =
+                RawTrackKeyframe::new(RawTrackInterpolation::KLinear,
+                                      0.80, Float::new_scalar(1.0));
+            raw_float_track.keyframes.push(second_key);
+
+            // Builds track
+            assert_eq!(raw_float_track.validate(), false);
+            assert_eq!(TrackBuilder::apply_float(&raw_float_track).is_none(), true);
+        }
+
+        {  // Building a valid track with 1 key succeeds.
+            let mut raw_float_track = RawFloatTrack::new();
+            let first_key =
+                RawTrackKeyframe::new(RawTrackInterpolation::KLinear,
+                                      0.8, Float::new_scalar(0.0));
+            raw_float_track.keyframes.push(first_key);
+            assert_eq!(raw_float_track.validate(), true);
+
+            // Builds track
+            let track = TrackBuilder::apply_float(&raw_float_track);
+            assert_eq!(track.is_some(), true);
+        }
+    }
+
+    #[test]
+    fn name() {
+        {  // No name
+            let raw_float_track = RawFloatTrack::new();
+
+            let track = TrackBuilder::apply_float(&raw_float_track);
+            assert_eq!(track.is_some(), true);
+
+            assert_eq!(track.unwrap().name(), "");
+        }
+
+        {  // A name
+            let mut raw_float_track = RawFloatTrack::new();
+            raw_float_track.name = "test name".to_string();
+
+            let track = TrackBuilder::apply_float(&raw_float_track);
+            assert_eq!(track.is_some(), true);
+
+            assert_eq!(track.unwrap().name().clone(), raw_float_track.name);
+        }
+    }
+
+    #[test]
+    fn build0keys() {
+        todo!()
+    }
+
+    #[test]
+    fn build_linear() {
+        todo!()
+    }
+
+    #[test]
+    fn build_step() {
+        todo!()
+    }
+
+    #[test]
+    fn build_mixed() {
+        todo!()
+    }
+
+    #[test]
+    fn float() {
+        todo!()
+    }
+
+    #[test]
+    fn float2() {
+        todo!()
+    }
+
+    #[test]
+    fn float3() {
+        todo!()
+    }
+
+    #[test]
+    fn float4() {
+        todo!()
+    }
+
+    #[test]
+    fn quaternion() {
+        todo!()
     }
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
