@@ -35,6 +35,8 @@ pub mod animation_builder;
 pub mod sampling_job;
 pub mod additive_animation_builder;
 pub mod animation_optimizer;
+pub mod animation_utils;
+
 pub mod decimate;
 
 pub mod raw_track;
