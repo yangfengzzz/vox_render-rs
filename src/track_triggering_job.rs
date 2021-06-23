@@ -48,9 +48,6 @@ pub struct TrackTriggeringJob<'a> {
 
     // Track to sample.
     pub track: Option<&'a FloatTrack>,
-
-    // Job output iterator.
-    pub iterator: Option<Iter<'a>>,
 }
 
 impl<'a> TrackTriggeringJob<'a> {
@@ -60,7 +57,6 @@ impl<'a> TrackTriggeringJob<'a> {
             to: 0.0,
             threshold: 0.0,
             track: None,
-            iterator: None,
         };
     }
 
@@ -73,20 +69,17 @@ impl<'a> TrackTriggeringJob<'a> {
 
     // Validates and executes job. Execution is lazy. Iterator operator ++ is
     // actually doing the processing work.
-    pub fn run(&'a mut self) -> bool {
+    pub fn iter(&'a self) -> Option<Iter<'a>> {
         if !self.validate() {
-            return false;
+            return None;
         }
 
         // Triggering can only happen in a valid range of ratio.
         if self.from == self.to {
-            **self.iterator.as_mut().as_ref().unwrap() = self.end();
-            return true;
+            return Some(self.end());
         }
 
-        **self.iterator.as_mut().as_ref().unwrap() = Iter::new_job(self);
-
-        return true;
+        return Some(Iter::new_job(self));
     }
 
     // Returns an iterator referring to the past-the-end element. It should only
