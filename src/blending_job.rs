@@ -301,7 +301,50 @@ fn blend_layers<'a, 'b>(_args: &'b mut ProcessArgs<'a>) {
 // Blends bind pose to the output if accumulated weight is less than the
 // threshold value.
 fn blend_bind_pose<'a, 'b>(_args: &'b mut ProcessArgs<'a>) {
-    todo!()
+    // Asserts buffer sizes, which must never fail as it has been validated.
+    debug_assert!(_args.job.bind_pose.len() >= _args.num_soa_joints);
+
+    if _args.num_partial_passes == 0 {
+        // No partial blending pass detected, threshold can be tested globally.
+        let bp_weight = _args.job.threshold - _args.accumulated_weight;
+
+        if bp_weight > 0.0 {  // The bind-pose is needed if it has a weight.
+            if _args.num_passes == 0 {
+                // Strictly copying bind-pose.
+                _args.accumulated_weight = 1.0;
+                for i in 0.._args.num_soa_joints {
+                    _args.job.output[i] = _args.job.bind_pose[i];
+                }
+            } else {
+                // Updates global accumulated weight, but not per-joint weight any more
+                // because normalization stage will be global also.
+                _args.accumulated_weight = _args.job.threshold;
+
+                let simd_bp_weight = SimdFloat4::load1(bp_weight);
+
+                for i in 0.._args.num_soa_joints {
+                    let src = &_args.job.bind_pose[i];
+                    let dest = &mut _args.job.output[i];
+                    ozz_blend_n_pass(src, simd_bp_weight, dest);
+                }
+            }
+        }
+    } else {
+        // Blending passes contain partial blending, threshold must be tested for
+        // each joint.
+        let threshold = SimdFloat4::load1(_args.job.threshold);
+
+        // There's been at least 1 pass as num_partial_passes != 0.
+        debug_assert!(_args.num_passes != 0);
+
+        for i in 0.._args.num_soa_joints {
+            let src = &_args.job.bind_pose[i];
+            let dest = &mut _args.job.output[i];
+            let bp_weight = (threshold - _args.accumulated_weights[i]).max0();
+            _args.accumulated_weights[i] = threshold.max(_args.accumulated_weights[i]);
+            ozz_blend_n_pass(src, bp_weight, dest);
+        }
+    }
 }
 
 // Normalizes output rotations. Quaternion length cannot be zero as opposed
@@ -309,12 +352,94 @@ fn blend_bind_pose<'a, 'b>(_args: &'b mut ProcessArgs<'a>) {
 // Translations and scales are already normalized because weights were
 // pre-multiplied by the normalization ratio.
 fn normalize<'a, 'b>(_args: &'b mut ProcessArgs<'a>) {
-    todo!()
+    if _args.num_partial_passes == 0 {
+        // Normalization of a non-partial blending requires to apply the same
+        // division to all joints.
+        let ratio = SimdFloat4::load1(1.0 / _args.accumulated_weight);
+        for i in 0.._args.num_soa_joints {
+            let dest = &mut _args.job.output[i];
+            dest.rotation = dest.rotation.normalize_est();
+            dest.translation = dest.translation * ratio;
+            dest.scale = dest.scale * ratio;
+        }
+    } else {
+        // Partial blending normalization requires to compute the divider per-joint.
+        let one = SimdFloat4::one();
+        for i in 0.._args.num_soa_joints {
+            let ratio = one / _args.accumulated_weights[i];
+            let dest = &mut _args.job.output[i];
+            dest.rotation = dest.rotation.normalize_est();
+            dest.translation = dest.translation * ratio;
+            dest.scale = dest.scale * ratio;
+        }
+    }
 }
 
 // Process additive blending pass.
 fn add_layers<'a, 'b>(_args: &'b mut ProcessArgs<'a>) {
-    todo!()
+    // Iterates through all layers and blend them to the output.
+    for layer in _args.job.additive_layers {
+        // Asserts buffer sizes, which must never fail as it has been validated.
+        debug_assert!(layer.transform.len() >= _args.num_soa_joints);
+        debug_assert!(layer.joint_weights.is_empty() ||
+            (layer.joint_weights.len() >= _args.num_soa_joints));
+
+        // Prepares constants.
+        let one = SimdFloat4::one();
+
+        if layer.weight > 0.0 {
+            // Weight is positive, need to perform additive blending.
+            let layer_weight = SimdFloat4::load1(layer.weight);
+
+            if !layer.joint_weights.is_empty() {
+                // This layer has per-joint weights.
+                for i in 0.._args.num_soa_joints {
+                    let src = &layer.transform[i];
+                    let dest = &mut _args.job.output[i];
+                    let weight = layer_weight * layer.joint_weights[i].max0();
+                    let one_minus_weight = one - weight;
+                    let one_minus_weight_f3 = SoaFloat3::load(
+                        one_minus_weight, one_minus_weight, one_minus_weight);
+                    ozz_add_pass(src, weight, dest, &one_minus_weight_f3, &one);
+                }
+            } else {
+                // This is a full layer.
+                let one_minus_weight = one - layer_weight;
+                let one_minus_weight_f3 = SoaFloat3::load(
+                    one_minus_weight, one_minus_weight, one_minus_weight);
+
+                for i in 0.._args.num_soa_joints {
+                    let src = &layer.transform[i];
+                    let dest = &mut _args.job.output[i];
+                    ozz_add_pass(src, layer_weight, dest, &one_minus_weight_f3, &one);
+                }
+            }
+        } else if layer.weight < 0.0 {
+            // Weight is negative, need to perform subtractive blending.
+            let layer_weight = SimdFloat4::load1(-layer.weight);
+
+            if !layer.joint_weights.is_empty() {
+                // This layer has per-joint weights.
+                for i in 0.._args.num_soa_joints {
+                    let src = &layer.transform[i];
+                    let dest = &mut _args.job.output[i];
+                    let weight = layer_weight * layer.joint_weights[i].max0();
+                    let one_minus_weight = one - weight;
+                    ozz_sub_pass(src, weight, dest, &one_minus_weight, &one);
+                }
+            } else {
+                // This is a full layer.
+                let one_minus_weight = one - layer_weight;
+                for i in 0.._args.num_soa_joints {
+                    let src = &layer.transform[i];
+                    let dest = &mut _args.job.output[i];
+                    ozz_sub_pass(src, layer_weight, dest, &one_minus_weight, &one);
+                }
+            }
+        } else {
+            // Skip layer as its weight is 0.
+        }
+    }
 }
 
 // defines the process of blending the 1st pass.
