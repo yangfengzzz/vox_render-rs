@@ -10,7 +10,7 @@ use crate::vec_float::*;
 use crate::quaternion::Quaternion;
 
 // Interpolation mode.
-#[derive(Clone)]
+#[derive(Clone, PartialEq, Debug)]
 pub enum RawTrackInterpolation {
     // All values following this key, up to the next key, are equal.
     KStep,

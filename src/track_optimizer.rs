@@ -154,6 +154,9 @@ mod track_optimizer {
     use crate::track_optimizer::TrackOptimizer;
     use crate::raw_track::*;
     use crate::vec_float::*;
+    use crate::math_test_helper::*;
+    use crate::*;
+    use crate::quaternion::Quaternion;
 
     #[test]
     fn error() {
@@ -183,41 +186,337 @@ mod track_optimizer {
 
     #[test]
     fn name() {
-        todo!()
+        // Step keys aren't optimized.
+        let optimizer = TrackOptimizer::new();
+
+        let mut raw_float_track = RawFloatTrack::new();
+        raw_float_track.name = "FloatTrackOptimizer test".to_string();
+
+        let mut output = RawFloatTrack::new();
+        assert_eq!(optimizer.apply_float(&raw_float_track, &mut output), true);
+
+        assert_eq!(raw_float_track.name, output.name);
     }
 
     #[test]
     fn optimize_steps() {
-        todo!()
+        // Step keys aren't optimized.
+        let optimizer = TrackOptimizer::new();
+
+        let mut raw_float_track = RawFloatTrack::new();
+        let key0 = RawTrackKeyframe::new(RawTrackInterpolation::KStep, 0.5,
+                                         Float::new_scalar(46.0));
+        raw_float_track.keyframes.push(key0.clone());
+        let key1 = RawTrackKeyframe::new(RawTrackInterpolation::KStep, 0.7,
+                                         Float::new_scalar(0.0));
+        raw_float_track.keyframes.push(key1.clone());
+        let key2 = RawTrackKeyframe::new(RawTrackInterpolation::KStep, 0.8,
+                                         Float::new_scalar(1e-9));
+        raw_float_track.keyframes.push(key2.clone());
+
+        let mut output = RawFloatTrack::new();
+        assert_eq!(optimizer.apply_float(&raw_float_track, &mut output), true);
+
+        assert_eq!(output.keyframes.len(), 3);
+        assert_eq!(output.keyframes[0].interpolation, key0.interpolation);
+        assert_eq!(output.keyframes[0].ratio, key0.ratio);
+        assert_eq!(output.keyframes[0].value.x, key0.value.x);
+
+        assert_eq!(output.keyframes[1].interpolation, key1.interpolation);
+        assert_eq!(output.keyframes[1].ratio, key1.ratio);
+        assert_eq!(output.keyframes[1].value.x, key1.value.x);
+
+        assert_eq!(output.keyframes[2].interpolation, key2.interpolation);
+        assert_eq!(output.keyframes[2].ratio, key2.ratio);
+        assert_eq!(output.keyframes[2].value.x, key2.value.x);
     }
 
     #[test]
     fn optimize_interpolate() {
-        todo!()
+        // Step keys aren't optimized.
+        let mut optimizer = TrackOptimizer::new();
+
+        let mut raw_float_track = RawFloatTrack::new();
+        let key0 = RawTrackKeyframe::new(RawTrackInterpolation::KLinear, 0.0,
+                                         Float::new_scalar(69.0));
+        raw_float_track.keyframes.push(key0.clone());
+        let key1 = RawTrackKeyframe::new(RawTrackInterpolation::KLinear, 0.25,
+                                         Float::new_scalar(46.0));
+        raw_float_track.keyframes.push(key1.clone());
+        let key2 = RawTrackKeyframe::new(RawTrackInterpolation::KLinear, 0.5,
+                                         Float::new_scalar(23.0));
+        raw_float_track.keyframes.push(key2.clone());
+        let key3 = RawTrackKeyframe::new(RawTrackInterpolation::KLinear,
+                                         0.500001, Float::new_scalar(23.000001));
+        raw_float_track.keyframes.push(key3.clone());
+        let key4 = RawTrackKeyframe::new(RawTrackInterpolation::KLinear, 0.75,
+                                         Float::new_scalar(0.0));
+        raw_float_track.keyframes.push(key4.clone());
+        let key5 = RawTrackKeyframe::new(RawTrackInterpolation::KLinear, 0.8,
+                                         Float::new_scalar(1e-12));
+        raw_float_track.keyframes.push(key5.clone());
+        let key6 = RawTrackKeyframe::new(RawTrackInterpolation::KLinear, 1.0,
+                                         Float::new_scalar(-1e-12));
+        raw_float_track.keyframes.push(key6.clone());
+
+        {
+            let mut output = RawFloatTrack::new();
+
+            optimizer.tolerance = 1e-3;
+            assert_eq!(optimizer.apply_float(&raw_float_track, &mut output), true);
+
+            assert_eq!(output.keyframes.len(), 2);
+
+            assert_eq!(output.keyframes[0].interpolation, key0.interpolation);
+            assert_eq!(output.keyframes[0].ratio, key0.ratio);
+            assert_eq!(output.keyframes[0].value.x, key0.value.x);
+
+            assert_eq!(output.keyframes[1].interpolation, key4.interpolation);
+            assert_eq!(output.keyframes[1].ratio, key4.ratio);
+            assert_eq!(output.keyframes[1].value.x, key4.value.x);
+        }
+
+        {
+            let mut output = RawFloatTrack::new();
+            optimizer.tolerance = 1e-9;
+            assert_eq!(optimizer.apply_float(&raw_float_track, &mut output), true);
+
+            assert_eq!(output.keyframes.len(), 4);
+
+            assert_eq!(output.keyframes[0].interpolation, key0.interpolation);
+            assert_eq!(output.keyframes[0].ratio, key0.ratio);
+            assert_eq!(output.keyframes[0].value.x, key0.value.x);
+
+            assert_eq!(output.keyframes[1].interpolation, key2.interpolation);
+            assert_eq!(output.keyframes[1].ratio, key2.ratio);
+            assert_eq!(output.keyframes[1].value.x, key2.value.x);
+
+            assert_eq!(output.keyframes[2].interpolation, key3.interpolation);
+            assert_eq!(output.keyframes[2].ratio, key3.ratio);
+            assert_eq!(output.keyframes[2].value.x, key3.value.x);
+
+            assert_eq!(output.keyframes[3].interpolation, key4.interpolation);
+            assert_eq!(output.keyframes[3].ratio, key4.ratio);
+            assert_eq!(output.keyframes[3].value.x, key4.value.x);
+        }
     }
 
     #[test]
     fn float() {
-        todo!()
+        let optimizer = TrackOptimizer::new();
+
+        let mut raw_track = RawFloatTrack::new();
+        let key0 = RawTrackKeyframe::new(RawTrackInterpolation::KLinear, 0.0,
+                                         Float::new_scalar(6.9));
+        raw_track.keyframes.push(key0.clone());
+        let key1 = RawTrackKeyframe::new(RawTrackInterpolation::KLinear, 0.25,
+                                         Float::new_scalar(4.6));
+        raw_track.keyframes.push(key1.clone());
+        let key2 = RawTrackKeyframe::new(RawTrackInterpolation::KLinear, 0.5,
+                                         Float::new_scalar(2.3));
+        raw_track.keyframes.push(key2.clone());
+        let key3 = RawTrackKeyframe::new(RawTrackInterpolation::KLinear, 0.500001,
+                                         Float::new_scalar(2.300001));
+        raw_track.keyframes.push(key3.clone());
+        let key4 = RawTrackKeyframe::new(RawTrackInterpolation::KLinear, 0.75,
+                                         Float::new_scalar(0.0));
+        raw_track.keyframes.push(key4.clone());
+        let key5 = RawTrackKeyframe::new(RawTrackInterpolation::KLinear, 0.8,
+                                         Float::new_scalar(1e-12));
+        raw_track.keyframes.push(key5.clone());
+        let key6 = RawTrackKeyframe::new(RawTrackInterpolation::KLinear, 1.0,
+                                         Float::new_scalar(-1e-12));
+        raw_track.keyframes.push(key6.clone());
+
+        let mut output = RawFloatTrack::new();
+        assert_eq!(optimizer.apply_float(&raw_track, &mut output), true);
+
+        assert_eq!(output.keyframes.len(), 2);
+
+        assert_eq!(output.keyframes[0].interpolation, key0.interpolation);
+        assert_eq!(output.keyframes[0].ratio, key0.ratio);
+        assert_eq!(output.keyframes[0].value.x, key0.value.x);
+
+        assert_eq!(output.keyframes[1].interpolation, key4.interpolation);
+        assert_eq!(output.keyframes[1].ratio, key4.ratio);
+        assert_eq!(output.keyframes[1].value.x, key4.value.x);
     }
 
     #[test]
     fn float2() {
-        todo!()
+        let optimizer = TrackOptimizer::new();
+
+        let mut raw_track = RawFloat2Track::new();
+        let key0 = RawTrackKeyframe::new(RawTrackInterpolation::KLinear, 0.0,
+                                         Float2::new(6.9, 0.0));
+        raw_track.keyframes.push(key0.clone());
+        let key1 = RawTrackKeyframe::new(RawTrackInterpolation::KLinear, 0.25,
+                                         Float2::new(4.6, 0.0));
+        raw_track.keyframes.push(key1.clone());
+        let key2 = RawTrackKeyframe::new(RawTrackInterpolation::KLinear, 0.5,
+                                         Float2::new(2.3, 0.0));
+        raw_track.keyframes.push(key2.clone());
+        let key3 = RawTrackKeyframe::new(RawTrackInterpolation::KLinear,
+                                         0.500001,
+                                         Float2::new(2.3000001, 0.0));
+        raw_track.keyframes.push(key3.clone());
+        let key4 = RawTrackKeyframe::new(RawTrackInterpolation::KLinear, 0.75,
+                                         Float2::new(0.0, 0.0));
+        raw_track.keyframes.push(key4.clone());
+        let key5 = RawTrackKeyframe::new(RawTrackInterpolation::KLinear, 0.8,
+                                         Float2::new(0.0, 1e-12));
+        raw_track.keyframes.push(key5.clone());
+        let key6 = RawTrackKeyframe::new(RawTrackInterpolation::KLinear, 1.0,
+                                         Float2::new(-1e-12, 0.0));
+        raw_track.keyframes.push(key6.clone());
+
+        let mut output = RawFloat2Track::new();
+        assert_eq!(optimizer.apply_float2(&raw_track, &mut output), true);
+
+        assert_eq!(output.keyframes.len(), 2);
+
+        assert_eq!(output.keyframes[0].interpolation, key0.interpolation);
+        assert_eq!(output.keyframes[0].ratio, key0.ratio);
+        expect_float2_eq!(output.keyframes[0].value, key0.value.x, key0.value.y);
+
+        assert_eq!(output.keyframes[1].interpolation, key4.interpolation);
+        assert_eq!(output.keyframes[1].ratio, key4.ratio);
+        expect_float2_eq!(output.keyframes[1].value, key4.value.x, key4.value.y);
     }
 
     #[test]
     fn float3() {
-        todo!()
+        let optimizer = TrackOptimizer::new();
+
+        let mut raw_track = RawFloat3Track::new();
+        let key0 = RawTrackKeyframe::new(RawTrackInterpolation::KLinear, 0.0,
+                                         Float3::new(6.9, 0.0, 0.0));
+        raw_track.keyframes.push(key0.clone());
+        let key1 = RawTrackKeyframe::new(RawTrackInterpolation::KLinear, 0.25,
+                                         Float3::new(4.6, 0.0, 0.0));
+        raw_track.keyframes.push(key1.clone());
+        let key2 = RawTrackKeyframe::new(RawTrackInterpolation::KLinear, 0.5,
+                                         Float3::new(2.3, 0.0, 0.0));
+        raw_track.keyframes.push(key2.clone());
+        let key3 = RawTrackKeyframe::new(RawTrackInterpolation::KLinear, 0.500001,
+                                         Float3::new(2.3000001, 0.0, 0.0));
+        raw_track.keyframes.push(key3.clone());
+        let key4 = RawTrackKeyframe::new(RawTrackInterpolation::KLinear, 0.75,
+                                         Float3::new(0.0, 0.0, 0.0));
+        raw_track.keyframes.push(key4.clone());
+        let key5 = RawTrackKeyframe::new(RawTrackInterpolation::KLinear, 0.8,
+                                         Float3::new(0.0, 0.0, 1e-12));
+        raw_track.keyframes.push(key5.clone());
+        let key6 = RawTrackKeyframe::new(RawTrackInterpolation::KLinear, 1.0,
+                                         Float3::new(0.0, -1e-12, 0.0));
+        raw_track.keyframes.push(key6.clone());
+
+        let mut output = RawFloat3Track::new();
+        assert_eq!(optimizer.apply_float3(&raw_track, &mut output), true);
+
+        assert_eq!(output.keyframes.len(), 2);
+
+        assert_eq!(output.keyframes[0].interpolation, key0.interpolation);
+        assert_eq!(output.keyframes[0].ratio, key0.ratio);
+        expect_float3_eq!(output.keyframes[0].value, key0.value.x, key0.value.y,
+                         key0.value.z);
+
+        assert_eq!(output.keyframes[1].interpolation, key4.interpolation);
+        assert_eq!(output.keyframes[1].ratio, key4.ratio);
+        expect_float3_eq!(output.keyframes[1].value, key4.value.x, key4.value.y,
+                         key4.value.z);
     }
 
     #[test]
     fn float4() {
-        todo!()
+        let optimizer = TrackOptimizer::new();
+
+        let mut raw_track = RawFloat4Track::new();
+        let key0 = RawTrackKeyframe::new(RawTrackInterpolation::KLinear, 0.0,
+                                         Float4::new(6.9, 0.0, 0.0, 0.0));
+        raw_track.keyframes.push(key0.clone());
+        let key1 = RawTrackKeyframe::new(RawTrackInterpolation::KLinear, 0.25,
+                                         Float4::new(4.6, 0.0, 0.0, 0.0));
+        raw_track.keyframes.push(key1.clone());
+        let key2 = RawTrackKeyframe::new(RawTrackInterpolation::KLinear, 0.5,
+                                         Float4::new(2.3, 0.0, 0.0, 0.0));
+        raw_track.keyframes.push(key2.clone());
+        let key3 = RawTrackKeyframe::new(RawTrackInterpolation::KLinear, 0.500001,
+                                         Float4::new(2.3000001, 0.0, 0.0, 0.0));
+        raw_track.keyframes.push(key3.clone());
+        let key4 = RawTrackKeyframe::new(RawTrackInterpolation::KLinear, 0.75,
+                                         Float4::new(0.0, 0.0, 0.0, 0.0));
+        raw_track.keyframes.push(key4.clone());
+        let key5 = RawTrackKeyframe::new(RawTrackInterpolation::KLinear, 0.8,
+                                         Float4::new(0.0, 0.0, 0.0, 1e-12));
+        raw_track.keyframes.push(key5.clone());
+        let key6 = RawTrackKeyframe::new(RawTrackInterpolation::KLinear, 1.0,
+                                         Float4::new(0.0, 0.0, 0.0, -1e-12));
+        raw_track.keyframes.push(key6.clone());
+
+        let mut output = RawFloat4Track::new();
+        assert_eq!(optimizer.apply_float4(&raw_track, &mut output), true);
+
+        assert_eq!(output.keyframes.len(), 2);
+
+        assert_eq!(output.keyframes[0].interpolation, key0.interpolation);
+        assert_eq!(output.keyframes[0].ratio, key0.ratio);
+        expect_float4_eq!(output.keyframes[0].value, key0.value.x, key0.value.y,
+                         key0.value.z, key0.value.w);
+
+        assert_eq!(output.keyframes[1].interpolation, key4.interpolation);
+        assert_eq!(output.keyframes[1].ratio, key4.ratio);
+        expect_float4_eq!(output.keyframes[1].value, key4.value.x, key4.value.y,
+                         key4.value.z, key0.value.w);
     }
 
     #[test]
     fn quaternion() {
-        todo!()
+        let optimizer = TrackOptimizer::new();
+
+        let mut raw_track = RawQuaternionTrack::new();
+        let key0 = RawTrackKeyframe::new(
+            RawTrackInterpolation::KLinear, 0.0,
+            Quaternion::new(0.70710677, 0.0, 0.0, 0.70710677));
+        raw_track.keyframes.push(key0.clone());
+        let key1 = RawTrackKeyframe::new(
+            RawTrackInterpolation::KLinear, 0.1,
+            Quaternion::new(0.6172133, 0.1543033, 0.0, 0.7715167));  // NLerp
+        raw_track.keyframes.push(key1.clone());
+        let key2 = RawTrackKeyframe::new(
+            RawTrackInterpolation::KLinear, 0.5,
+            Quaternion::new(0.0, 0.70710677, 0.0, 0.70710677));
+        raw_track.keyframes.push(key2.clone());
+        let key3 = RawTrackKeyframe::new(
+            RawTrackInterpolation::KLinear, 0.500001,
+            Quaternion::new(0.0, 0.70710676, 0.0, 0.70710678));
+        raw_track.keyframes.push(key3.clone());
+        let key4 = RawTrackKeyframe::new(
+            RawTrackInterpolation::KLinear, 0.75,
+            Quaternion::new(0.0, 0.70710677, 0.0, 0.70710677));
+        raw_track.keyframes.push(key4.clone());
+        let key5 = RawTrackKeyframe::new(
+            RawTrackInterpolation::KLinear, 0.8,
+            Quaternion::new(-0.0, -0.70710677, -0.0, -0.70710677));
+        raw_track.keyframes.push(key5.clone());
+        let key6 = RawTrackKeyframe::new(
+            RawTrackInterpolation::KLinear, 1.0,
+            Quaternion::new(0.0, 0.70710677, 0.0, 0.70710677));
+        raw_track.keyframes.push(key6.clone());
+
+        let mut output = RawQuaternionTrack::new();
+        assert_eq!(optimizer.apply_quat(&raw_track, &mut output), true);
+
+        assert_eq!(output.keyframes.len(), 2);
+
+        assert_eq!(output.keyframes[0].interpolation, key0.interpolation);
+        assert_eq!(output.keyframes[0].ratio, key0.ratio);
+        expect_quaternion_eq!(output.keyframes[0].value, key0.value.x, key0.value.y,
+                             key0.value.z, key0.value.w);
+
+        assert_eq!(output.keyframes[1].interpolation, key2.interpolation);
+        assert_eq!(output.keyframes[1].ratio, key2.ratio);
+        expect_quaternion_eq!(output.keyframes[1].value, key2.value.x, key2.value.y,
+                             key2.value.z, key2.value.w);
     }
 }
