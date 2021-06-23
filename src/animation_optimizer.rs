@@ -79,12 +79,12 @@ impl AnimationOptimizer {
     // version of _input animation.
     // *_output must be a valid RawAnimation instance.
     // Returns false on failure and resets _output to an empty animation.
-    // See RawAnimation::Validate() for more details about failure reasons.
+    // See RawAnimation::validate() for more details about failure reasons.
     pub fn apply(&self, _input: &RawAnimation, _skeleton: &Skeleton, _output: &mut RawAnimation) -> bool {
         // Reset output animation to default.
         *_output = RawAnimation::new();
 
-        // Validate animation.
+        // validate animation.
         if !_input.validate() {
             return false;
         }

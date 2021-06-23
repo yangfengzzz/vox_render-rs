@@ -20,7 +20,7 @@ pub struct TrackBuilder {}
 impl TrackBuilder {
     // Creates a Track based on _raw_track and *this builder parameters.
     // Returns a track instance on success, an empty unique_ptr on failure. See
-    // Raw*Track::Validate() for more details about failure reasons.
+    // Raw*Track::validate() for more details about failure reasons.
     // The track is returned as an unique_ptr as ownership is given back to the
     // caller.
     pub fn apply_float(_input: &RawFloatTrack) -> Option<FloatTrack> {

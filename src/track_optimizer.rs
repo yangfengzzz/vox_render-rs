@@ -36,7 +36,7 @@ impl TrackOptimizer {
     // version of _input track.
     // *_output must be a valid Raw*Track instance.
     // Returns false on failure and resets _output to an empty track.
-    // See Raw*Track::Validate() for more details about failure reasons.
+    // See Raw*Track::validate() for more details about failure reasons.
     pub fn apply_float(&self, _input: &RawFloatTrack, _output: &mut RawFloatTrack) -> bool {
         return optimize(self.tolerance, _input, _output);
     }
@@ -110,7 +110,7 @@ fn optimize<ValueType: FloatType + FloatType<ImplType=ValueType>>(
     // Reset output animation to default.
     *_output = RawTrack::new();
 
-    // Validate animation.
+    // validate animation.
     if !_input.validate() {
         return false;
     }
@@ -131,7 +131,7 @@ fn optimize_quat(
     // Reset output animation to default.
     *_output = RawTrack::new();
 
-    // Validate animation.
+    // validate animation.
     if !_input.validate() {
         return false;
     }

@@ -80,7 +80,7 @@ impl<'a> SamplingJob<'a> {
     }
 
     // Runs job's sampling task.
-    // The job is validated before any operation is performed, see Validate() for
+    // The job is validated before any operation is performed, see validate() for
     // more details.
     // Returns false if *this job is not valid.
     pub fn run(&mut self) -> bool {
