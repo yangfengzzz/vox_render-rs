@@ -288,6 +288,9 @@ fn fixup(_keyframes: &mut Vec<RawTrackKeyframe<Quaternion>>) {
     }
 }
 
+//--------------------------------------------------------------------------------------------------
+//--------------------------------------------------------------------------------------------------
+//--------------------------------------------------------------------------------------------------
 #[cfg(test)]
 mod track_builder {
     use crate::track_builder::TrackBuilder;
@@ -536,7 +539,7 @@ mod track_builder {
 
             sampling.ratio = 0.6;
             assert_eq!(sampling.run(), true);
-            assert_eq!(sampling.result.as_ref().unwrap().x, 23.0);
+            expect_near!(sampling.result.as_ref().unwrap().x, 23.0, 100.0*f32::EPSILON);
 
             sampling.ratio = 0.7;
             assert_eq!(sampling.run(), true);
@@ -1026,7 +1029,7 @@ mod track_builder {
 
             sampling.ratio = 0.6;
             assert_eq!(sampling.run(), true);
-            assert_eq!(sampling.result.as_ref().unwrap().x, 34.5);
+            expect_near!(sampling.result.as_ref().unwrap().x, 34.5, 100.0*f32::EPSILON);
 
             sampling.ratio = 0.7;
             assert_eq!(sampling.run(), true);

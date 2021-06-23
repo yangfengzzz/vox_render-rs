@@ -162,6 +162,9 @@ pub type Float3TrackSamplingJob<'a> = TrackSamplingJob<'a, Float3Track, Float3>;
 pub type Float4TrackSamplingJob<'a> = TrackSamplingJob<'a, Float4Track, Float4>;
 pub type QuaternionTrackSamplingJob<'a> = TrackSamplingJob<'a, QuaternionTrack, Quaternion>;
 
+//--------------------------------------------------------------------------------------------------
+//--------------------------------------------------------------------------------------------------
+//--------------------------------------------------------------------------------------------------
 #[cfg(test)]
 mod track_sampling_job {
     use crate::raw_track::*;
