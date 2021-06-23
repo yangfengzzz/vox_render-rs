@@ -247,3 +247,61 @@ fn detect_edge(_i0: i64, _i1: i64, _forward: bool,
     }
     return detected;
 }
+
+#[cfg(test)]
+mod track_triggering_job {
+    #[test]
+    fn job_validity() {
+        todo!()
+    }
+
+    #[test]
+    fn default() {
+        todo!()
+    }
+
+    #[test]
+    fn empty() {
+        todo!()
+    }
+
+    #[test]
+    fn iterator() {
+        todo!()
+    }
+
+    #[test]
+    fn no_range() {
+        todo!()
+    }
+
+    #[test]
+    fn square_step() {
+        todo!()
+    }
+
+    #[test]
+    fn linear() {
+        todo!()
+    }
+
+    #[test]
+    fn mixed() {
+        todo!()
+    }
+
+    #[test]
+    fn step_threshold() {
+        todo!()
+    }
+
+    #[test]
+    fn step_threshold_bool() {
+        todo!()
+    }
+
+    #[test]
+    fn linear_threshold() {
+        todo!()
+    }
+}
