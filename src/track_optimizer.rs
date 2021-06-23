@@ -151,11 +151,73 @@ fn optimize_quat(
 //--------------------------------------------------------------------------------------------------
 #[cfg(test)]
 mod track_optimizer {
+    use crate::track_optimizer::TrackOptimizer;
+    use crate::raw_track::*;
+    use crate::vec_float::*;
+
     #[test]
     fn error() {
+        let optimizer = TrackOptimizer::new();
+
+        {  // Invalid input animation.
+            let mut input = RawFloatTrack::new();
+            input.keyframes.resize(1, RawTrackKeyframe {
+                interpolation: RawTrackInterpolation::KStep,
+                ratio: 0.0,
+                value: Float::new_default(),
+            });
+            input.keyframes[0].ratio = 99.0;
+            assert_eq!(input.validate(), false);
+
+            // Builds animation
+            let mut output = RawFloatTrack::new();
+            output.keyframes.resize(1, RawTrackKeyframe {
+                interpolation: RawTrackInterpolation::KStep,
+                ratio: 0.0,
+                value: Float::new_default(),
+            });
+            assert_eq!(optimizer.apply_float(&input, &mut output), false);
+            assert_eq!(output.keyframes.len(), 0);
+        }
+    }
+
+    #[test]
+    fn name() {
+        todo!()
+    }
+
+    #[test]
+    fn optimize_steps() {
+        todo!()
+    }
+
+    #[test]
+    fn optimize_interpolate() {
+        todo!()
+    }
+
+    #[test]
+    fn float() {
+        todo!()
+    }
+
+    #[test]
+    fn float2() {
+        todo!()
+    }
+
+    #[test]
+    fn float3() {
+        todo!()
+    }
+
+    #[test]
+    fn float4() {
+        todo!()
+    }
+
+    #[test]
+    fn quaternion() {
         todo!()
     }
 }
-
-
-
