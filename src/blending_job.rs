@@ -8,6 +8,8 @@
 
 use crate::soa_transform::SoaTransform;
 use crate::simd_math::SimdFloat4;
+use crate::soa_quaternion::SoaQuaternion;
+use crate::soa_float::SoaFloat3;
 
 // Defines a layer of blending input data (local space transforms) and
 // parameters (weights).
@@ -88,7 +90,7 @@ pub struct BlendingJob<'a> {
     // transforms during job execution.
     // Must be at least as big as the bind pose buffer, but only the number of
     // transforms defined by the bind pose buffer size will be processed.
-    pub output: &'a [SoaTransform],
+    pub output: &'a mut [SoaTransform],
 }
 
 impl<'a> BlendingJob<'a> {
@@ -99,7 +101,7 @@ impl<'a> BlendingJob<'a> {
             layers: &[],
             additive_layers: &[],
             bind_pose: &[],
-            output: &[],
+            output: &mut [],
         };
     }
 
@@ -148,7 +150,7 @@ impl<'a> BlendingJob<'a> {
     // The job is validated before any operation is performed, see validate() for
     // more details.
     // Returns false if *this job is not valid.
-    pub fn run(&mut self) -> bool {
+    pub fn run(&'a mut self) -> bool {
         if !self.validate() {
             return false;
         }
@@ -200,7 +202,7 @@ struct ProcessArgs<'a> {
     accumulated_weights: [SimdFloat4; crate::skeleton::Constants::KMaxSoAJoints as usize],
 
     // The job to process.
-    job: &'a BlendingJob<'a>,
+    job: &'a mut BlendingJob<'a>,
 
     // The number of transforms to process as defined by the size of the bind
     // pose.
@@ -218,11 +220,11 @@ struct ProcessArgs<'a> {
 }
 
 impl<'a> ProcessArgs<'a> {
-    fn new(_job: &'a BlendingJob<'a>) -> ProcessArgs<'a> {
+    fn new(_job: &'a mut BlendingJob<'a>) -> ProcessArgs<'a> {
         let args = ProcessArgs {
             accumulated_weights: [SimdFloat4::zero(); crate::skeleton::Constants::KMaxSoAJoints as usize],
-            job: _job,
             num_soa_joints: _job.bind_pose.len(),
+            job: _job,
             num_passes: 0,
             num_partial_passes: 0,
             accumulated_weight: 0.0,
@@ -235,13 +237,70 @@ impl<'a> ProcessArgs<'a> {
 }
 
 // Blends all layers of the job to its output.
-fn blend_layers(_args: &mut ProcessArgs) {
-    todo!()
+fn blend_layers<'a, 'b>(_args: &'b mut ProcessArgs<'a>) {
+    // Iterates through all layers and blend them to the output.
+    for layer in _args.job.layers {
+        // Asserts buffer sizes, which must never fail as it has been validated.
+        debug_assert!(layer.transform.len() >= _args.num_soa_joints);
+        debug_assert!(layer.joint_weights.is_empty() ||
+            (layer.joint_weights.len() >= _args.num_soa_joints));
+
+        // Skip irrelevant layers.
+        if layer.weight <= 0.0 {
+            continue;
+        }
+
+        // Accumulates global weights.
+        _args.accumulated_weight += layer.weight;
+        let layer_weight = SimdFloat4::load1(layer.weight);
+
+        if !layer.joint_weights.is_empty() {
+            // This layer has per-joint weights.
+            _args.num_partial_passes += 1;
+
+            if _args.num_passes == 0 {
+                for i in 0.._args.num_soa_joints {
+                    let src = &layer.transform[i];
+                    let dest = &mut _args.job.output[i];
+                    let weight = layer_weight * layer.joint_weights[i].max0();
+                    _args.accumulated_weights[i] = weight;
+                    ozz_blend_1st_pass(src, weight, dest);
+                }
+            } else {
+                for i in 0.._args.num_soa_joints {
+                    let src = &layer.transform[i];
+                    let dest = &mut _args.job.output[i];
+                    let weight = layer_weight * layer.joint_weights[i].max0();
+                    _args.accumulated_weights[i] = _args.accumulated_weights[i] + weight;
+                    ozz_blend_n_pass(src, weight, dest);
+                }
+            }
+        } else {
+            // This is a full layer.
+            if _args.num_passes == 0 {
+                for i in 0.._args.num_soa_joints {
+                    let src = &layer.transform[i];
+                    let dest = &mut _args.job.output[i];
+                    _args.accumulated_weights[i] = layer_weight;
+                    ozz_blend_1st_pass(src, layer_weight, dest);
+                }
+            } else {
+                for i in 0.._args.num_soa_joints {
+                    let src = &layer.transform[i];
+                    let dest = &mut _args.job.output[i];
+                    _args.accumulated_weights[i] = _args.accumulated_weights[i] + layer_weight;
+                    ozz_blend_n_pass(src, layer_weight, dest);
+                }
+            }
+        }
+        // One more pass blended.
+        _args.num_passes += 1;
+    }
 }
 
 // Blends bind pose to the output if accumulated weight is less than the
 // threshold value.
-fn blend_bind_pose(_args: &mut ProcessArgs) {
+fn blend_bind_pose<'a, 'b>(_args: &'b mut ProcessArgs<'a>) {
     todo!()
 }
 
@@ -249,11 +308,71 @@ fn blend_bind_pose(_args: &mut ProcessArgs) {
 // quaternions have been fixed up during blending passes.
 // Translations and scales are already normalized because weights were
 // pre-multiplied by the normalization ratio.
-fn normalize(_args: &mut ProcessArgs) {
+fn normalize<'a, 'b>(_args: &'b mut ProcessArgs<'a>) {
     todo!()
 }
 
 // Process additive blending pass.
-fn add_layers(_args: &mut ProcessArgs) {
+fn add_layers<'a, 'b>(_args: &'b mut ProcessArgs<'a>) {
     todo!()
+}
+
+// defines the process of blending the 1st pass.
+fn ozz_blend_1st_pass(_in: &SoaTransform, _simd_weight: SimdFloat4, _out: &mut SoaTransform) {
+    _out.translation = _in.translation * _simd_weight;
+    _out.rotation = _in.rotation * _simd_weight;
+    _out.scale = _in.scale * _simd_weight;
+}
+
+// defines the process of blending any pass but the first.
+fn ozz_blend_n_pass(_in: &SoaTransform, _simd_weight: SimdFloat4, _out: &mut SoaTransform) {
+    /* Blends translation. */
+    _out.translation = _out.translation + _in.translation * _simd_weight;
+    /* Blends rotations, negates opposed quaternions to be sure to choose*/
+    /* the shortest path between the two.*/
+    let sign = _out.rotation.dot(&_in.rotation).sign();
+    let rotation = SoaQuaternion::load(_in.rotation.x.xor_fi(sign), _in.rotation.y.xor_fi(sign),
+                                       _in.rotation.z.xor_fi(sign), _in.rotation.w.xor_fi(sign));
+    _out.rotation = _out.rotation + rotation * _simd_weight;
+    /* Blends scales.*/
+    _out.scale = _out.scale + _in.scale * _simd_weight;
+}
+
+// Macro that defines the process of adding a pass.
+fn ozz_add_pass(_in: &SoaTransform, _simd_weight: SimdFloat4, _out: &mut SoaTransform,
+                one_minus_weight_f3: &SoaFloat3, one: &SimdFloat4) {
+    _out.translation = _out.translation + _in.translation * _simd_weight;
+    /* Interpolate quaternion between identity and src.rotation.*/
+    /* Quaternion sign is fixed up, so that lerp takes the shortest path.*/
+    let sign = _in.rotation.w.sign();
+    let rotation = SoaQuaternion::load(
+        _in.rotation.x.xor_fi(sign), _in.rotation.y.xor_fi(sign),
+        _in.rotation.z.xor_fi(sign), _in.rotation.w.xor_fi(sign));
+    let interp_quat = SoaQuaternion::load(
+        rotation.x * _simd_weight, rotation.y * _simd_weight,
+        rotation.z * _simd_weight, (rotation.w - *one) * _simd_weight + *one);
+    _out.rotation = interp_quat.normalize_est() * _out.rotation;
+    _out.scale =
+        _out.scale * (*one_minus_weight_f3 + (_in.scale * _simd_weight));
+}
+
+// Macro that defines the process of subtracting a pass.
+fn ozz_sub_pass(_in: &SoaTransform, _simd_weight: SimdFloat4, _out: &mut SoaTransform,
+                one_minus_weight: &SimdFloat4, one: &SimdFloat4) {
+    _out.translation = _out.translation - _in.translation * _simd_weight;
+    /* Interpolate quaternion between identity and src.rotation.*/
+    /* Quaternion sign is fixed up, so that lerp takes the shortest path.*/
+    let sign = _in.rotation.w.sign();
+    let rotation = SoaQuaternion::load(
+        _in.rotation.x.xor_fi(sign), _in.rotation.y.xor_fi(sign),
+        _in.rotation.z.xor_fi(sign), _in.rotation.w.xor_fi(sign));
+    let interp_quat = SoaQuaternion::load(
+        rotation.x * _simd_weight, rotation.y * _simd_weight,
+        rotation.z * _simd_weight, (rotation.w - *one) * _simd_weight + *one);
+    _out.rotation = interp_quat.normalize_est().conjugate() * _out.rotation;
+    let rcp_scale = SoaFloat3::load(
+        _in.scale.x.madd(_simd_weight, *one_minus_weight).rcp_est(),
+        _in.scale.y.madd(_simd_weight, *one_minus_weight).rcp_est(),
+        _in.scale.z.madd(_simd_weight, *one_minus_weight).rcp_est());
+    _out.scale = _out.scale * rcp_scale;
 }
