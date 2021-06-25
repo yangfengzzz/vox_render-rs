@@ -1313,7 +1313,7 @@ mod blending_job {
             expect_soa_quaternion_eq_est!(output_transforms[0].rotation, 0.0, 0.0, 0.0,
                                         0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0,
                                         1.0, 1.0, 1.0, 1.0);
-            expect_soa_float3_eq!(output_transforms[0].scale, 1.0, 1.0, 1.0, 1.0, 1.0,
+            expect_soa_float3_eq_est!(output_transforms[0].scale, 1.0, 1.0, 1.0, 1.0, 1.0,
                                     1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0);
         }
     }
