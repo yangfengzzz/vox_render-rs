@@ -501,3 +501,146 @@ fn ozz_sub_pass(_in: &SoaTransform, _simd_weight: SimdFloat4, _out: &mut SoaTran
         _in.scale.z.madd(_simd_weight, *one_minus_weight).rcp_est());
     _out.scale = _out.scale * rcp_scale;
 }
+
+//--------------------------------------------------------------------------------------------------
+//--------------------------------------------------------------------------------------------------
+//--------------------------------------------------------------------------------------------------
+#[cfg(test)]
+mod blending_job{
+    use crate::soa_transform::SoaTransform;
+    use crate::simd_math::SimdFloat4;
+    use crate::blending_job::{BlendingJob, Layer};
+
+    #[test]
+    fn job_validity() {
+        let identity = SoaTransform::identity();
+        let zero = SimdFloat4::zero();
+        let mut layers = [Layer::new(), Layer::new()];
+        let bind_poses = [identity, identity, identity];
+        let input_transforms = [identity, identity, identity];
+        let mut output_transforms = [identity, identity, identity];
+        let joint_weights = [zero, zero, zero];
+
+        layers[0].transform = &input_transforms[..];
+        layers[1].transform = &input_transforms[0..2];
+
+        {  // Empty/default job.
+            let mut job = BlendingJob::new();
+            assert_eq!(job.validate(), false);
+            assert_eq!(job.run(), false);
+        }
+
+        {  // Invalid output.
+            let mut job = BlendingJob::new();
+            job.layers = &layers[0..2];
+            job.bind_pose = &bind_poses[0..2];
+            assert_eq!(job.validate(), false);
+            assert_eq!(job.run(), false);
+        }
+        {  // Layers are optional.
+            let mut job = BlendingJob::new();
+            job.bind_pose = &bind_poses[0..2];
+            job.output = &mut output_transforms[0..2];
+            assert_eq!(job.validate(), true);
+            assert_eq!(job.run(), true);
+        }
+        {  // Invalid bind pose.
+            let mut job = BlendingJob::new();
+            job.layers = &layers[0..2];
+            job.output = &mut output_transforms[0..2];
+            assert_eq!(job.validate(), false);
+            assert_eq!(job.run(), false);
+        }
+        {  // Invalid layer input range, too small.
+            let mut invalid_layers = [Layer::new(), Layer::new()];
+            invalid_layers[0].transform = &input_transforms[0..1];
+            invalid_layers[1].transform = &input_transforms[0..2];
+
+            let mut job = BlendingJob::new();
+            job.layers = &invalid_layers[..];
+            job.bind_pose = &bind_poses[0..2];
+            job.output = &mut output_transforms[0..2];
+            assert_eq!(job.validate(), false);
+            assert_eq!(job.run(), false);
+        }
+        {  // Invalid output range, smaller output.
+            let mut job = BlendingJob::new();
+            job.layers = &layers[0..2];
+            job.bind_pose = &bind_poses[0..2];
+            job.output = &mut output_transforms[0..1];
+            assert_eq!(job.validate(), false);
+            assert_eq!(job.run(), false);
+        }
+
+        {  // Invalid smaller input.
+            let mut job = BlendingJob::new();
+            job.layers = &layers[0..2];
+            job.bind_pose = &bind_poses[0..3];
+            job.output = &mut output_transforms[0..3];
+            assert_eq!(job.validate(), false);
+            assert_eq!(job.run(), false);
+        }
+
+        {  // Invalid threshold.
+            let mut job = BlendingJob::new();
+            job.threshold = 0.0;
+            job.layers = &layers[0..2];
+            job.bind_pose = &bind_poses[0..2];
+            job.output = &mut output_transforms[0..2];
+            assert_eq!(job.validate(), false);
+            assert_eq!(job.run(), false);
+        }
+
+        {  // Invalid joint weights range.
+            layers[0].joint_weights = &joint_weights[0..1];
+
+            let mut job = BlendingJob::new();
+            job.layers = &layers[0..2];
+            job.bind_pose = &bind_poses[0..2];
+            job.output = &mut output_transforms[0..2];
+            assert_eq!(job.validate(), false);
+            assert_eq!(job.run(), false);
+        }
+
+        // {  // Valid job.
+        //     layers[0].joint_weights = {nullptr, nullptr};
+        //
+        //     let mut job = BlendingJob::new();
+        //     job.layers = &layers[0..2];
+        //     job.bind_pose = &bind_poses[0..2];
+        //     job.output = &mut output_transforms[0..2];
+        //     assert_eq!(job.validate(), true);
+        //     assert_eq!(job.run(), true);
+        // }
+
+        {  // Valid joint weights range.
+            layers[0].joint_weights = &joint_weights[0..2];
+
+            let mut job = BlendingJob::new();
+            job.layers = &layers[0..2];
+            job.bind_pose = &bind_poses[0..2];
+            job.output = &mut output_transforms[0..2];
+            assert_eq!(job.validate(), true);
+            assert_eq!(job.run(), true);
+        }
+
+        {  // Valid job, bigger output.
+            layers[0].joint_weights = &joint_weights[0..2];
+
+            let mut job = BlendingJob::new();
+            job.layers = &layers[0..2];
+            job.bind_pose = &bind_poses[0..2];
+            job.output = &mut output_transforms[0..3];
+            assert_eq!(job.validate(), true);
+            assert_eq!(job.run(), true);
+        }
+
+        {  // Valid no layers.
+            let mut job = BlendingJob::new();
+            job.bind_pose = &bind_poses[0..2];
+            job.output = &mut output_transforms[0..2];
+            assert_eq!(job.validate(), true);
+            assert_eq!(job.run(), true);
+        }
+    }
+}
