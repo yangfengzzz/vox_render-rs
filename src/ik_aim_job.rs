@@ -236,3 +236,73 @@ fn compute_offsetted_forward(_forward: SimdFloat4, _offset: SimdFloat4,
 
     return true;
 }
+
+//--------------------------------------------------------------------------------------------------
+//--------------------------------------------------------------------------------------------------
+//--------------------------------------------------------------------------------------------------
+#[cfg(test)]
+mod ik_aim_job {
+    use crate::math_test_helper::*;
+    use crate::simd_math::*;
+    use crate::*;
+
+    #[test]
+    fn job_validity() {
+        todo!()
+    }
+
+    #[test]
+    fn correction() {
+        todo!()
+    }
+
+    #[test]
+    fn forward() {
+        todo!()
+    }
+
+    #[test]
+    fn up() {
+        todo!()
+    }
+
+    #[test]
+    fn pole() {
+        todo!()
+    }
+
+    #[test]
+    fn offset() {
+        todo!()
+    }
+
+    #[test]
+    fn twist() {
+        todo!()
+    }
+
+    #[test]
+    fn aligned_target_up() {
+        todo!()
+    }
+
+    #[test]
+    fn aligned_target_pole() {
+        todo!()
+    }
+
+    #[test]
+    fn target_too_close() {
+        todo!()
+    }
+
+    #[test]
+    fn weight() {
+        todo!()
+    }
+
+    #[test]
+    fn zero_scale() {
+        todo!()
+    }
+}

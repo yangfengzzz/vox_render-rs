@@ -408,3 +408,73 @@ fn weight_output(_job: &mut IKTwoBoneJob, _setup: &IKConstantSetup, _start_rot: 
         _job.mid_joint_correction.as_mut().unwrap().xyzw = mid_rot_fu;
     }
 }
+
+//--------------------------------------------------------------------------------------------------
+//--------------------------------------------------------------------------------------------------
+//--------------------------------------------------------------------------------------------------
+#[cfg(test)]
+mod ik_two_bone_job {
+    use crate::math_test_helper::*;
+    use crate::simd_math::*;
+    use crate::*;
+
+    #[test]
+    fn job_validity() {
+        todo!()
+    }
+
+    #[test]
+    fn start_joint_correction() {
+        todo!()
+    }
+
+    #[test]
+    fn pole() {
+        todo!()
+    }
+
+    #[test]
+    fn zero_scale() {
+        todo!()
+    }
+
+    #[test]
+    fn soften() {
+        todo!()
+    }
+
+    #[test]
+    fn twist() {
+        todo!()
+    }
+
+    #[test]
+    fn weight() {
+        todo!()
+    }
+
+    #[test]
+    fn pole_target_alignment() {
+        todo!()
+    }
+
+    #[test]
+    fn mid_axis() {
+        todo!()
+    }
+
+    #[test]
+    fn aligned_joints_and_target() {
+        todo!()
+    }
+
+    #[test]
+    fn zero_length_start_target() {
+        todo!()
+    }
+
+    #[test]
+    fn zero_length_bone_chain() {
+        todo!()
+    }
+}
