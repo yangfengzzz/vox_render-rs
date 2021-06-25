@@ -60,7 +60,7 @@ impl<'a> Layer<'a> {
 // that all buffers must be at least as big as the bind pose buffer.
 // Partial animation blending is supported through optional joint weights that
 // can be specified with layers joint_weights buffer. Unspecified joint weights
-// are considered as a unit weight of 1.f, allowing to mix full and partial
+// are considered as a unit weight of 1.0, allowing to mix full and partial
 // blend operations in a single pass.
 // The job does not owned any buffers (input/output) and will thus not delete
 // them during job's destruction.
@@ -208,7 +208,7 @@ struct ProcessArgs<'a> {
     // pose.
     num_soa_joints: usize,
 
-    // Number of processed blended passes (excluding passes with a weight <= 0.f),
+    // Number of processed blended passes (excluding passes with a weight <= 0.0),
     // including partial passes.
     num_passes: i32,
 
@@ -506,10 +506,15 @@ fn ozz_sub_pass(_in: &SoaTransform, _simd_weight: SimdFloat4, _out: &mut SoaTran
 //--------------------------------------------------------------------------------------------------
 //--------------------------------------------------------------------------------------------------
 #[cfg(test)]
-mod blending_job{
+mod blending_job {
     use crate::soa_transform::SoaTransform;
     use crate::simd_math::SimdFloat4;
     use crate::blending_job::{BlendingJob, Layer};
+    use crate::soa_float::SoaFloat3;
+    use crate::math_test_helper::*;
+    use crate::simd_math::*;
+    use crate::*;
+    use crate::soa_quaternion::SoaQuaternion;
 
     #[test]
     fn job_validity() {
@@ -524,7 +529,7 @@ mod blending_job{
         layers[0].transform = &input_transforms[..];
         layers[1].transform = &input_transforms[0..2];
 
-        {  // Empty/default job.
+        {  // empty/default job.
             let mut job = BlendingJob::new();
             assert_eq!(job.validate(), false);
             assert_eq!(job.run(), false);
@@ -602,17 +607,6 @@ mod blending_job{
             assert_eq!(job.run(), false);
         }
 
-        // {  // Valid job.
-        //     layers[0].joint_weights = {nullptr, nullptr};
-        //
-        //     let mut job = BlendingJob::new();
-        //     job.layers = &layers[0..2];
-        //     job.bind_pose = &bind_poses[0..2];
-        //     job.output = &mut output_transforms[0..2];
-        //     assert_eq!(job.validate(), true);
-        //     assert_eq!(job.run(), true);
-        // }
-
         {  // Valid joint weights range.
             layers[0].joint_weights = &joint_weights[0..2];
 
@@ -641,6 +635,811 @@ mod blending_job{
             job.output = &mut output_transforms[0..2];
             assert_eq!(job.validate(), true);
             assert_eq!(job.run(), true);
+        }
+    }
+
+    #[test]
+    fn job_validity_additive() {
+        let identity = SoaTransform::identity();
+        let zero = SimdFloat4::zero();
+        let mut layers = [Layer::new(), Layer::new()];
+        let mut additive_layers = [Layer::new(), Layer::new()];
+
+        let bind_poses = [identity, identity, identity];
+        let input_transforms = [identity, identity, identity];
+        let mut output_transforms = [identity, identity, identity];
+        let joint_weights = [zero, zero, zero];
+
+        layers[0].transform = &input_transforms[..];
+        layers[1].transform = &input_transforms[..];
+
+        additive_layers[0].transform = &input_transforms[..];
+        additive_layers[1].transform = &input_transforms[..];
+
+        {  // Valid additive job, no normal blending.
+            let mut job = BlendingJob::new();
+            job.additive_layers = &additive_layers[..];
+            job.bind_pose = &bind_poses[..];
+            job.output = &mut output_transforms[..];
+            assert_eq!(job.validate(), true);
+            assert_eq!(job.run(), true);
+        }
+
+        {  // Valid additive job, with normal blending also.
+
+            let mut job = BlendingJob::new();
+            job.layers = &layers[..];
+            job.additive_layers = &additive_layers[..];
+            job.bind_pose = &bind_poses[..];
+            job.output = &mut output_transforms[..];
+            assert_eq!(job.validate(), true);
+            assert_eq!(job.run(), true);
+        }
+
+        {  // Invalid layer input range, too small.
+            let mut invalid_layers = [Layer::new(), Layer::new()];
+            invalid_layers[0].transform = &input_transforms[0..1];
+            invalid_layers[1].transform = &input_transforms[0..2];
+
+            let mut job = BlendingJob::new();
+            job.layers = &layers[..];
+            job.additive_layers = &invalid_layers[..];
+            job.bind_pose = &bind_poses[0..2];
+            job.output = &mut output_transforms[0..2];
+            assert_eq!(job.validate(), false);
+            assert_eq!(job.run(), false);
+        }
+
+        {  // Valid additive job, with per-joint weights.
+            layers[0].joint_weights = &joint_weights[0..2];
+
+            let mut job = BlendingJob::new();
+            job.additive_layers = &additive_layers[..];
+            job.bind_pose = &bind_poses[0..2];
+            job.output = &mut output_transforms[0..2];
+            assert_eq!(job.validate(), true);
+            assert_eq!(job.run(), true);
+        }
+    }
+
+    #[test]
+    fn empty() {
+        let identity = SoaTransform::identity();
+
+        // Initialize bind pose.
+        let mut bind_poses = [identity, identity];
+        bind_poses[0].translation = SoaFloat3::load(
+            SimdFloat4::load(0.0, 1.0, 2.0, 3.0),
+            SimdFloat4::load(4.0, 5.0, 6.0, 7.0),
+            SimdFloat4::load(8.0, 9.0, 10.0, 11.0));
+        bind_poses[0].scale = SoaFloat3::load(
+            SimdFloat4::load(0.0, 10.0, 20.0, 30.0),
+            SimdFloat4::load(40.0, 50.0, 60.0, 70.0),
+            SimdFloat4::load(80.0, 90.0, 100.0, 110.0));
+        bind_poses[1].translation = bind_poses[0].translation *
+            SimdFloat4::load(2.0, 2.0, 2.0, 2.0);
+        bind_poses[1].scale =
+            bind_poses[0].scale * SimdFloat4::load(2.0, 2.0, 2.0, 2.0);
+
+        let mut job = BlendingJob::new();
+        job.bind_pose = &bind_poses;
+        let mut output_transforms = [SoaTransform::identity(); 2];
+        job.output = &mut output_transforms;
+
+        assert_eq!(job.validate(), true);
+        assert_eq!(job.run(), true);
+
+        expect_soa_float3_eq!(output_transforms[0].translation, 0.0, 1.0, 2.0, 3.0, 4.0,
+                            5.0, 6.0, 7.0, 8.0, 9.0, 10.0, 11.0);
+        expect_soa_float3_eq!(output_transforms[0].scale, 0.0, 10.0, 20.0, 30.0, 40.0,
+                            50.0, 60.0, 70.0, 80.0, 90.0, 100.0, 110.0);
+        expect_soa_float3_eq!(output_transforms[1].translation, 0.0, 2.0, 4.0, 6.0, 8.0,
+                            10.0, 12.0, 14.0, 16.0, 18.0, 20.0, 22.0);
+        expect_soa_float3_eq!(output_transforms[1].scale, 0.0, 20.0, 40.0, 60.0, 80.0,
+                            100.0, 120.0, 140.0, 160.0, 180.0, 200.0, 220.0);
+    }
+
+    #[test]
+    fn weight() {
+        let identity = SoaTransform::identity();
+
+        // Initialize inputs.
+        let mut input_transforms = [[identity, identity],
+            [identity, identity]];
+        input_transforms[0][0].translation = SoaFloat3::load(
+            SimdFloat4::load(0.0, 1.0, 2.0, 3.0),
+            SimdFloat4::load(4.0, 5.0, 6.0, 7.0),
+            SimdFloat4::load(8.0, 9.0, 10.0, 11.0));
+        input_transforms[0][1].translation = SoaFloat3::load(
+            SimdFloat4::load(12.0, 13.0, 14.0, 15.0),
+            SimdFloat4::load(16.0, 17.0, 18.0, 19.0),
+            SimdFloat4::load(20.0, 21.0, 22.0, 23.0));
+        input_transforms[1][0].translation = -input_transforms[0][0].translation;
+        input_transforms[1][1].translation = -input_transforms[0][1].translation;
+
+        // Initialize bind pose.
+        let mut bind_poses = [identity, identity];
+        bind_poses[0].scale = SoaFloat3::load(
+            SimdFloat4::load(0.0, 1.0, 2.0, 3.0),
+            SimdFloat4::load(4.0, 5.0, 6.0, 7.0),
+            SimdFloat4::load(8.0, 9.0, 10.0, 11.0));
+        bind_poses[1].scale =
+            bind_poses[0].scale * SimdFloat4::load(2.0, 2.0, 2.0, 2.0);
+
+        {
+            let mut layers = [Layer::new(), Layer::new()];
+            layers[0].transform = &input_transforms[0];
+            layers[1].transform = &input_transforms[1];
+
+            let mut output_transforms = [SoaTransform::identity(); 2];
+
+            {
+                // Weight 0 (a bit less must give the same result) for the first layer,
+                // 1 for the second.
+                layers[0].weight = -0.07;
+                layers[1].weight = 1.0;
+
+                let mut job = BlendingJob::new();
+                job.layers = &layers;
+                job.bind_pose = &bind_poses;
+                job.output = &mut output_transforms[..];
+
+                assert_eq!(job.run(), true);
+
+                expect_soa_float3_eq!(output_transforms[0].translation, -0.0, -1.0, -2.0,
+                                -3.0, -4.0, -5.0, -6.0, -7.0, -8.0, -9.0, -10.0, -11.0);
+                expect_soa_float3_eq!(output_transforms[0].scale, 1.0, 1.0, 1.0, 1.0, 1.0,
+                                1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0);
+                expect_soa_float3_eq!(output_transforms[1].translation, -12.0, -13.0, -14.0,
+                                -15.0, -16.0, -17.0, -18.0, -19.0, -20.0, -21.0, -22.0,
+                                -23.0);
+                expect_soa_float3_eq!(output_transforms[1].scale, 1.0, 1.0, 1.0, 1.0, 1.0,
+                                1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0);
+            }
+
+            {
+                // Weight 1 for the first layer, 0 for the second.
+                layers[0].weight = 1.0;
+                layers[1].weight = 1e-27;  // Very low weight value.
+
+                let mut job = BlendingJob::new();
+                job.layers = &layers;
+                job.bind_pose = &bind_poses;
+                job.output = &mut output_transforms[..];
+
+                assert_eq!(job.run(), true);
+
+                expect_soa_float3_eq!(output_transforms[0].translation, 0.0, 1.0, 2.0, 3.0,
+                                4.0, 5.0, 6.0, 7.0, 8.0, 9.0, 10.0, 11.0);
+                expect_soa_float3_eq!(output_transforms[0].scale, 1.0, 1.0, 1.0, 1.0, 1.0,
+                                1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0);
+                expect_soa_float3_eq!(output_transforms[1].translation, 12.0, 13.0, 14.0,
+                                15.0, 16.0, 17.0, 18.0, 19.0, 20.0, 21.0, 22.0, 23.0);
+                expect_soa_float3_eq!(output_transforms[1].scale, 1.0, 1.0, 1.0, 1.0, 1.0,
+                                1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0);
+            }
+
+            {
+                // Weight .5 for both layers.
+                layers[0].weight = 0.5;
+                layers[1].weight = 0.5;
+
+                let mut job = BlendingJob::new();
+                job.layers = &layers;
+                job.bind_pose = &bind_poses;
+                job.output = &mut output_transforms[..];
+
+                assert_eq!(job.run(), true);
+
+                expect_soa_float3_eq!(output_transforms[0].translation, 0.0, 0.0, 0.0, 0.0,
+                                0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0);
+                expect_soa_float3_eq!(output_transforms[0].scale, 1.0, 1.0, 1.0, 1.0, 1.0,
+                                1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0);
+                expect_soa_float3_eq!(output_transforms[1].translation, 0.0, 0.0, 0.0, 0.0,
+                                0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0);
+                expect_soa_float3_eq!(output_transforms[1].scale, 1.0, 1.0, 1.0, 1.0, 1.0,
+                                1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0);
+            }
+        }
+    }
+
+    #[test]
+    fn joint_weights() {
+        let identity = SoaTransform::identity();
+
+        // Initialize inputs.
+        let mut input_transforms = [[identity, identity],
+            [identity, identity]];
+        input_transforms[0][0].translation = SoaFloat3::load(
+            SimdFloat4::load(0.0, 1.0, 2.0, 3.0),
+            SimdFloat4::load(4.0, 5.0, 6.0, 7.0),
+            SimdFloat4::load(8.0, 9.0, 10.0, 11.0));
+        input_transforms[0][1].translation = SoaFloat3::load(
+            SimdFloat4::load(12.0, 13.0, 14.0, 15.0),
+            SimdFloat4::load(16.0, 17.0, 18.0, 19.0),
+            SimdFloat4::load(20.0, 21.0, 22.0, 23.0));
+        input_transforms[1][0].translation = -input_transforms[0][0].translation;
+        input_transforms[1][1].translation = -input_transforms[0][1].translation;
+        let joint_weights = [
+            [SimdFloat4::load(1.0, 1.0, 0.0, 0.0),
+                SimdFloat4::load(1.0, 0.0, 1.0, 1.0)],
+            [SimdFloat4::load(1.0, 1.0, 1.0, 0.0),
+                SimdFloat4::load(0.0, 1.0, 1.0, 1.0)]];
+        // Initialize bind pose.
+        let mut bind_poses = [identity, identity];
+        bind_poses[0].translation = SoaFloat3::load(
+            SimdFloat4::load(10.0, 11.0, 12.0, 13.0),
+            SimdFloat4::load(14.0, 15.0, 16.0, 17.0),
+            SimdFloat4::load(18.0, 19.0, 20.0, 21.0));
+        bind_poses[0].scale = SoaFloat3::load(
+            SimdFloat4::load(0.0, 1.0, 2.0, 3.0),
+            SimdFloat4::load(4.0, 5.0, 6.0, 7.0),
+            SimdFloat4::load(8.0, 9.0, 10.0, 11.0));
+        bind_poses[1].scale =
+            bind_poses[0].scale * SimdFloat4::load(2.0, 2.0, 2.0, 2.0);
+
+        let mut layers = [Layer::new(), Layer::new()];
+        layers[0].transform = &input_transforms[0];
+        layers[0].joint_weights = &joint_weights[0];
+        layers[1].transform = &input_transforms[1];
+        layers[1].joint_weights = &joint_weights[1];
+
+        {  // Weight .5 for both layers.
+            let mut output_transforms = [SoaTransform::identity(); 3];
+
+            layers[0].weight = 0.5;
+            layers[1].weight = 0.5;
+
+            let mut job = BlendingJob::new();
+            job.layers = &layers;
+            job.bind_pose = &bind_poses;
+            job.output = &mut output_transforms;
+
+            assert_eq!(job.run(), true);
+
+            expect_soa_float3_eq!(output_transforms[0].translation, 0.0, 0.0, -2.0, 13.0,
+                                0.0, 0.0, -6.0, 17.0, 0.0, 0.0, -10.0, 21.0);
+            expect_soa_float3_eq!(output_transforms[0].scale, 1.0, 1.0, 1.0, 3.0, 1.0,
+                                1.0, 1.0, 7.0, 1.0, 1.0, 1.0, 11.0);
+            expect_soa_float3_eq!(output_transforms[1].translation, 12.0, -13.0, 0.0, 0.0,
+                                16.0, -17.0, 0.0, 0.0, 20.0, -21.0, 0.0, 0.0);
+            expect_soa_float3_eq!(output_transforms[1].scale, 1.0, 1.0, 1.0, 1.0, 1.0,
+                                1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0);
+        }
+        {  // Null weight for the first layer.
+            let mut output_transforms = [SoaTransform::identity(); 2];
+
+            layers[0].weight = 0.0;
+            layers[1].weight = 1.0;
+
+            let mut job = BlendingJob::new();
+            job.layers = &layers;
+            job.bind_pose = &bind_poses;
+            job.output = &mut output_transforms;
+
+            assert_eq!(job.run(), true);
+
+            expect_soa_float3_eq!(output_transforms[0].translation, -0.0, -1.0, -2.0,
+                                13.0, -4.0, -5.0, -6.0, 17.0, -8.0, -9.0, -10.0, 21.0);
+            expect_soa_float3_eq!(output_transforms[0].scale, 1.0, 1.0, 1.0, 3.0, 1.0,
+                                1.0, 1.0, 7.0, 1.0, 1.0, 1.0, 11.0);
+            expect_soa_float3_eq!(output_transforms[1].translation, 0.0, -13.0, -14.0,
+                                -15.0, 0.0, -17.0, -18.0, -19.0, 0.0, -21.0, -22.0,
+                                -23.0);
+            expect_soa_float3_eq!(output_transforms[1].scale, 0.0, 1.0, 1.0, 1.0, 8.0,
+                                1.0, 1.0, 1.0, 16.0, 1.0, 1.0, 1.0);
+        }
+    }
+
+    #[test]
+    fn normalize() {
+        let identity = SoaTransform::identity();
+
+        // Initialize inputs.
+        let mut input_transforms = [[identity], [identity]];
+
+        // Initialize bind pose.
+        let mut bind_poses = [identity];
+        bind_poses[0].scale = SoaFloat3::load(
+            SimdFloat4::load(0.0, 1.0, 2.0, 3.0),
+            SimdFloat4::load(4.0, 5.0, 6.0, 7.0),
+            SimdFloat4::load(8.0, 9.0, 10.0, 11.0));
+
+        input_transforms[0][0].rotation = SoaQuaternion::load(
+            SimdFloat4::load(0.70710677, 0.0, 0.0, 0.382683432),
+            SimdFloat4::load(0.0, 0.0, 0.70710677, 0.0),
+            SimdFloat4::load(0.0, 0.0, 0.0, 0.0),
+            SimdFloat4::load(0.70710677, 1.0, 0.70710677, 0.9238795));
+        input_transforms[1][0].rotation = SoaQuaternion::load(
+            SimdFloat4::load(0.0, 0.70710677, -0.70710677, -0.382683432),
+            SimdFloat4::load(0.0, 0.0, 0.0, 0.0),
+            SimdFloat4::load(0.0, 0.0, -0.70710677, 0.0),
+            SimdFloat4::load(1.0, 0.70710677, 0.0, -0.9238795));
+
+        {  // Un-normalized weights < 1.f.
+            input_transforms[0][0].translation = SoaFloat3::load(
+                SimdFloat4::load(2.0, 3.0, 4.0, 5.0),
+                SimdFloat4::load(6.0, 7.0, 8.0, 9.0),
+                SimdFloat4::load(10.0, 11.0, 12.0, 13.0));
+            input_transforms[1][0].translation = SoaFloat3::load(
+                SimdFloat4::load(3.0, 4.0, 5.0, 6.0),
+                SimdFloat4::load(7.0, 8.0, 9.0, 10.0),
+                SimdFloat4::load(11.0, 12.0, 13.0, 14.0));
+
+            let mut layers = [Layer::new(), Layer::new()];
+            layers[0].weight = 0.2;
+            layers[0].transform = &input_transforms[0];
+            layers[1].weight = 0.3;
+            layers[1].transform = &input_transforms[1];
+
+            let mut output_transforms = [SoaTransform::identity(); 1];
+
+            let mut job = BlendingJob::new();
+            job.layers = &layers;
+            job.bind_pose = &bind_poses;
+            job.output = &mut output_transforms;
+
+            assert_eq!(job.run(), true);
+
+            expect_soa_float3_eq!(output_transforms[0].translation, 2.6, 3.6, 4.6,
+                                5.6, 6.6, 7.6, 8.6, 9.6, 10.6, 11.6, 12.6,
+                                13.6);
+            expect_soa_quaternion_eq_est!(output_transforms[0].rotation, 0.30507791,
+                                        0.45761687, -0.58843851, 0.38268352, 0.0, 0.0,
+                                        0.39229235, 0.0, 0.0, 0.0, -0.58843851, 0.0,
+                                        0.95224595, 0.88906217, 0.39229235, 0.92387962);
+            assert_eq!(output_transforms[0].rotation.is_normalized_est().are_all_true(), true);
+            expect_soa_float3_eq!(output_transforms[0].scale, 1.0, 1.0, 1.0, 1.0, 1.0,
+                                1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0);
+        }
+        {  // Un-normalized weights > 1.f.
+            input_transforms[0][0].translation = SoaFloat3::load(
+                SimdFloat4::load(5.0, 10.0, 15.0, 20.0),
+                SimdFloat4::load(25.0, 30.0, 35.0, 40.0),
+                SimdFloat4::load(45.0, 50.0, 55.0, 60.0));
+            input_transforms[1][0].translation = SoaFloat3::load(
+                SimdFloat4::load(10.0, 15.0, 20.0, 25.0),
+                SimdFloat4::load(30.0, 35.0, 40.0, 45.0),
+                SimdFloat4::load(50.0, 55.0, 60.0, 65.0));
+
+            let mut layers = [Layer::new(), Layer::new()];
+            layers[0].weight = 2.0;
+            layers[0].transform = &input_transforms[0];
+            layers[1].weight = 3.0;
+            layers[1].transform = &input_transforms[1];
+
+            let mut output_transforms = [SoaTransform::identity(); 1];
+
+            let mut job = BlendingJob::new();
+            job.layers = &layers;
+            job.bind_pose = &bind_poses;
+            job.output = &mut output_transforms;
+
+            assert_eq!(job.run(), true);
+
+            expect_soa_float3_eq!(output_transforms[0].translation, 8.0, 13.0, 18.0, 23.0,
+                                28.0, 33.0, 38.0, 43.0, 48.0, 53.0, 58.0, 63.0);
+            expect_soa_quaternion_eq_est!(output_transforms[0].rotation, 0.30507791,
+                                        0.45761687, -0.58843851, 0.38268352, 0.0, 0.0,
+                                        0.39229235, 0.0, 0.0, 0.0, -0.58843851, 0.0,
+                                        0.95224595, 0.88906217, 0.39229235, 0.92387962);
+            assert_eq!(output_transforms[0].rotation.is_normalized_est().are_all_true(), true);
+            expect_soa_float3_eq!(output_transforms[0].scale, 1.0, 1.0, 1.0, 1.0, 1.0,
+                                1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0);
+        }
+        {  // Un-normalized weights > 1.0, with per-joint weights.
+            input_transforms[0][0].translation = SoaFloat3::load(
+                SimdFloat4::load(5.0, 10.0, 15.0, 20.0),
+                SimdFloat4::load(25.0, 30.0, 35.0, 40.0),
+                SimdFloat4::load(45.0, 50.0, 55.0, 60.0));
+            input_transforms[1][0].translation = SoaFloat3::load(
+                SimdFloat4::load(10.0, 15.0, 20.0, 25.0),
+                SimdFloat4::load(30.0, 35.0, 40.0, 45.0),
+                SimdFloat4::load(50.0, 55.0, 60.0, 65.0));
+            let joint_weights = [SimdFloat4::load(1.0, -1.0, 2.0, 0.1)];
+
+            let mut layers = [Layer::new(), Layer::new()];
+            layers[0].weight = 2.0;
+            layers[0].transform = &input_transforms[0];
+            layers[1].weight = 3.0;
+            layers[1].transform = &input_transforms[1];
+            layers[1].joint_weights = &joint_weights;
+
+            let mut output_transforms = [SoaTransform::identity(); 1];
+
+            let mut job = BlendingJob::new();
+            job.layers = &layers;
+            job.bind_pose = &bind_poses;
+            job.output = &mut output_transforms;
+
+            assert_eq!(job.run(), true);
+
+            expect_soa_float3_eq!(output_transforms[0].translation, 8.0, 10.0,
+                                150.0 / 8.0, 47.5 / 2.3, 28.0, 30.0, 310.0 / 8.0,
+                                93.5 / 2.3, 48.0, 50.0, 470.0 / 8.0, 139.5 / 2.3);
+            expect_soa_float3_eq!(output_transforms[0].scale, 1.0, 1.0, 1.0, 1.0, 1.0,
+                                1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0);
+        }
+    }
+
+    #[test]
+    fn threshold() {
+        let identity = SoaTransform::identity();
+
+        // Initialize inputs.
+        let mut input_transforms = [[identity], [identity]];
+
+        // Initialize bind pose.
+        let mut bind_poses = [identity];
+        bind_poses[0].scale = SoaFloat3::load(
+            SimdFloat4::load(0.0, 1.0, 2.0, 3.0),
+            SimdFloat4::load(4.0, 5.0, 6.0, 7.0),
+            SimdFloat4::load(8.0, 9.0, 10.0, 11.0));
+
+        input_transforms[0][0].translation = SoaFloat3::load(
+            SimdFloat4::load(2.0, 3.0, 4.0, 5.0),
+            SimdFloat4::load(6.0, 7.0, 8.0, 9.0),
+            SimdFloat4::load(10.0, 11.0, 12.0, 13.0));
+        input_transforms[1][0].translation = SoaFloat3::load(
+            SimdFloat4::load(3.0, 4.0, 5.0, 6.0),
+            SimdFloat4::load(7.0, 8.0, 9.0, 10.0),
+            SimdFloat4::load(11.0, 12.0, 13.0, 14.0));
+
+        {  // Threshold is not reached.
+            let mut layers = [Layer::new(), Layer::new()];
+            layers[0].weight = 0.04;
+            layers[0].transform = &input_transforms[0];
+            layers[1].weight = 0.06;
+            layers[1].transform = &input_transforms[1];
+
+            let mut output_transforms = [SoaTransform::identity(); 1];
+
+            let mut job = BlendingJob::new();
+            job.threshold = 0.1;
+            job.layers = &layers;
+            job.bind_pose = &bind_poses;
+            job.output = &mut output_transforms;
+
+            assert_eq!(job.run(), true);
+
+            expect_soa_float3_eq!(output_transforms[0].translation, 2.6, 3.6, 4.6,
+                                5.6, 6.6, 7.6, 8.6, 9.6, 10.6, 11.6, 12.6,
+                                13.6);
+            expect_soa_quaternion_eq_est!(output_transforms[0].rotation, 0.0, 0.0, 0.0,
+                                        0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0,
+                                        1.0, 1.0, 1.0, 1.0);
+            expect_soa_float3_eq!(output_transforms[0].scale, 1.0, 1.0, 1.0, 1.0, 1.0,
+                                1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0);
+        }
+        {  // Threshold is reached at 100%.
+            let mut layers = [Layer::new(), Layer::new()];
+            layers[0].weight = 1e-27;
+            layers[0].transform = &input_transforms[0];
+            layers[1].weight = 0.0;
+            layers[1].transform = &input_transforms[1];
+
+            let mut output_transforms = [SoaTransform::identity(); 1];
+
+            let mut job = BlendingJob::new();
+            job.threshold = 0.1;
+            job.layers = &layers;
+            job.bind_pose = &bind_poses;
+            job.output = &mut output_transforms;
+
+            assert_eq!(job.run(), true);
+
+            expect_soa_float3_eq!(output_transforms[0].translation, 0.0, 0.0, 0.0, 0.0,
+                                0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0);
+            expect_soa_quaternion_eq_est!(output_transforms[0].rotation, 0.0, 0.0, 0.0,
+                                        0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0,
+                                        1.0, 1.0, 1.0, 1.0);
+            expect_soa_float3_eq!(output_transforms[0].scale, 0.0, 1.0, 2.0, 3.0, 4.0,
+                                5.0, 6.0, 7.0, 8.0, 9.0, 10.0, 11.0);
+        }
+    }
+
+    #[test]
+    fn additive_weight() {
+        let identity = SoaTransform::identity();
+
+        // Initialize inputs.
+        let mut input_transforms = [[identity], [identity]];
+        input_transforms[0][0].translation = SoaFloat3::load(
+            SimdFloat4::load(0.0, 1.0, 2.0, 3.0),
+            SimdFloat4::load(4.0, 5.0, 6.0, 7.0),
+            SimdFloat4::load(8.0, 9.0, 10.0, 11.0));
+        input_transforms[0][0].rotation = SoaQuaternion::load(
+            SimdFloat4::load(0.70710677, 0.0, 0.0, 0.382683432),
+            SimdFloat4::load(0.0, 0.0, 0.70710677, 0.0),
+            SimdFloat4::load(0.0, 0.0, 0.0, 0.0),
+            SimdFloat4::load(0.70710677, 1.0, -0.70710677, 0.9238795));
+        input_transforms[0][0].scale = SoaFloat3::load(
+            SimdFloat4::load(12.0, 13.0, 14.0, 15.0),
+            SimdFloat4::load(16.0, 17.0, 18.0, 19.0),
+            SimdFloat4::load(20.0, 21.0, 22.0, 23.0));
+        input_transforms[1][0].translation = -input_transforms[0][0].translation;
+        input_transforms[1][0].rotation = input_transforms[0][0].rotation.conjugate();
+        input_transforms[1][0].scale = -input_transforms[0][0].scale;
+
+        // Initialize bind pose.
+        let bind_poses = [identity];
+
+        {
+            let mut layers = [Layer::new()];
+            layers[0].transform = &input_transforms[0];
+
+            // No weight for the 1st layer.
+            layers[0].weight = 0.0;
+
+            let mut output_transforms = [SoaTransform::identity()];
+
+            let mut job = BlendingJob::new();
+            job.additive_layers = &layers;
+            job.bind_pose = &bind_poses;
+            job.output = &mut output_transforms;
+            assert_eq!(job.run(), true);
+
+            expect_soa_float3_eq!(output_transforms[0].translation, 0.0, 0.0, 0.0, 0.0,
+                                0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0);
+            expect_soa_quaternion_eq_est!(output_transforms[0].rotation, 0.0, 0.0, 0.0,
+                                        0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0,
+                                        1.0, 1.0, 1.0, 1.0);
+            expect_soa_float3_eq!(output_transforms[0].scale, 1.0, 1.0, 1.0, 1.0, 1.0,
+                                1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0);
+        }
+
+        {
+            let mut layers = [Layer::new()];
+            layers[0].transform = &input_transforms[0];
+
+            let mut output_transforms = [SoaTransform::identity()];
+
+            // .5 weight for the 1st layer.
+            layers[0].weight = 0.5;
+
+            let mut job = BlendingJob::new();
+            job.additive_layers = &layers;
+            job.bind_pose = &bind_poses;
+            job.output = &mut output_transforms;
+            assert_eq!(job.run(), true);
+
+            expect_soa_float3_eq!(output_transforms[0].translation, 0.0, 0.5, 1.0, 1.5,
+                                2.0, 2.5, 3.0, 3.5, 4.0, 4.5, 5.0, 5.5);
+            expect_soa_quaternion_eq_est!(output_transforms[0].rotation, 0.3826834, 0.0,
+                                        0.0, 0.19509032, 0.0, 0.0, -0.3826834, 0.0, 0.0,
+                                        0.0, 0.0, 0.0, 0.9238795, 1.0, 0.9238795,
+                                        0.98078528);
+            expect_soa_float3_eq!(output_transforms[0].scale, 6.5, 7.0, 7.5, 8.0, 8.5,
+                                9.0, 9.5, 10.0, 10.5, 11.0, 11.5, 12.0);
+        }
+
+        {
+            let mut layers = [Layer::new()];
+            layers[0].transform = &input_transforms[0];
+
+            let mut output_transforms = [SoaTransform::identity()];
+
+            // Full weight for the 1st layer.
+            layers[0].weight = 1.0;
+
+            let mut job = BlendingJob::new();
+            job.additive_layers = &layers;
+            job.bind_pose = &bind_poses;
+            job.output = &mut output_transforms;
+            assert_eq!(job.run(), true);
+
+            expect_soa_float3_eq!(output_transforms[0].translation, 0.0, 1.0, 2.0, 3.0,
+                                4.0, 5.0, 6.0, 7.0, 8.0, 9.0, 10.0, 11.0);
+            expect_soa_quaternion_eq_est!(output_transforms[0].rotation, 0.70710677, 0.0,
+                                        0.0, 0.382683432, 0.0, 0.0, -0.70710677, 0.0,
+                                        0.0, 0.0, 0.0, 0.0, 0.70710677, 1.0, 0.70710677,
+                                        0.9238795);
+            expect_soa_float3_eq!(output_transforms[0].scale, 12.0, 13.0, 14.0, 15.0,
+                                16.0, 17.0, 18.0, 19.0, 20.0, 21.0, 22.0, 23.0);
+        }
+
+        {
+            let mut layers = [Layer::new(), Layer::new()];
+            layers[0].transform = &input_transforms[0];
+            layers[1].transform = &input_transforms[1];
+
+            let mut output_transforms = [SoaTransform::identity(); 1];
+
+            // No weight for the 1st layer.
+            layers[0].weight = 0.0;
+            layers[1].weight = 1.0;
+
+            let mut job = BlendingJob::new();
+            job.additive_layers = &layers;
+            job.bind_pose = &bind_poses;
+            job.output = &mut output_transforms;
+            assert_eq!(job.run(), true);
+
+            expect_soa_float3_eq!(output_transforms[0].translation, -0.0, -1.0, -2.0,
+                                -3.0, -4.0, -5.0, -6.0, -7.0, -8.0, -9.0, -10.0, -11.0);
+            expect_soa_quaternion_eq_est!(output_transforms[0].rotation, -0.70710677,
+                                        -0.0, -0.0, -0.382683432, -0.0, -0.0,
+                                        0.70710677, -0.0, -0.0, -0.0, -0.0, -0.0,
+                                        0.70710677, 1.0, 0.70710677, 0.9238795);
+            expect_soa_float3_eq!(output_transforms[0].scale, -12.0, -13.0, -14.0, -15.0,
+                                -16.0, -17.0, -18.0, -19.0, -20.0, -21.0, -22.0, -23.0);
+        }
+        {
+            let mut layers = [Layer::new(), Layer::new()];
+            layers[0].transform = &input_transforms[0];
+            layers[1].transform = &input_transforms[1];
+
+            let mut output_transforms = [SoaTransform::identity(); 1];
+
+            // Full weight for the both layer.
+            layers[0].weight = 1.0;
+            layers[1].weight = 1.0;
+
+            let mut job = BlendingJob::new();
+            job.additive_layers = &layers;
+            job.bind_pose = &bind_poses;
+            job.output = &mut output_transforms;
+            assert_eq!(job.run(), true);
+
+            expect_soa_float3_eq!(output_transforms[0].translation, 0.0, 0.0, 0.0, 0.0,
+                                0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0);
+            expect_soa_quaternion_eq_est!(output_transforms[0].rotation, 0.0, 0.0, 0.0,
+                                        0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0,
+                                        1.0, 1.0, 1.0, 1.0);
+            expect_soa_float3_eq!(output_transforms[0].scale, -144.0, -169.0, -196.0,
+                                -225.0, -256.0, -289.0, -324.0, -361.0, -400.0, -441.0,
+                                -484.0, -529.0);
+        }
+        {
+            let mut layers = [Layer::new(), Layer::new()];
+            layers[0].transform = &input_transforms[0];
+            layers[1].transform = &input_transforms[1];
+
+            let mut output_transforms = [SoaTransform::identity(); 1];
+
+            // Subtract second layer.
+            layers[0].weight = 0.5;
+            layers[1].transform = &input_transforms[0];
+            layers[1].weight = -0.5;
+
+            let mut job = BlendingJob::new();
+            job.additive_layers = &layers;
+            job.bind_pose = &bind_poses;
+            job.output = &mut output_transforms;
+            assert_eq!(job.run(), true);
+
+            expect_soa_float3_eq!(output_transforms[0].translation, 0.0, 0.0, 0.0, 0.0,
+                                0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0);
+            expect_soa_quaternion_eq_est!(output_transforms[0].rotation, 0.0, 0.0, 0.0,
+                                        0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0,
+                                        1.0, 1.0, 1.0, 1.0);
+            expect_soa_float3_eq!(output_transforms[0].scale, 1.0, 1.0, 1.0, 1.0, 1.0,
+                                    1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0);
+        }
+    }
+
+    #[test]
+    fn additive_joint_weight() {
+        let identity = SoaTransform::identity();
+
+        // Initialize inputs.
+        let mut input_transforms = [identity];
+        input_transforms[0].translation = SoaFloat3::load(
+            SimdFloat4::load(0.0, 1.0, 2.0, 3.0),
+            SimdFloat4::load(4.0, 5.0, 6.0, 7.0),
+            SimdFloat4::load(8.0, 9.0, 10.0, 11.0));
+        input_transforms[0].rotation = SoaQuaternion::load(
+            SimdFloat4::load(0.70710677, 0.0, 0.0, 0.382683432),
+            SimdFloat4::load(0.0, 0.0, 0.70710677, 0.0),
+            SimdFloat4::load(0.0, 0.0, 0.0, 0.0),
+            SimdFloat4::load(0.70710677, 1.0, -0.70710677, 0.9238795));
+        input_transforms[0].scale = SoaFloat3::load(
+            SimdFloat4::load(12.0, 13.0, 14.0, 15.0),
+            SimdFloat4::load(16.0, 17.0, 18.0, 19.0),
+            SimdFloat4::load(20.0, 21.0, 22.0, 23.0));
+
+        let joint_weights = [
+            SimdFloat4::load(1.0, 0.5, 0.0, -1.0)];
+
+        // Initialize bind pose.
+        let bind_poses = [identity];
+
+        {
+            let mut layers = [Layer::new()];
+            layers[0].transform = &input_transforms;
+            layers[0].joint_weights = &joint_weights;
+
+            let mut output_transforms = [SoaTransform::identity()];
+
+            // No weight for the 1st layer.
+            layers[0].weight = 0.0;
+
+            let mut job = BlendingJob::new();
+            job.additive_layers = &layers;
+            job.bind_pose = &bind_poses;
+            job.output = &mut output_transforms;
+            assert_eq!(job.run(), true);
+
+            expect_soa_float3_eq!(output_transforms[0].translation, 0.0, 0.0, 0.0, 0.0,
+                                0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0);
+            expect_soa_quaternion_eq_est!(output_transforms[0].rotation, 0.0, 0.0, 0.0,
+                                        0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0,
+                                        1.0, 1.0, 1.0, 1.0);
+            expect_soa_float3_eq!(output_transforms[0].scale, 1.0, 1.0, 1.0, 1.0, 1.0,
+                                1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0);
+        }
+        {
+            let mut layers = [Layer::new()];
+            layers[0].transform = &input_transforms;
+            layers[0].joint_weights = &joint_weights;
+
+            let mut output_transforms = [SoaTransform::identity()];
+
+            // .5 weight for the 1st layer.
+            layers[0].weight = 0.5;
+
+            let mut job = BlendingJob::new();
+            job.additive_layers = &layers;
+            job.bind_pose = &bind_poses;
+            job.output = &mut output_transforms;
+            assert_eq!(job.run(), true);
+
+            expect_soa_float3_eq!(output_transforms[0].translation, 0.0, 0.25, 0.0, 0.0,
+                                2.0, 1.25, 0.0, 0.0, 4.0, 2.25, 0.0, 0.0);
+            expect_soa_quaternion_eq_est!(output_transforms[0].rotation, 0.3826834, 0.0,
+                                        0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0,
+                                        0.0, 0.9238795, 1.0, 1.0, 1.0);
+            expect_soa_float3_eq!(output_transforms[0].scale, 6.5, 4.0, 1.0, 1.0, 8.5,
+                                5.0, 1.0, 1.0, 10.5, 6.0, 1.0, 1.0);
+        }
+        {
+            let mut layers = [Layer::new()];
+            layers[0].transform = &input_transforms;
+            layers[0].joint_weights = &joint_weights;
+
+            let mut output_transforms = [SoaTransform::identity()];
+
+            // Full weight for the 1st layer.
+            layers[0].weight = 1.0;
+
+            let mut job = BlendingJob::new();
+            job.additive_layers = &layers;
+            job.bind_pose = &bind_poses;
+            job.output = &mut output_transforms;
+            assert_eq!(job.run(), true);
+
+            expect_soa_float3_eq!(output_transforms[0].translation, 0.0, 0.5, 0.0, 0.0,
+                                4.0, 2.5, 0.0, 0.0, 8.0, 4.5, 0.0, 0.0);
+            expect_soa_quaternion_eq_est!(output_transforms[0].rotation, 0.70710677, 0.0,
+                                        0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0,
+                                        0.0, 0.70710677, 1.0, 1.0, 1.0);
+            expect_soa_float3_eq!(output_transforms[0].scale, 12.0, 7.0, 1.0, 1.0, 16.0,
+                                9.0, 1.0, 1.0, 20.0, 11.0, 1.0, 1.0);
+        }
+        {
+            let mut layers = [Layer::new()];
+            layers[0].transform = &input_transforms;
+            layers[0].joint_weights = &joint_weights;
+
+            let mut output_transforms = [SoaTransform::identity()];
+
+            // Subtract layer.
+            layers[0].weight = -1.0;
+
+            let mut job = BlendingJob::new();
+            job.additive_layers = &layers;
+            job.bind_pose = &bind_poses;
+            job.output = &mut output_transforms;
+            assert_eq!(job.run(), true);
+
+            expect_soa_float3_eq!(output_transforms[0].translation, -0.0, -0.5, 0.0, 0.0,
+                                -4.0, -2.5, 0.0, 0.0, -8.0, -4.5, 0.0, 0.0);
+            expect_soa_quaternion_eq_est!(output_transforms[0].rotation, -0.70710677, 0.0,
+                                        0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0,
+                                        0.0, 0.70710677, 1.0, 1.0, 1.0);
+            expect_soa_float3_eq_est!(output_transforms[0].scale, 1.0 / 12.0, 1.0 / 7.0,
+                                    1.0, 1.0, 1.0 / 16.0, 1.0 / 9.0, 1.0, 1.0,
+                                    1.0 / 20.0, 1.0 / 11.0, 1.0, 1.0);
         }
     }
 }
