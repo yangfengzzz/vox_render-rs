@@ -47,3 +47,4 @@ pub mod track_optimizer;
 pub mod track_triggering_job;
 
 pub mod blending_job;
+pub mod local_to_model_job;

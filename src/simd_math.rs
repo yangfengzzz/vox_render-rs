@@ -8,7 +8,7 @@
 
 use std::arch::x86_64::*;
 use std::ops::{Mul, Add, Sub, Div, Neg};
-use crate::soa_float::SoaFloat3;
+use crate::soa_float::*;
 use crate::soa_quaternion::SoaQuaternion;
 
 macro_rules! _mm_shuffle {
@@ -741,40 +741,47 @@ impl SimdFloat4 {
 
     // Transposes the 16 SimdFloat4 of _in into the 16 SimdFloat4 of _out.
     #[inline]
-    pub fn transpose16x16(_in: &[SimdFloat4], _out: &mut [SimdFloat4; 16]) {
+    pub fn transpose16x16(_in: &[SoaFloat4; 4], _out: &mut [Float4x4; 4]) {
         unsafe {
-            let tmp0 = _mm_unpacklo_ps(_in[0].data, _in[2].data);
-            let tmp1 = _mm_unpacklo_ps(_in[1].data, _in[3].data);
-            _out[0].data = _mm_unpacklo_ps(tmp0, tmp1);
-            _out[4].data = _mm_unpackhi_ps(tmp0, tmp1);
-            let tmp2 = _mm_unpackhi_ps(_in[0].data, _in[2].data);
-            let tmp3 = _mm_unpackhi_ps(_in[1].data, _in[3].data);
-            _out[8].data = _mm_unpacklo_ps(tmp2, tmp3);
-            _out[12].data = _mm_unpackhi_ps(tmp2, tmp3);
-            let tmp4 = _mm_unpacklo_ps(_in[4].data, _in[6].data);
-            let tmp5 = _mm_unpacklo_ps(_in[5].data, _in[7].data);
-            _out[1].data = _mm_unpacklo_ps(tmp4, tmp5);
-            _out[5].data = _mm_unpackhi_ps(tmp4, tmp5);
-            let tmp6 = _mm_unpackhi_ps(_in[4].data, _in[6].data);
-            let tmp7 = _mm_unpackhi_ps(_in[5].data, _in[7].data);
-            _out[9].data = _mm_unpacklo_ps(tmp6, tmp7);
-            _out[13].data = _mm_unpackhi_ps(tmp6, tmp7);
-            let tmp8 = _mm_unpacklo_ps(_in[8].data, _in[10].data);
-            let tmp9 = _mm_unpacklo_ps(_in[9].data, _in[11].data);
-            _out[2].data = _mm_unpacklo_ps(tmp8, tmp9);
-            _out[6].data = _mm_unpackhi_ps(tmp8, tmp9);
-            let tmp10 = _mm_unpackhi_ps(_in[8].data, _in[10].data);
-            let tmp11 = _mm_unpackhi_ps(_in[9].data, _in[11].data);
-            _out[10].data = _mm_unpacklo_ps(tmp10, tmp11);
-            _out[14].data = _mm_unpackhi_ps(tmp10, tmp11);
-            let tmp12 = _mm_unpacklo_ps(_in[12].data, _in[14].data);
-            let tmp13 = _mm_unpacklo_ps(_in[13].data, _in[15].data);
-            _out[3].data = _mm_unpacklo_ps(tmp12, tmp13);
-            _out[7].data = _mm_unpackhi_ps(tmp12, tmp13);
-            let tmp14 = _mm_unpackhi_ps(_in[12].data, _in[14].data);
-            let tmp15 = _mm_unpackhi_ps(_in[13].data, _in[15].data);
-            _out[11].data = _mm_unpacklo_ps(tmp14, tmp15);
-            _out[15].data = _mm_unpackhi_ps(tmp14, tmp15);
+            let tmp0 = _mm_unpacklo_ps(_in[0].x.data, _in[0].z.data);
+            let tmp1 = _mm_unpacklo_ps(_in[0].y.data, _in[0].w.data);
+            _out[0].cols[0].data = _mm_unpacklo_ps(tmp0, tmp1);
+            _out[1].cols[0].data = _mm_unpackhi_ps(tmp0, tmp1);
+
+            let tmp2 = _mm_unpackhi_ps(_in[0].x.data, _in[0].z.data);
+            let tmp3 = _mm_unpackhi_ps(_in[0].y.data, _in[0].w.data);
+            _out[2].cols[0].data = _mm_unpacklo_ps(tmp2, tmp3);
+            _out[3].cols[0].data = _mm_unpackhi_ps(tmp2, tmp3);
+
+            let tmp4 = _mm_unpacklo_ps(_in[1].x.data, _in[1].z.data);
+            let tmp5 = _mm_unpacklo_ps(_in[1].y.data, _in[1].w.data);
+            _out[0].cols[1].data = _mm_unpacklo_ps(tmp4, tmp5);
+            _out[1].cols[1].data = _mm_unpackhi_ps(tmp4, tmp5);
+
+            let tmp6 = _mm_unpackhi_ps(_in[1].x.data, _in[1].z.data);
+            let tmp7 = _mm_unpackhi_ps(_in[1].y.data, _in[1].w.data);
+            _out[2].cols[1].data = _mm_unpacklo_ps(tmp6, tmp7);
+            _out[3].cols[1].data = _mm_unpackhi_ps(tmp6, tmp7);
+
+            let tmp8 = _mm_unpacklo_ps(_in[2].x.data, _in[2].z.data);
+            let tmp9 = _mm_unpacklo_ps(_in[2].y.data, _in[2].w.data);
+            _out[0].cols[2].data = _mm_unpacklo_ps(tmp8, tmp9);
+            _out[1].cols[2].data = _mm_unpackhi_ps(tmp8, tmp9);
+
+            let tmp10 = _mm_unpackhi_ps(_in[2].x.data, _in[2].z.data);
+            let tmp11 = _mm_unpackhi_ps(_in[2].y.data, _in[2].w.data);
+            _out[2].cols[2].data = _mm_unpacklo_ps(tmp10, tmp11);
+            _out[3].cols[2].data = _mm_unpackhi_ps(tmp10, tmp11);
+
+            let tmp12 = _mm_unpacklo_ps(_in[3].x.data, _in[3].z.data);
+            let tmp13 = _mm_unpacklo_ps(_in[3].y.data, _in[3].w.data);
+            _out[0].cols[3].data = _mm_unpacklo_ps(tmp12, tmp13);
+            _out[1].cols[3].data = _mm_unpackhi_ps(tmp12, tmp13);
+
+            let tmp14 = _mm_unpackhi_ps(_in[3].x.data, _in[3].z.data);
+            let tmp15 = _mm_unpackhi_ps(_in[3].y.data, _in[3].w.data);
+            _out[2].cols[3].data = _mm_unpacklo_ps(tmp14, tmp15);
+            _out[3].cols[3].data = _mm_unpackhi_ps(tmp14, tmp15);
         }
     }
 
@@ -5066,40 +5073,43 @@ mod ozz_simd_math {
         expect_simd_float_eq!(t4x4.z, 2.0, 6.0, 10.0, 14.0);
         expect_simd_float_eq!(t4x4.w, 3.0, 7.0, 11.0, 15.0);
 
-        let src2 = [
+        let src2 = [SoaFloat4::load(
             SimdFloat4::load(0.0, 16.0, 32.0, 48.0),
             SimdFloat4::load(1.0, 17.0, 33.0, 49.0),
             SimdFloat4::load(2.0, 18.0, 34.0, 50.0),
-            SimdFloat4::load(3.0, 19.0, 35.0, 51.0),
+            SimdFloat4::load(3.0, 19.0, 35.0, 51.0)),
+            SoaFloat4::load(
             SimdFloat4::load(4.0, 20.0, 36.0, 52.0),
             SimdFloat4::load(5.0, 21.0, 37.0, 53.0),
             SimdFloat4::load(6.0, 22.0, 38.0, 54.0),
-            SimdFloat4::load(7.0, 23.0, 39.0, 55.0),
+            SimdFloat4::load(7.0, 23.0, 39.0, 55.0)),
+            SoaFloat4::load(
             SimdFloat4::load(8.0, 24.0, 40.0, 56.0),
             SimdFloat4::load(9.0, 25.0, 41.0, 57.0),
             SimdFloat4::load(10.0, 26.0, 42.0, 58.0),
-            SimdFloat4::load(11.0, 27.0, 43.0, 59.0),
+            SimdFloat4::load(11.0, 27.0, 43.0, 59.0)),
+            SoaFloat4::load(
             SimdFloat4::load(12.0, 28.0, 44.0, 60.0),
             SimdFloat4::load(13.0, 29.0, 45.0, 61.0),
             SimdFloat4::load(14.0, 30.0, 46.0, 62.0),
-            SimdFloat4::load(15.0, 31.0, 47.0, 63.0)];
-        let mut t16x16 = [SimdFloat4::zero(); 16];
-        SimdFloat4::transpose16x16(&src2[..], &mut t16x16);
-        expect_simd_float_eq!(t16x16[0], 0.0, 1.0, 2.0, 3.0);
-        expect_simd_float_eq!(t16x16[1], 4.0, 5.0, 6.0, 7.0);
-        expect_simd_float_eq!(t16x16[2], 8.0, 9.0, 10.0, 11.0);
-        expect_simd_float_eq!(t16x16[3], 12.0, 13.0, 14.0, 15.0);
-        expect_simd_float_eq!(t16x16[4], 16.0, 17.0, 18.0, 19.0);
-        expect_simd_float_eq!(t16x16[5], 20.0, 21.0, 22.0, 23.0);
-        expect_simd_float_eq!(t16x16[6], 24.0, 25.0, 26.0, 27.0);
-        expect_simd_float_eq!(t16x16[7], 28.0, 29.0, 30.0, 31.0);
-        expect_simd_float_eq!(t16x16[8], 32.0, 33.0, 34.0, 35.0);
-        expect_simd_float_eq!(t16x16[9], 36.0, 37.0, 38.0, 39.0);
-        expect_simd_float_eq!(t16x16[10], 40.0, 41.0, 42.0, 43.0);
-        expect_simd_float_eq!(t16x16[11], 44.0, 45.0, 46.0, 47.0);
-        expect_simd_float_eq!(t16x16[12], 48.0, 49.0, 50.0, 51.0);
-        expect_simd_float_eq!(t16x16[13], 52.0, 53.0, 54.0, 55.0);
-        expect_simd_float_eq!(t16x16[14], 56.0, 57.0, 58.0, 59.0);
-        expect_simd_float_eq!(t16x16[15], 60.0, 61.0, 62.0, 63.0);
+            SimdFloat4::load(15.0, 31.0, 47.0, 63.0))];
+        let mut t16x16 = [Float4x4::identity(); 4];
+        SimdFloat4::transpose16x16(&src2, &mut t16x16);
+        expect_simd_float_eq!(t16x16[0].cols[0], 0.0, 1.0, 2.0, 3.0);
+        expect_simd_float_eq!(t16x16[1].cols[1], 4.0, 5.0, 6.0, 7.0);
+        expect_simd_float_eq!(t16x16[2].cols[2], 8.0, 9.0, 10.0, 11.0);
+        expect_simd_float_eq!(t16x16[3].cols[3], 12.0, 13.0, 14.0, 15.0);
+        expect_simd_float_eq!(t16x16[0].cols[0], 16.0, 17.0, 18.0, 19.0);
+        expect_simd_float_eq!(t16x16[1].cols[1], 20.0, 21.0, 22.0, 23.0);
+        expect_simd_float_eq!(t16x16[2].cols[2], 24.0, 25.0, 26.0, 27.0);
+        expect_simd_float_eq!(t16x16[3].cols[3], 28.0, 29.0, 30.0, 31.0);
+        expect_simd_float_eq!(t16x16[0].cols[0], 32.0, 33.0, 34.0, 35.0);
+        expect_simd_float_eq!(t16x16[1].cols[1], 36.0, 37.0, 38.0, 39.0);
+        expect_simd_float_eq!(t16x16[2].cols[2], 40.0, 41.0, 42.0, 43.0);
+        expect_simd_float_eq!(t16x16[3].cols[3], 44.0, 45.0, 46.0, 47.0);
+        expect_simd_float_eq!(t16x16[0].cols[0], 48.0, 49.0, 50.0, 51.0);
+        expect_simd_float_eq!(t16x16[1].cols[1], 52.0, 53.0, 54.0, 55.0);
+        expect_simd_float_eq!(t16x16[2].cols[2], 56.0, 57.0, 58.0, 59.0);
+        expect_simd_float_eq!(t16x16[3].cols[3], 60.0, 61.0, 62.0, 63.0);
     }
 }
