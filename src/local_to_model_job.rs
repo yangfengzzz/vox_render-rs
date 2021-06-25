@@ -171,6 +171,11 @@ mod local_to_model {
     use crate::soa_transform::SoaTransform;
     use crate::simd_math::*;
     use crate::local_to_model_job::LocalToModelJob;
+    use crate::soa_float::SoaFloat3;
+    use crate::soa_quaternion::SoaQuaternion;
+    use crate::math_test_helper::*;
+    use crate::simd_math::*;
+    use crate::*;
 
     #[test]
     fn job_validity() {
@@ -333,12 +338,541 @@ mod local_to_model {
 
     #[test]
     fn transformation() {
-        todo!()
+        // Builds the skeleton
+        /*
+         6 joints
+           j0
+          /  \
+         j1  j3
+          |  / \
+         j2 j4 j5
+        */
+        let mut raw_skeleton = RawSkeleton::new();
+        raw_skeleton.roots.resize(1, Joint::new());
+        let root = &mut raw_skeleton.roots[0];
+        root.name = "j0".to_string();
+
+        root.children.resize(2, Joint::new());
+        root.children[0].name = "j1".to_string();
+        root.children[1].name = "j3".to_string();
+
+        root.children[0].children.resize(1, Joint::new());
+        root.children[0].children[0].name = "j2".to_string();
+
+        root.children[1].children.resize(2, Joint::new());
+        root.children[1].children[0].name = "j4".to_string();
+        root.children[1].children[1].name = "j5".to_string();
+
+        assert_eq!(raw_skeleton.validate(), true);
+        assert_eq!(raw_skeleton.num_joints(), 6);
+
+        let skeleton = SkeletonBuilder::apply(&raw_skeleton);
+        assert_eq!(skeleton.is_some(), true);
+
+        // Initializes an input transformation.
+        let input = [
+            // Stores up to 8 inputs, needs 6.
+            SoaTransform {
+                translation: SoaFloat3::load(SimdFloat4::load(2.0, 0.0, 1.0, -2.0),
+                                             SimdFloat4::load(2.0, 0.0, 2.0, -2.0),
+                                             SimdFloat4::load(2.0, 0.0, 4.0, -2.0)),
+                rotation: SoaQuaternion::load(SimdFloat4::load(0.0, 0.0, 0.0, 0.0),
+                                              SimdFloat4::load(0.0, 0.70710677, 0.0, 0.0),
+                                              SimdFloat4::load(0.0, 0.0, 0.0, 0.0),
+                                              SimdFloat4::load(1.0, 0.70710677, 1.0, 1.0)),
+                scale: SoaFloat3::load(SimdFloat4::load(1.0, 1.0, 1.0, 10.0),
+                                       SimdFloat4::load(1.0, 1.0, 1.0, 10.0),
+                                       SimdFloat4::load(1.0, 1.0, 1.0, 10.0)),
+            },
+            SoaTransform {
+                translation: SoaFloat3::load(SimdFloat4::load(12.0, 0.0, 0.0, 0.0),
+                                             SimdFloat4::load(46.0, 0.0, 0.0, 0.0),
+                                             SimdFloat4::load(-12.0, 0.0, 0.0, 0.0)),
+                rotation: SoaQuaternion::load(SimdFloat4::load(0.0, 0.0, 0.0, 0.0),
+                                              SimdFloat4::load(0.0, 0.0, 0.0, 0.0),
+                                              SimdFloat4::load(0.0, 0.0, 0.0, 0.0),
+                                              SimdFloat4::load(1.0, 1.0, 1.0, 1.0)),
+                scale: SoaFloat3::load(SimdFloat4::load(1.0, -0.1, 1.0, 1.0),
+                                       SimdFloat4::load(1.0, -0.1, 1.0, 1.0),
+                                       SimdFloat4::load(1.0, -0.1, 1.0, 1.0)),
+            }];
+
+        {
+            // Prepares the job with root == nullptr (default identity matrix)
+            let mut output = [Float4x4::identity(); 6];
+            let mut job = LocalToModelJob::new();
+            job.skeleton = skeleton.as_ref();
+            job.input = &input;
+            job.output = &mut output;
+            assert_eq!(job.validate(), true);
+            assert_eq!(job.run(), true);
+            expect_float4x4_eq!(output[0], 1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0,
+                               0.0, 1.0, 0.0, 2.0, 2.0, 2.0, 1.0);
+            expect_float4x4_eq!(output[1], 0.0, 0.0, -1.0, 0.0, 0.0, 1.0, 0.0, 0.0, 1.0,
+                               0.0, 0.0, 0.0, 2.0, 2.0, 2.0, 1.0);
+            expect_float4x4_eq!(output[2], 0.0, 0.0, -1.0, 0.0, 0.0, 1.0, 0.0, 0.0, 1.0,
+                               0.0, 0.0, 0.0, 6.0, 4.0, 1.0, 1.0);
+            expect_float4x4_eq!(output[3], 10.0, 0.0, 0.0, 0.0, 0.0, 10.0, 0.0, 0.0, 0.0,
+                               0.0, 10.0, 0.0, 0.0, 0.0, 0.0, 1.0);
+            expect_float4x4_eq!(output[4], 10.0, 0.0, 0.0, 0.0, 0.0, 10.0, 0.0, 0.0, 0.0,
+                               0.0, 10.0, 0.0, 120.0, 460.0, -120.0, 1.0);
+            expect_float4x4_eq!(output[5], -1.0, 0.0, 0.0, 0.0, 0.0, -1.0, 0.0, 0.0, 0.0,
+                               0.0, -1.0, 0.0, 0.0, 0.0, 0.0, 1.0);
+        }
+
+        {
+            // Prepares the job with root == Translation(4,3,2,1)
+            let mut output = [Float4x4::identity(); 6];
+            let v = SimdFloat4::load(4.0, 3.0, 2.0, 1.0);
+            let world = Float4x4::translation(v);
+            let mut job = LocalToModelJob::new();
+            job.skeleton = skeleton.as_ref();
+            job.root = Some(&world);
+            job.input = &input;
+            job.output = &mut output;
+            assert_eq!(job.validate(), true);
+            assert_eq!(job.run(), true);
+            expect_float4x4_eq!(output[0], 1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0,
+                               0.0, 1.0, 0.0, 6.0, 5.0, 4.0, 1.0);
+            expect_float4x4_eq!(output[1], 0.0, 0.0, -1.0, 0.0, 0.0, 1.0, 0.0, 0.0, 1.0,
+                               0.0, 0.0, 0.0, 6.0, 5.0, 4.0, 1.0);
+            expect_float4x4_eq!(output[2], 0.0, 0.0, -1.0, 0.0, 0.0, 1.0, 0.0, 0.0, 1.0,
+                               0.0, 0.0, 0.0, 10.0, 7.0, 3.0, 1.0);
+            expect_float4x4_eq!(output[3], 10.0, 0.0, 0.0, 0.0, 0.0, 10.0, 0.0, 0.0, 0.0,
+                               0.0, 10.0, 0.0, 4.0, 3.0, 2.0, 1.0);
+            expect_float4x4_eq!(output[4], 10.0, 0.0, 0.0, 0.0, 0.0, 10.0, 0.0, 0.0, 0.0,
+                               0.0, 10.0, 0.0, 124.0, 463.0, -118.0, 1.0);
+            expect_float4x4_eq!(output[5], -1.0, 0.0, 0.0, 0.0, 0.0, -1.0, 0.0, 0.0, 0.0,
+                               0.0, -1.0, 0.0, 4.0, 3.0, 2.0, 1.0);
+        }
     }
 
     #[test]
     fn transformation_from_to() {
-        todo!()
+        // Builds the skeleton
+        /*
+         6 joints
+               *
+             /   \
+           j0    j7
+          /  \
+         j1  j3
+          |  / \
+         j2 j4 j6
+             |
+            j5
+        */
+        let mut raw_skeleton = RawSkeleton::new();
+        raw_skeleton.roots.resize(2, Joint::new());
+        let j0 = &mut raw_skeleton.roots[0];
+        j0.name = "j0".to_string();
+        let j7 = &mut raw_skeleton.roots[1];
+        j7.name = "j7".to_string();
+
+        j0.children.resize(2, Joint::new());
+        j0.children[0].name = "j1".to_string();
+        j0.children[1].name = "j3".to_string();
+
+        j0.children[0].children.resize(1, Joint::new());
+        j0.children[0].children[0].name = "j2".to_string();
+
+        j0.children[1].children.resize(2, Joint::new());
+        j0.children[1].children[0].name = "j4".to_string();
+        j0.children[1].children[1].name = "j6".to_string();
+
+        j0.children[1].children[0].children.resize(1, Joint::new());
+        j0.children[1].children[0].children[0].name = "j5".to_string();
+
+        assert_eq!(raw_skeleton.validate(), true);
+        assert_eq!(raw_skeleton.num_joints(), 8);
+
+        let skeleton = SkeletonBuilder::apply(&raw_skeleton);
+        assert_eq!(skeleton.is_some(), true);
+
+        // Initializes an input transformation.
+        let input = [
+            // Stores up to 8 inputs, needs 7.
+            //                             j0   j1   j2    j3
+            SoaTransform {
+                translation: SoaFloat3::load(SimdFloat4::load(2.0, 0.0, -2.0, 1.0),
+                                             SimdFloat4::load(2.0, 0.0, -2.0, 2.0),
+                                             SimdFloat4::load(2.0, 0.0, -2.0, 4.0)),
+                rotation: SoaQuaternion::load(SimdFloat4::load(0.0, 0.0, 0.0, 0.0),
+                                              SimdFloat4::load(0.0, 0.70710677, 0.0, 0.0),
+                                              SimdFloat4::load(0.0, 0.0, 0.0, 0.0),
+                                              SimdFloat4::load(1.0, 0.70710677, 1.0, 1.0)),
+                scale: SoaFloat3::load(SimdFloat4::load(1.0, 1.0, 10.0, 1.0),
+                                       SimdFloat4::load(1.0, 1.0, 10.0, 1.0),
+                                       SimdFloat4::load(1.0, 1.0, 10.0, 1.0)),
+            },
+            //                             j4    j5   j6   j7.
+            SoaTransform {
+                translation: SoaFloat3::load(SimdFloat4::load(12.0, 0.0, 3.0, 6.0),
+                                             SimdFloat4::load(46.0, 0.0, 4.0, 7.0),
+                                             SimdFloat4::load(-12.0, 0.0, 5.0, 8.0)),
+                rotation: SoaQuaternion::load(SimdFloat4::load(0.0, 0.0, 0.0, 0.0),
+                                              SimdFloat4::load(0.0, 0.0, 0.0, 0.0),
+                                              SimdFloat4::load(0.0, 0.0, 0.0, 0.0),
+                                              SimdFloat4::load(1.0, 1.0, 1.0, 1.0)),
+                scale: SoaFloat3::load(SimdFloat4::load(1.0, -0.1, 1.0, 1.0),
+                                       SimdFloat4::load(1.0, -0.1, 1.0, 1.0),
+                                       SimdFloat4::load(1.0, -0.1, 1.0, 1.0)),
+            }];
+
+        let mut output = [Float4x4::identity(); 8];
+        let mut job_full = LocalToModelJob::new();
+        {  // Intialize whole hierarchy output
+            job_full.skeleton = skeleton.as_ref();
+            job_full.from = crate::skeleton::Constants::KNoParent as i32;
+            job_full.input = &input;
+            job_full.output = &mut output;
+            assert_eq!(job_full.validate(), true);
+            assert_eq!(job_full.run(), true);
+            expect_float4x4_eq!(output[0], 1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0,
+                               0.0, 1.0, 0.0, 2.0, 2.0, 2.0, 1.0);
+            expect_float4x4_eq!(output[1], 0.0, 0.0, -1.0, 0.0, 0.0, 1.0, 0.0, 0.0, 1.0,
+                               0.0, 0.0, 0.0, 2.0, 2.0, 2.0, 1.0);
+            expect_float4x4_eq!(output[2], 0.0, 0.0, -10.0, 0.0, 0.0, 10.0, 0.0, 0.0,
+                               10.0, 0.0, 0.0, 0.0, 0.0, 0.0, 4.0, 1.0);
+            expect_float4x4_eq!(output[3], 1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0,
+                               0.0, 1.0, 0.0, 3.0, 4.0, 6.0, 1.0);
+            expect_float4x4_eq!(output[4], 1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0,
+                               0.0, 1.0, 0.0, 15.0, 50.0, -6.0, 1.0);
+            expect_float4x4_eq!(output[5], -0.1, 0.0, 0.0, 0.0, 0.0, -0.1, 0.0, 0.0, 0.0,
+                               0.0, -0.1, 0.0, 15.0, 50.0, -6.0, 1.0);
+            expect_float4x4_eq!(output[6], 1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0,
+                               0.0, 1.0, 0.0, 6.0, 8.0, 11.0, 1.0);
+            expect_float4x4_eq!(output[7], 1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0,
+                               0.0, 1.0, 0.0, 6.0, 7.0, 8.0, 1.0);
+        }
+
+        {  // Updates from j0, j7 shouldn't be updated
+            output.fill(Float4x4::identity());
+
+            let mut job = LocalToModelJob::new();
+            job.skeleton = skeleton.as_ref();
+            job.from = 0;
+            job.input = &input;
+            job.output = &mut output;
+            assert_eq!(job.validate(), true);
+            assert_eq!(job.run(), true);
+
+            expect_float4x4_eq!(output[0], 1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0,
+                               0.0, 1.0, 0.0, 2.0, 2.0, 2.0, 1.0);
+            expect_float4x4_eq!(output[1], 0.0, 0.0, -1.0, 0.0, 0.0, 1.0, 0.0, 0.0, 1.0,
+                               0.0, 0.0, 0.0, 2.0, 2.0, 2.0, 1.0);
+            expect_float4x4_eq!(output[2], 0.0, 0.0, -10.0, 0.0, 0.0, 10.0, 0.0, 0.0,
+                               10.0, 0.0, 0.0, 0.0, 0.0, 0.0, 4.0, 1.0);
+            expect_float4x4_eq!(output[3], 1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0,
+                               0.0, 1.0, 0.0, 3.0, 4.0, 6.0, 1.0);
+            expect_float4x4_eq!(output[4], 1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0,
+                               0.0, 1.0, 0.0, 15.0, 50.0, -6.0, 1.0);
+            expect_float4x4_eq!(output[5], -0.1, 0.0, 0.0, 0.0, 0.0, -0.1, 0.0, 0.0, 0.0,
+                               0.0, -0.1, 0.0, 15.0, 50.0, -6.0, 1.0);
+            expect_float4x4_eq!(output[6], 1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0,
+                               0.0, 1.0, 0.0, 6.0, 8.0, 11.0, 1.0);
+            expect_float4x4_eq!(output[7], 1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0,
+                               0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0);
+        }
+
+        {  // Updates from j7, j0-6 shouldn't be updated
+            output.fill(Float4x4::identity());
+
+            let mut job = LocalToModelJob::new();
+            job.skeleton = skeleton.as_ref();
+            job.from = 7;
+            job.input = &input;
+            job.output = &mut output;
+            assert_eq!(job.validate(), true);
+            assert_eq!(job.run(), true);
+
+            expect_float4x4_eq!(output[0], 1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0,
+                               0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0);
+            expect_float4x4_eq!(output[1], 1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0,
+                               0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0);
+            expect_float4x4_eq!(output[2], 1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0,
+                               0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0);
+            expect_float4x4_eq!(output[3], 1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0,
+                               0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0);
+            expect_float4x4_eq!(output[4], 1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0,
+                               0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0);
+            expect_float4x4_eq!(output[5], 1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0,
+                               0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0);
+            expect_float4x4_eq!(output[6], 1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0,
+                               0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0);
+            expect_float4x4_eq!(output[7], 1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0,
+                               0.0, 1.0, 0.0, 6.0, 7.0, 8.0, 1.0);
+        }
+
+        {  // Updates from j1, j1-2 should be updated
+            assert_eq!(job_full.run(), true);
+            output.fill(Float4x4::identity());
+
+            let mut job = LocalToModelJob::new();
+            job.skeleton = skeleton.as_ref();
+            job.from = 1;
+            job.input = &input;
+            job.output = &mut output;
+            assert_eq!(job.validate(), true);
+            assert_eq!(job.run(), true);
+
+            expect_float4x4_eq!(output[0], 1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0,
+                               0.0, 1.0, 0.0, 2.0, 2.0, 2.0, 1.0);
+            expect_float4x4_eq!(output[1], 0.0, 0.0, -1.0, 0.0, 0.0, 1.0, 0.0, 0.0, 1.0,
+                               0.0, 0.0, 0.0, 2.0, 2.0, 2.0, 1.0);
+            expect_float4x4_eq!(output[2], 0.0, 0.0, -10.0, 0.0, 0.0, 10.0, 0.0, 0.0,
+                               10.0, 0.0, 0.0, 0.0, 0.0, 0.0, 4.0, 1.0);
+            expect_float4x4_eq!(output[3], 1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0,
+                               0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0);
+            expect_float4x4_eq!(output[4], 1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0,
+                               0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0);
+            expect_float4x4_eq!(output[5], 1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0,
+                               0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0);
+            expect_float4x4_eq!(output[6], 1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0,
+                               0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0);
+            expect_float4x4_eq!(output[7], 1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0,
+                               0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0);
+        }
+
+        {  // Updates from j3, j3-6 should be updated
+            assert_eq!(job_full.run(), true);
+            output.fill(Float4x4::identity());
+
+            let mut job = LocalToModelJob::new();
+            job.skeleton = skeleton.as_ref();
+            job.from = 3;
+            job.input = &input;
+            job.output = &mut output;
+            assert_eq!(job.validate(), true);
+            assert_eq!(job.run(), true);
+
+            expect_float4x4_eq!(output[0], 1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0,
+                               0.0, 1.0, 0.0, 2.0, 2.0, 2.0, 1.0);
+            expect_float4x4_eq!(output[1], 1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0,
+                               0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0);
+            expect_float4x4_eq!(output[2], 1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0,
+                               0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0);
+            expect_float4x4_eq!(output[3], 1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0,
+                               0.0, 1.0, 0.0, 3.0, 4.0, 6.0, 1.0);
+            expect_float4x4_eq!(output[4], 1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0,
+                               0.0, 1.0, 0.0, 15.0, 50.0, -6.0, 1.0);
+            expect_float4x4_eq!(output[5], -0.1, 0.0, 0.0, 0.0, 0.0, -0.1, 0.0, 0.0, 0.0,
+                               0.0, -0.1, 0.0, 15.0, 50.0, -6.0, 1.0);
+            expect_float4x4_eq!(output[6], 1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0,
+                               0.0, 1.0, 0.0, 6.0, 8.0, 11.0, 1.0);
+            expect_float4x4_eq!(output[7], 1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0,
+                               0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0);
+        }
+
+        {  // Updates from j5, j5 should only be updated
+            assert_eq!(job_full.run(), true);
+            output.fill(Float4x4::identity());
+
+            let mut job = LocalToModelJob::new();
+            job.skeleton = skeleton.as_ref();
+            job.from = 5;
+            job.input = &input;
+            job.output = &mut output;
+            assert_eq!(job.validate(), true);
+            assert_eq!(job.run(), true);
+
+            expect_float4x4_eq!(output[0], 1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0,
+                               0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0);
+            expect_float4x4_eq!(output[1], 1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0,
+                               0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0);
+            expect_float4x4_eq!(output[2], 1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0,
+                               0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0);
+            expect_float4x4_eq!(output[3], 1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0,
+                               0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0);
+            expect_float4x4_eq!(output[4], 1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0,
+                               0.0, 1.0, 0.0, 15.0, 50.0, -6.0, 1.0);
+            expect_float4x4_eq!(output[5], -0.1, 0.0, 0.0, 0.0, 0.0, -0.1, 0.0, 0.0, 0.0,
+                               0.0, -0.1, 0.0, 15.0, 50.0, -6.0, 1.0);
+            expect_float4x4_eq!(output[6], 1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0,
+                               0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0);
+            expect_float4x4_eq!(output[7], 1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0,
+                               0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0);
+        }
+
+        {  // Updates from j6, j6 should only be updated
+            assert_eq!(job_full.run(), true);
+            output.fill(Float4x4::identity());
+
+            let mut job = LocalToModelJob::new();
+            job.skeleton = skeleton.as_ref();
+            job.from = 6;
+            job.input = &input;
+            job.output = &mut output;
+            assert_eq!(job.validate(), true);
+            assert_eq!(job.run(), true);
+
+            expect_float4x4_eq!(output[0], 1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0,
+                               0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0);
+            expect_float4x4_eq!(output[1], 1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0,
+                               0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0);
+            expect_float4x4_eq!(output[2], 1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0,
+                               0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0);
+            expect_float4x4_eq!(output[3], 1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0,
+                               0.0, 1.0, 0.0, 3.0, 4.0, 6.0, 1.0);
+            expect_float4x4_eq!(output[4], 1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0,
+                               0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0);
+            expect_float4x4_eq!(output[5], 1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0,
+                               0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0);
+            expect_float4x4_eq!(output[6], 1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0,
+                               0.0, 1.0, 0.0, 6.0, 8.0, 11.0, 1.0);
+            expect_float4x4_eq!(output[7], 1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0,
+                               0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0);
+        }
+
+        {  // Updates from j0 to j2,
+            output.fill(Float4x4::identity());
+
+            let mut job = LocalToModelJob::new();
+            job.skeleton = skeleton.as_ref();
+            job.from = 0;
+            job.to = 2;
+            job.input = &input;
+            job.output = &mut output;
+            assert_eq!(job.validate(), true);
+            assert_eq!(job.run(), true);
+
+            expect_float4x4_eq!(output[0], 1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0,
+                               0.0, 1.0, 0.0, 2.0, 2.0, 2.0, 1.0);
+            expect_float4x4_eq!(output[1], 0.0, 0.0, -1.0, 0.0, 0.0, 1.0, 0.0, 0.0, 1.0,
+                               0.0, 0.0, 0.0, 2.0, 2.0, 2.0, 1.0);
+            expect_float4x4_eq!(output[2], 0.0, 0.0, -10.0, 0.0, 0.0, 10.0, 0.0, 0.0,
+                               10.0, 0.0, 0.0, 0.0, 0.0, 0.0, 4.0, 1.0);
+            expect_float4x4_eq!(output[3], 1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0,
+                               0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0);
+            expect_float4x4_eq!(output[4], 1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0,
+                               0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0);
+            expect_float4x4_eq!(output[5], 1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0,
+                               0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0);
+            expect_float4x4_eq!(output[6], 1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0,
+                               0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0);
+            expect_float4x4_eq!(output[7], 1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0,
+                               0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0);
+        }
+
+        {  // Updates from j0 to j6, j7 shouldn't be updated
+            output.fill(Float4x4::identity());
+
+            let mut job = LocalToModelJob::new();
+            job.skeleton = skeleton.as_ref();
+            job.from = 0;
+            job.to = 6;
+            job.input = &input;
+            job.output = &mut output;
+            assert_eq!(job.validate(), true);
+            assert_eq!(job.run(), true);
+
+            expect_float4x4_eq!(output[0], 1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0,
+                               0.0, 1.0, 0.0, 2.0, 2.0, 2.0, 1.0);
+            expect_float4x4_eq!(output[1], 0.0, 0.0, -1.0, 0.0, 0.0, 1.0, 0.0, 0.0, 1.0,
+                               0.0, 0.0, 0.0, 2.0, 2.0, 2.0, 1.0);
+            expect_float4x4_eq!(output[2], 0.0, 0.0, -10.0, 0.0, 0.0, 10.0, 0.0, 0.0,
+                               10.0, 0.0, 0.0, 0.0, 0.0, 0.0, 4.0, 1.0);
+            expect_float4x4_eq!(output[3], 1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0,
+                               0.0, 1.0, 0.0, 3.0, 4.0, 6.0, 1.0);
+            expect_float4x4_eq!(output[4], 1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0,
+                               0.0, 1.0, 0.0, 15.0, 50.0, -6.0, 1.0);
+            expect_float4x4_eq!(output[5], -0.1, 0.0, 0.0, 0.0, 0.0, -0.1, 0.0, 0.0, 0.0,
+                               0.0, -0.1, 0.0, 15.0, 50.0, -6.0, 1.0);
+            expect_float4x4_eq!(output[6], 1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0,
+                               0.0, 1.0, 0.0, 6.0, 8.0, 11.0, 1.0);
+            expect_float4x4_eq!(output[7], 1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0,
+                               0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0);
+        }
+
+        {  // Updates from j0 to past end, j7 shouldn't be updated
+            output.fill(Float4x4::identity());
+
+            let mut job = LocalToModelJob::new();
+            job.skeleton = skeleton.as_ref();
+            job.from = 0;
+            job.to = 46;
+            job.input = &input;
+            job.output = &mut output;
+            assert_eq!(job.validate(), true);
+            assert_eq!(job.run(), true);
+
+            expect_float4x4_eq!(output[0], 1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0,
+                               0.0, 1.0, 0.0, 2.0, 2.0, 2.0, 1.0);
+            expect_float4x4_eq!(output[1], 0.0, 0.0, -1.0, 0.0, 0.0, 1.0, 0.0, 0.0, 1.0,
+                               0.0, 0.0, 0.0, 2.0, 2.0, 2.0, 1.0);
+            expect_float4x4_eq!(output[2], 0.0, 0.0, -10.0, 0.0, 0.0, 10.0, 0.0, 0.0,
+                               10.0, 0.0, 0.0, 0.0, 0.0, 0.0, 4.0, 1.0);
+            expect_float4x4_eq!(output[3], 1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0,
+                               0.0, 1.0, 0.0, 3.0, 4.0, 6.0, 1.0);
+            expect_float4x4_eq!(output[4], 1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0,
+                               0.0, 1.0, 0.0, 15.0, 50.0, -6.0, 1.0);
+            expect_float4x4_eq!(output[5], -0.1, 0.0, 0.0, 0.0, 0.0, -0.1, 0.0, 0.0, 0.0,
+                               0.0, -0.1, 0.0, 15.0, 50.0, -6.0, 1.0);
+            expect_float4x4_eq!(output[6], 1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0,
+                               0.0, 1.0, 0.0, 6.0, 8.0, 11.0, 1.0);
+            expect_float4x4_eq!(output[7], 1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0,
+                               0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0);
+        }
+
+        {  // Updates from j0 to nowehere, nothing should be updated
+            output.fill(Float4x4::identity());
+
+            let mut job = LocalToModelJob::new();
+            job.skeleton = skeleton.as_ref();
+            job.from = 0;
+            job.to = -99;
+            job.input = &input;
+            job.output = &mut output;
+            assert_eq!(job.validate(), true);
+            assert_eq!(job.run(), true);
+
+            expect_float4x4_eq!(output[0], 1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0,
+                               0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0);
+            expect_float4x4_eq!(output[1], 1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0,
+                               0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0);
+            expect_float4x4_eq!(output[2], 1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0,
+                               0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0);
+            expect_float4x4_eq!(output[3], 1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0,
+                               0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0);
+            expect_float4x4_eq!(output[4], 1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0,
+                               0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0);
+            expect_float4x4_eq!(output[5], 1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0,
+                               0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0);
+            expect_float4x4_eq!(output[6], 1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0,
+                               0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0);
+            expect_float4x4_eq!(output[7], 1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0,
+                               0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0);
+        }
+
+        {  // Updates from out-of-range value, nothing should be updated
+            assert_eq!(job_full.run(), true);
+            output.fill(Float4x4::identity());
+
+            let mut job = LocalToModelJob::new();
+            job.skeleton = skeleton.as_ref();
+            job.from = 93;
+            job.input = &input;
+            job.output = &mut output;
+            assert_eq!(job.validate(), true);
+            assert_eq!(job.run(), true);
+
+            expect_float4x4_eq!(output[0], 1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0,
+                               0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0);
+            expect_float4x4_eq!(output[1], 1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0,
+                               0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0);
+            expect_float4x4_eq!(output[2], 1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0,
+                               0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0);
+            expect_float4x4_eq!(output[3], 1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0,
+                               0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0);
+            expect_float4x4_eq!(output[4], 1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0,
+                               0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0);
+            expect_float4x4_eq!(output[5], 1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0,
+                               0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0);
+            expect_float4x4_eq!(output[6], 1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0,
+                               0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0);
+            expect_float4x4_eq!(output[7], 1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0,
+                               0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0);
+        }
     }
 
     #[test]
