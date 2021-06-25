@@ -607,9 +607,13 @@ mod local_to_model {
 
         {  // Updates from j1, j1-2 should be updated
             // assert_eq!(job_full.run(), true);
-            let first = output[0];
             output.fill(Float4x4::identity());
-            output[0] = first;
+            output[0] = Float4x4 {
+                cols: [SimdFloat4::load(1.0, 0.0, 0.0, 0.0), 
+                    SimdFloat4::load(0.0, 1.0, 0.0, 0.0),
+                    SimdFloat4::load(0.0, 0.0, 1.0, 0.0), 
+                    SimdFloat4::load(2.0, 2.0, 2.0, 1.0)]
+            };
 
             let mut job = LocalToModelJob::new();
             job.skeleton = skeleton.as_ref();
@@ -639,9 +643,13 @@ mod local_to_model {
 
         {  // Updates from j3, j3-6 should be updated
             // assert_eq!(job_full.run(), true);
-            let first = output[0];
             output.fill(Float4x4::identity());
-            output[0] = first;
+            output[0] = Float4x4 {
+                cols: [SimdFloat4::load(1.0, 0.0, 0.0, 0.0),
+                    SimdFloat4::load(0.0, 1.0, 0.0, 0.0),
+                    SimdFloat4::load(0.0, 0.0, 1.0, 0.0),
+                    SimdFloat4::load(2.0, 2.0, 2.0, 1.0)]
+            };
 
             let mut job = LocalToModelJob::new();
             job.skeleton = skeleton.as_ref();
@@ -671,9 +679,13 @@ mod local_to_model {
 
         {  // Updates from j5, j5 should only be updated
             // assert_eq!(job_full.run(), true);
-            let first = output[4];
             output.fill(Float4x4::identity());
-            output[4] = first;
+            output[4] = Float4x4 {
+                cols: [SimdFloat4::load(1.0, 0.0, 0.0, 0.0),
+                    SimdFloat4::load(0.0, 1.0, 0.0, 0.0),
+                    SimdFloat4::load(0.0, 0.0, 1.0, 0.0),
+                    SimdFloat4::load(15.0, 50.0, -6.0, 1.0)]
+            };
 
             let mut job = LocalToModelJob::new();
             job.skeleton = skeleton.as_ref();
@@ -703,9 +715,13 @@ mod local_to_model {
 
         {  // Updates from j6, j6 should only be updated
             // assert_eq!(job_full.run(), true);
-            let first = output[3];
             output.fill(Float4x4::identity());
-            output[3] = first;
+            output[3] = Float4x4 {
+                cols: [SimdFloat4::load(1.0, 0.0, 0.0, 0.0),
+                    SimdFloat4::load(0.0, 1.0, 0.0, 0.0),
+                    SimdFloat4::load(0.0, 0.0, 1.0, 0.0),
+                    SimdFloat4::load(3.0, 4.0, 6.0, 1.0)]
+            };
 
             let mut job = LocalToModelJob::new();
             job.skeleton = skeleton.as_ref();
