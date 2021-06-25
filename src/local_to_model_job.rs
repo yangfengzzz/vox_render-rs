@@ -160,3 +160,194 @@ impl<'a> LocalToModelJob<'a> {
         return true;
     }
 }
+
+//--------------------------------------------------------------------------------------------------
+//--------------------------------------------------------------------------------------------------
+//--------------------------------------------------------------------------------------------------
+#[cfg(test)]
+mod local_to_model {
+    use crate::raw_skeleton::{RawSkeleton, Joint};
+    use crate::skeleton_builder::SkeletonBuilder;
+    use crate::soa_transform::SoaTransform;
+    use crate::simd_math::*;
+    use crate::local_to_model_job::LocalToModelJob;
+
+    #[test]
+    fn job_validity() {
+        let mut raw_skeleton = RawSkeleton::new();
+
+        // empty skeleton.
+        let empty_skeleton = SkeletonBuilder::apply(&raw_skeleton);
+        assert_eq!(empty_skeleton.is_some(), true);
+
+        // Adds 2 joints.
+        raw_skeleton.roots.resize(1, Joint::new());
+        let root = &mut raw_skeleton.roots[0];
+        root.name = "root".to_string();
+        root.children.resize(1, Joint::new());
+
+        let skeleton = SkeletonBuilder::apply(&raw_skeleton);
+        assert_eq!(skeleton.is_some(), true);
+
+        let input = [SoaTransform::identity(), SoaTransform::identity()];
+        let mut output = [Float4x4::identity(); 5];
+
+        // Default job
+        {
+            let mut job = LocalToModelJob::new();
+            assert_eq!(job.validate(), false);
+            assert_eq!(job.run(), false);
+        }
+
+        // nullptr output
+        {
+            let mut job = LocalToModelJob::new();
+            job.skeleton = skeleton.as_ref();
+            job.input = &input[0..1];
+            assert_eq!(job.validate(), false);
+            assert_eq!(job.run(), false);
+        }
+        // nullptr input
+        {
+            let mut job = LocalToModelJob::new();
+            job.skeleton = skeleton.as_ref();
+            job.output = &mut output[0..2];
+            assert_eq!(job.validate(), false);
+            assert_eq!(job.run(), false);
+        }
+        // Null skeleton.
+        {
+            let mut job = LocalToModelJob::new();
+            job.input = &input[0..1];
+            job.output = &mut output[0..4];
+            assert_eq!(job.validate(), false);
+            assert_eq!(job.run(), false);
+        }
+        // Invalid output range: end < begin.
+        {
+            let mut job = LocalToModelJob::new();
+            job.skeleton = skeleton.as_ref();
+            job.input = &input[0..1];
+            job.output = &mut output[0..1];
+            assert_eq!(job.validate(), false);
+            assert_eq!(job.run(), false);
+        }
+        // Invalid output range: too small.
+        {
+            let mut job = LocalToModelJob::new();
+            job.skeleton = skeleton.as_ref();
+            job.input = &input[0..1];
+            job.output = &mut output[0..1];
+            assert_eq!(job.validate(), false);
+            assert_eq!(job.run(), false);
+        }
+        // Invalid input range: too small.
+        {
+            let mut job = LocalToModelJob::new();
+            job.skeleton = skeleton.as_ref();
+            job.input = &input[0..0];
+            job.output = &mut output;
+            assert_eq!(job.validate(), false);
+            assert_eq!(job.run(), false);
+        }
+        // Valid job.
+        {
+            let mut job = LocalToModelJob::new();
+            job.skeleton = skeleton.as_ref();
+            job.input = &input;
+            job.output = &mut output[0..2];
+            assert_eq!(job.validate(), true);
+            assert_eq!(job.run(), true);
+        }
+        // Valid job with root matrix.
+        {
+            let mut job = LocalToModelJob::new();
+            let v = SimdFloat4::load(4.0, 3.0, 2.0, 1.0);
+            let world = Float4x4::translation(v);
+            job.skeleton = skeleton.as_ref();
+            job.root = Some(&world);
+            job.input = &input;
+            job.output = &mut output[0..2];
+            assert_eq!(job.validate(), true);
+            assert_eq!(job.run(), true);
+        }
+        // Valid out-of-bound from.
+        {
+            let mut job = LocalToModelJob::new();
+            job.skeleton = skeleton.as_ref();
+            job.from = 93;
+            job.input = &input;
+            job.output = &mut output[0..2];
+            assert_eq!(job.validate(), true);
+            assert_eq!(job.run(), true);
+        }
+        // Valid out-of-bound from.
+        {
+            let mut job = LocalToModelJob::new();
+            job.skeleton = skeleton.as_ref();
+            job.from = -93;
+            job.input = &input;
+            job.output = &mut output[0..2];
+            assert_eq!(job.validate(), true);
+            assert_eq!(job.run(), true);
+        }
+        // Valid out-of-bound to.
+        {
+            let mut job = LocalToModelJob::new();
+            job.skeleton = skeleton.as_ref();
+            job.from = 93;
+            job.input = &input;
+            job.output = &mut output[0..2];
+            assert_eq!(job.validate(), true);
+            assert_eq!(job.run(), true);
+        }
+        // Valid out-of-bound to.
+        {
+            let mut job = LocalToModelJob::new();
+            job.skeleton = skeleton.as_ref();
+            job.from = -93;
+            job.input = &input;
+            job.output = &mut output[0..2];
+            assert_eq!(job.validate(), true);
+            assert_eq!(job.run(), true);
+        }
+        // Valid job with empty skeleton.
+        {
+            let mut job = LocalToModelJob::new();
+            job.skeleton = empty_skeleton.as_ref();
+            job.input = &input[0..0];
+            job.output = &mut output[0..0];
+            assert_eq!(job.validate(), true);
+            assert_eq!(job.run(), true);
+        }
+        // Valid job. Bigger input & output
+        {
+            let mut job = LocalToModelJob::new();
+            job.skeleton = skeleton.as_ref();
+            job.input = &input;
+            job.output = &mut output;
+            assert_eq!(job.validate(), true);
+            assert_eq!(job.run(), true);
+        }
+    }
+
+    #[test]
+    fn transformation() {
+        todo!()
+    }
+
+    #[test]
+    fn transformation_from_to() {
+        todo!()
+    }
+
+    #[test]
+    fn transformation_from_to_exclude() {
+        todo!()
+    }
+
+    #[test]
+    fn empty() {
+        todo!()
+    }
+}
