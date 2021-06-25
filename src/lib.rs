@@ -48,3 +48,5 @@ pub mod track_triggering_job;
 
 pub mod blending_job;
 pub mod local_to_model_job;
+pub mod ik_aim_job;
+pub mod ik_two_bone_job;
