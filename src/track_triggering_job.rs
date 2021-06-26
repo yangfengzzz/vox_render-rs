@@ -93,6 +93,7 @@ impl<'a> TrackTriggeringJob<'a> {
 // Iterator implementation. Calls to next operator will compute the next edge. It
 // should be compared (using operator !=) to job's end iterator to test if the
 // last edge has been reached.
+#[derive(Clone)]
 pub struct Iter<'a> {
     // Job this iterator works on.
     job_: Option<&'a TrackTriggeringJob<'a>>,
@@ -136,6 +137,13 @@ impl<'a> Iter<'a> {
             inner_: -2,
             edge_: Edge { ratio: 0.0, rising: false },
         };
+    }
+}
+
+impl<'a> PartialEq for Iter<'a> {
+    fn eq(&self, other: &Self) -> bool {
+        return self.job_.unwrap() as *const _ == other.job_.unwrap() as *const _
+            && self.outer_ == other.outer_ && self.inner_ == other.inner_;
     }
 }
 
@@ -250,14 +258,61 @@ fn detect_edge(_i0: i64, _i1: i64, _forward: bool,
 
 #[cfg(test)]
 mod track_triggering_job {
+    use crate::raw_track::*;
+    use crate::track_builder::TrackBuilder;
+    use crate::track_triggering_job::*;
+    use crate::track::FloatTrack;
+
     #[test]
     fn job_validity() {
-        todo!()
+        // Builds track
+        let raw_track = RawFloatTrack::new();
+        let track = TrackBuilder::apply_float(&raw_track);
+        assert_eq!(track.is_some(), true);
+
+        {  // Default is invalid
+            let job = TrackTriggeringJob::new();
+            assert_eq!(job.validate(), false);
+            assert_eq!(job.iter().is_some(), false);
+        }
+
+        {  // No track
+            let job = TrackTriggeringJob::new();
+            assert_eq!(job.validate(), false);
+            assert_eq!(job.iter().is_some(), false);
+        }
+
+        {  // Valid
+            let mut job = TrackTriggeringJob::new();
+            job.track = track.as_ref();
+            assert_eq!(job.validate(), true);
+            assert_eq!(job.iter().is_some(), true);
+        }
+
+        {  // Valid
+            let mut job = TrackTriggeringJob::new();
+            job.from = 0.0;
+            job.to = 1.0;
+            job.track = track.as_ref();
+            assert_eq!(job.validate(), true);
+            assert_eq!(job.iter().is_some(), true);
+        }
+
+        {  // Empty output is valid
+            let mut job = TrackTriggeringJob::new();
+            job.track = track.as_ref();
+            assert_eq!(job.validate(), true);
+            assert_eq!(job.iter().is_some(), true);
+        }
     }
 
     #[test]
     fn default() {
-        todo!()
+        let default_track = FloatTrack::new();
+        let mut job = TrackTriggeringJob::new();
+        job.track = Some(&default_track);
+        assert_eq!(job.iter().is_some(), true);
+        assert_eq!(job.iter().unwrap() == job.end(), true);
     }
 
     #[test]

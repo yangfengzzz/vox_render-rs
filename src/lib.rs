@@ -22,22 +22,22 @@ pub mod soa_quaternion;
 pub mod soa_transform;
 pub mod soa_float4x4;
 
+pub mod decimate;
+
 pub mod raw_skeleton;
 pub mod skeleton;
-pub mod skeleton_builder;
 pub mod skeleton_utils;
+pub mod skeleton_builder;
 
 pub mod animation_keyframe;
 pub mod raw_animation;
 pub mod raw_animation_utils;
 pub mod animation;
+pub mod animation_utils;
 pub mod animation_builder;
 pub mod sampling_job;
 pub mod additive_animation_builder;
 pub mod animation_optimizer;
-pub mod animation_utils;
-
-pub mod decimate;
 
 pub mod raw_track;
 pub mod track;
