@@ -97,7 +97,7 @@ impl<'a> IKAimJob<'a> {
     // The job is validated before any operation is performed, see validate() for
     // more details.
     // Returns false if *this job is not valid.
-    pub fn run(&'a mut self) -> bool {
+    pub fn run(&mut self) -> bool {
         if !self.validate() {
             return false;
         }
@@ -319,7 +319,7 @@ mod ik_aim_job {
             {  // x
                 job.target = parent.transform_point(SimdFloat4::x_axis());
                 assert_eq!(job.run(), true);
-                expect_simd_quaternion_eq_tol!(quat, 0.0, 0.0, 0.0, 1.0, 2e-3);
+                expect_simd_quaternion_eq_tol!(job.joint_correction.as_ref().unwrap(), 0.0, 0.0, 0.0, 1.0, 2e-3);
             }
 
             {  // -x
@@ -327,14 +327,14 @@ mod ik_aim_job {
                 assert_eq!(job.run(), true);
                 let y_pi = Quaternion::from_axis_angle(
                     &Float3::y_axis(), K_PI);
-                expect_simd_quaternion_eq_tol!(quat, y_pi.x, y_pi.y, y_pi.z, y_pi.w, 2e-3);
+                expect_simd_quaternion_eq_tol!(job.joint_correction.as_ref().unwrap(), y_pi.x, y_pi.y, y_pi.z, y_pi.w, 2e-3);
             }
 
             {  // z
                 job.target = parent.transform_point(SimdFloat4::z_axis());
                 assert_eq!(job.run(), true);
                 let y_m_pi_2 = Quaternion::from_axis_angle(&Float3::y_axis(), -K_PI_2);
-                expect_simd_quaternion_eq_tol!(quat, y_m_pi_2.x, y_m_pi_2.y, y_m_pi_2.z,
+                expect_simd_quaternion_eq_tol!(job.joint_correction.as_ref().unwrap(), y_m_pi_2.x, y_m_pi_2.y, y_m_pi_2.z,
                                              y_m_pi_2.w, 2e-3);
             }
 
@@ -342,7 +342,7 @@ mod ik_aim_job {
                 job.target = parent.transform_point(-SimdFloat4::z_axis());
                 assert_eq!(job.run(), true);
                 let y_pi_2 = Quaternion::from_axis_angle(&Float3::y_axis(), K_PI_2);
-                expect_simd_quaternion_eq_tol!(quat, y_pi_2.x, y_pi_2.y, y_pi_2.z, y_pi_2.w,
+                expect_simd_quaternion_eq_tol!(job.joint_correction.as_ref().unwrap(), y_pi_2.x, y_pi_2.y, y_pi_2.z, y_pi_2.w,
                                              2e-3);
             }
 
@@ -350,7 +350,7 @@ mod ik_aim_job {
                 job.target = parent.transform_point(SimdFloat4::load(1.0, 1.0, 0.0, 0.0));
                 assert_eq!(job.run(), true);
                 let z_pi_4 = Quaternion::from_axis_angle(&Float3::z_axis(), K_PI_4);
-                expect_simd_quaternion_eq_tol!(quat, z_pi_4.x, z_pi_4.y, z_pi_4.z, z_pi_4.w,
+                expect_simd_quaternion_eq_tol!(job.joint_correction.as_ref().unwrap(), z_pi_4.x, z_pi_4.y, z_pi_4.z, z_pi_4.w,
                                              2e-3);
             }
 
@@ -358,7 +358,7 @@ mod ik_aim_job {
                 job.target = parent.transform_point(SimdFloat4::load(2.0, 2.0, 0.0, 0.0));
                 assert_eq!(job.run(), true);
                 let z_pi_4 = Quaternion::from_axis_angle(&Float3::z_axis(), K_PI_4);
-                expect_simd_quaternion_eq_tol!(quat, z_pi_4.x, z_pi_4.y, z_pi_4.z, z_pi_4.w,
+                expect_simd_quaternion_eq_tol!(job.joint_correction.as_ref().unwrap(), z_pi_4.x, z_pi_4.y, z_pi_4.z, z_pi_4.w,
                                              2e-3);
             }
         }
@@ -379,21 +379,21 @@ mod ik_aim_job {
         {  // forward x
             job.forward = SimdFloat4::x_axis();
             assert_eq!(job.run(), true);
-            expect_simd_quaternion_eq_tol!(quat, 0.0, 0.0, 0.0, 1.0, 2e-3);
+            expect_simd_quaternion_eq_tol!(job.joint_correction.as_ref().unwrap(), 0.0, 0.0, 0.0, 1.0, 2e-3);
         }
 
         {  // forward -x
             job.forward = -SimdFloat4::x_axis();
             assert_eq!(job.run(), true);
             let y_pi = Quaternion::from_axis_angle(&Float3::y_axis(), -K_PI);
-            expect_simd_quaternion_eq_tol!(quat, y_pi.x, y_pi.y, y_pi.z, y_pi.w, 2e-3);
+            expect_simd_quaternion_eq_tol!(job.joint_correction.as_ref().unwrap(), y_pi.x, y_pi.y, y_pi.z, y_pi.w, 2e-3);
         }
 
         {  // forward z
             job.forward = SimdFloat4::z_axis();
             assert_eq!(job.run(), true);
             let y_pi_2 = Quaternion::from_axis_angle(&Float3::y_axis(), K_PI_2);
-            expect_simd_quaternion_eq_tol!(quat, y_pi_2.x, y_pi_2.y, y_pi_2.z, y_pi_2.w,
+            expect_simd_quaternion_eq_tol!(job.joint_correction.as_ref().unwrap(), y_pi_2.x, y_pi_2.y, y_pi_2.z, y_pi_2.w,
                                          2e-3);
         }
     }
@@ -414,21 +414,26 @@ mod ik_aim_job {
         {  // up y
             job.up = SimdFloat4::y_axis();
             assert_eq!(job.run(), true);
-            expect_simd_quaternion_eq_tol!(quat, 0.0, 0.0, 0.0, 1.0, 2e-3);
+            println!("{}, {}, {}, {}", job.joint_correction.as_ref().unwrap().xyzw.get_x(),
+                     job.joint_correction.as_ref().unwrap().xyzw.get_y(),
+                     job.joint_correction.as_ref().unwrap().xyzw.get_z(),
+                     job.joint_correction.as_ref().unwrap().xyzw.get_w());
+
+            expect_simd_quaternion_eq_tol!(job.joint_correction.as_ref().unwrap(), 0.0, 0.0, 0.0, 1.0, 2e-3);
         }
 
         {  // up -y
             job.up = -SimdFloat4::y_axis();
             assert_eq!(job.run(), true);
             let x_pi = Quaternion::from_axis_angle(&Float3::x_axis(), K_PI);
-            expect_simd_quaternion_eq_tol!(quat, x_pi.x, x_pi.y, x_pi.z, x_pi.w, 2e-3);
+            expect_simd_quaternion_eq_tol!(job.joint_correction.as_ref().unwrap(), x_pi.x, x_pi.y, x_pi.z, x_pi.w, 2e-3);
         }
 
         {  // up z
             job.up = SimdFloat4::z_axis();
             assert_eq!(job.run(), true);
             let x_m_pi_2 = Quaternion::from_axis_angle(&Float3::x_axis(), -K_PI_2);
-            expect_simd_quaternion_eq_tol!(quat, x_m_pi_2.x, x_m_pi_2.y, x_m_pi_2.z,
+            expect_simd_quaternion_eq_tol!(job.joint_correction.as_ref().unwrap(), x_m_pi_2.x, x_m_pi_2.y, x_m_pi_2.z,
                                          x_m_pi_2.w, 2e-3);
         }
 
@@ -436,7 +441,7 @@ mod ik_aim_job {
             job.up = SimdFloat4::z_axis() * SimdFloat4::load1(2.0);
             assert_eq!(job.run(), true);
             let x_m_pi_2 = Quaternion::from_axis_angle(&Float3::x_axis(), -K_PI_2);
-            expect_simd_quaternion_eq_tol!(quat, x_m_pi_2.x, x_m_pi_2.y, x_m_pi_2.z,
+            expect_simd_quaternion_eq_tol!(job.joint_correction.as_ref().unwrap(), x_m_pi_2.x, x_m_pi_2.y, x_m_pi_2.z,
                                          x_m_pi_2.w, 2e-3);
         }
 
@@ -444,14 +449,14 @@ mod ik_aim_job {
             job.up = SimdFloat4::z_axis() * SimdFloat4::load1(1e-9);
             assert_eq!(job.run(), true);
             let x_m_pi_2 = Quaternion::from_axis_angle(&Float3::x_axis(), -K_PI_2);
-            expect_simd_quaternion_eq_tol!(quat, x_m_pi_2.x, x_m_pi_2.y, x_m_pi_2.z,
+            expect_simd_quaternion_eq_tol!(job.joint_correction.as_ref().unwrap(), x_m_pi_2.x, x_m_pi_2.y, x_m_pi_2.z,
                                          x_m_pi_2.w, 2e-3);
         }
 
         {  // up is zero
             job.up = SimdFloat4::zero();
             assert_eq!(job.run(), true);
-            expect_simd_quaternion_eq_tol!(quat, 0.0, 0.0, 0.0, 1.0, 2e-3);
+            expect_simd_quaternion_eq_tol!(job.joint_correction.as_ref().unwrap(), 0.0, 0.0, 0.0, 1.0, 2e-3);
         }
     }
 
@@ -470,21 +475,21 @@ mod ik_aim_job {
         {  // Pole y
             job.pole_vector = SimdFloat4::y_axis();
             assert_eq!(job.run(), true);
-            expect_simd_quaternion_eq_tol!(quat, 0.0, 0.0, 0.0, 1.0, 2e-3);
+            expect_simd_quaternion_eq_tol!(job.joint_correction.as_ref().unwrap(), 0.0, 0.0, 0.0, 1.0, 2e-3);
         }
 
         {  // Pole -y
             job.pole_vector = -SimdFloat4::y_axis();
             assert_eq!(job.run(), true);
             let x_pi = Quaternion::from_axis_angle(&Float3::x_axis(), K_PI);
-            expect_simd_quaternion_eq_tol!(quat, x_pi.x, x_pi.y, x_pi.z, x_pi.w, 2e-3);
+            expect_simd_quaternion_eq_tol!(job.joint_correction.as_ref().unwrap(), x_pi.x, x_pi.y, x_pi.z, x_pi.w, 2e-3);
         }
 
         {  // Pole z
             job.pole_vector = SimdFloat4::z_axis();
             assert_eq!(job.run(), true);
             let x_pi_2 = Quaternion::from_axis_angle(&Float3::x_axis(), K_PI_2);
-            expect_simd_quaternion_eq_tol!(quat, x_pi_2.x, x_pi_2.y, x_pi_2.z, x_pi_2.w,
+            expect_simd_quaternion_eq_tol!(job.joint_correction.as_ref().unwrap(), x_pi_2.x, x_pi_2.y, x_pi_2.z, x_pi_2.w,
                                          2e-3);
         }
 
@@ -492,7 +497,7 @@ mod ik_aim_job {
             job.pole_vector = SimdFloat4::z_axis() * SimdFloat4::load1(2.0);
             assert_eq!(job.run(), true);
             let x_pi_2 = Quaternion::from_axis_angle(&Float3::x_axis(), K_PI_2);
-            expect_simd_quaternion_eq_tol!(quat, x_pi_2.x, x_pi_2.y, x_pi_2.z, x_pi_2.w,
+            expect_simd_quaternion_eq_tol!(job.joint_correction.as_ref().unwrap(), x_pi_2.x, x_pi_2.y, x_pi_2.z, x_pi_2.w,
                                          2e-3);
         }
 
@@ -500,7 +505,7 @@ mod ik_aim_job {
             job.pole_vector = SimdFloat4::z_axis() * SimdFloat4::load1(1e-9);
             assert_eq!(job.run(), true);
             let x_pi_2 = Quaternion::from_axis_angle(&Float3::x_axis(), K_PI_2);
-            expect_simd_quaternion_eq_tol!(quat, x_pi_2.x, x_pi_2.y, x_pi_2.z, x_pi_2.w,
+            expect_simd_quaternion_eq_tol!(job.joint_correction.as_ref().unwrap(), x_pi_2.x, x_pi_2.y, x_pi_2.z, x_pi_2.w,
                                          2e-3);
         }
     }
@@ -521,82 +526,82 @@ mod ik_aim_job {
         job.pole_vector = SimdFloat4::y_axis();
 
         {  // No offset
-            reached = false;
+            **job.reached.as_mut().unwrap() = false;
             job.offset = SimdFloat4::zero();
             assert_eq!(job.run(), true);
-            expect_simd_quaternion_eq_tol!(quat, 0.0, 0.0, 0.0, 1.0, 2e-3);
-            assert_eq!(reached, true);
+            expect_simd_quaternion_eq_tol!(job.joint_correction.as_ref().unwrap(), 0.0, 0.0, 0.0, 1.0, 2e-3);
+            assert_eq!(**job.reached.as_ref().unwrap(), true);
         }
 
         {  // Offset inside target sphere
-            reached = false;
+            **job.reached.as_mut().unwrap() = false;
             job.offset = SimdFloat4::load(0.0, K_SQRT2_2, 0.0, 0.0);
             assert_eq!(job.run(), true);
             let z_pi_4 = Quaternion::from_axis_angle(&Float3::z_axis(), -K_PI_4);
-            expect_simd_quaternion_eq_tol!(quat, z_pi_4.x, z_pi_4.y, z_pi_4.z, z_pi_4.w,
+            expect_simd_quaternion_eq_tol!(job.joint_correction.as_ref().unwrap(), z_pi_4.x, z_pi_4.y, z_pi_4.z, z_pi_4.w,
                                          2e-3);
-            assert_eq!(reached, true);
+            assert_eq!(**job.reached.as_ref().unwrap(), true);
         }
 
         {  // Offset inside target sphere
-            reached = false;
+            **job.reached.as_mut().unwrap() = false;
             job.offset = SimdFloat4::load(0.5, 0.5, 0.0, 0.0);
             assert_eq!(job.run(), true);
             let z_pi_6 = Quaternion::from_axis_angle(&Float3::z_axis(), -K_PI / 6.0);
-            expect_simd_quaternion_eq_tol!(quat, z_pi_6.x, z_pi_6.y, z_pi_6.z, z_pi_6.w,
+            expect_simd_quaternion_eq_tol!(job.joint_correction.as_ref().unwrap(), z_pi_6.x, z_pi_6.y, z_pi_6.z, z_pi_6.w,
                                          2e-3);
-            assert_eq!(reached, true);
+            assert_eq!(**job.reached.as_ref().unwrap(), true);
         }
 
         {  // Offset inside target sphere
-            reached = false;
+            **job.reached.as_mut().unwrap() = false;
             job.offset = SimdFloat4::load(-0.5, 0.5, 0.0, 0.0);
             assert_eq!(job.run(), true);
             let z_pi_6 = Quaternion::from_axis_angle(&Float3::z_axis(), -K_PI / 6.0);
-            expect_simd_quaternion_eq_tol!(quat, z_pi_6.x, z_pi_6.y, z_pi_6.z, z_pi_6.w,
+            expect_simd_quaternion_eq_tol!(job.joint_correction.as_ref().unwrap(), z_pi_6.x, z_pi_6.y, z_pi_6.z, z_pi_6.w,
                                          2e-3);
-            assert_eq!(reached, true);
+            assert_eq!(**job.reached.as_ref().unwrap(), true);
         }
 
         {  // Offset inside target sphere
-            reached = false;
+            **job.reached.as_mut().unwrap() = false;
             job.offset = SimdFloat4::load(0.5, 0.0, 0.5, 0.0);
             assert_eq!(job.run(), true);
             let y_pi_6 = Quaternion::from_axis_angle(&Float3::y_axis(), K_PI / 6.0);
-            expect_simd_quaternion_eq_tol!(quat, y_pi_6.x, y_pi_6.y, y_pi_6.z, y_pi_6.w,
+            expect_simd_quaternion_eq_tol!(job.joint_correction.as_ref().unwrap(), y_pi_6.x, y_pi_6.y, y_pi_6.z, y_pi_6.w,
                                          2e-3);
-            assert_eq!(reached, true);
+            assert_eq!(**job.reached.as_ref().unwrap(), true);
         }
 
         {  // Offset on target sphere
-            reached = false;
+            **job.reached.as_mut().unwrap() = false;
             job.offset = SimdFloat4::load(0.0, 1.0, 0.0, 0.0);
             assert_eq!(job.run(), true);
             let z_pi_2 = Quaternion::from_axis_angle(&Float3::z_axis(), -K_PI_2);
-            expect_simd_quaternion_eq_tol!(quat, z_pi_2.x, z_pi_2.y, z_pi_2.z, z_pi_2.w,
+            expect_simd_quaternion_eq_tol!(job.joint_correction.as_ref().unwrap(), z_pi_2.x, z_pi_2.y, z_pi_2.z, z_pi_2.w,
                                          2e-3);
-            assert_eq!(reached, true);
+            assert_eq!(**job.reached.as_ref().unwrap(), true);
         }
 
         {  // Offset outside of target sphere, unreachable
-            reached = true;
+            **job.reached.as_mut().unwrap() = true;
             job.offset = SimdFloat4::load(0.0, 2.0, 0.0, 0.0);
             assert_eq!(job.run(), true);
-            expect_simd_quaternion_eq_tol!(quat, 0.0, 0.0, 0.0, 1.0, 2e-3);
-            assert_eq!(reached, false);
+            expect_simd_quaternion_eq_tol!(job.joint_correction.as_ref().unwrap(), 0.0, 0.0, 0.0, 1.0, 2e-3);
+            assert_eq!(**job.reached.as_ref().unwrap(), false);
         }
 
         let translated_joint = Float4x4::translation(SimdFloat4::y_axis());
         job.joint = Some(&translated_joint);
 
         {  // Offset inside of target sphere, unreachable
-            reached = false;
+            **job.reached.as_mut().unwrap() = false;
             job.offset = SimdFloat4::y_axis();
             assert_eq!(job.run(), true);
             let z_pi_2 = Quaternion::from_axis_angle(&Float3::z_axis(), -K_PI_2);
-            expect_simd_quaternion_eq_tol!(quat, z_pi_2.x, z_pi_2.y, z_pi_2.z, z_pi_2.w,
+            expect_simd_quaternion_eq_tol!(job.joint_correction.as_ref().unwrap(), z_pi_2.x, z_pi_2.y, z_pi_2.z, z_pi_2.w,
                                          2e-3);
-            assert_eq!(reached, true);
+            assert_eq!(**job.reached.as_ref().unwrap(), true);
         }
     }
 
@@ -616,7 +621,7 @@ mod ik_aim_job {
             job.pole_vector = SimdFloat4::y_axis();
             job.twist_angle = 0.0;
             assert_eq!(job.run(), true);
-            expect_simd_quaternion_eq_tol!(quat, 0.0, 0.0, 0.0, 1.0, 2e-3);
+            expect_simd_quaternion_eq_tol!(job.joint_correction.as_ref().unwrap(), 0.0, 0.0, 0.0, 1.0, 2e-3);
         }
 
         {  // Pole y, twist pi
@@ -624,7 +629,7 @@ mod ik_aim_job {
             job.twist_angle = K_PI;
             assert_eq!(job.run(), true);
             let x_pi = Quaternion::from_axis_angle(&Float3::x_axis(), -K_PI);
-            expect_simd_quaternion_eq_tol!(quat, x_pi.x, x_pi.y, x_pi.z, x_pi.w, 2e-3);
+            expect_simd_quaternion_eq_tol!(job.joint_correction.as_ref().unwrap(), x_pi.x, x_pi.y, x_pi.z, x_pi.w, 2e-3);
         }
 
         {  // Pole y, twist -pi
@@ -632,7 +637,7 @@ mod ik_aim_job {
             job.twist_angle = -K_PI;
             assert_eq!(job.run(), true);
             let x_m_pi = Quaternion::from_axis_angle(&Float3::x_axis(), -K_PI);
-            expect_simd_quaternion_eq_tol!(quat, x_m_pi.x, x_m_pi.y, x_m_pi.z, x_m_pi.w, 2e-3);
+            expect_simd_quaternion_eq_tol!(job.joint_correction.as_ref().unwrap(), x_m_pi.x, x_m_pi.y, x_m_pi.z, x_m_pi.w, 2e-3);
         }
 
         {  // Pole y, twist pi/2
@@ -640,7 +645,7 @@ mod ik_aim_job {
             job.twist_angle = K_PI_2;
             assert_eq!(job.run(), true);
             let x_pi_2 = Quaternion::from_axis_angle(&Float3::x_axis(), K_PI_2);
-            expect_simd_quaternion_eq_tol!(quat, x_pi_2.x, x_pi_2.y, x_pi_2.z, x_pi_2.w, 2e-3);
+            expect_simd_quaternion_eq_tol!(job.joint_correction.as_ref().unwrap(), x_pi_2.x, x_pi_2.y, x_pi_2.z, x_pi_2.w, 2e-3);
         }
 
         {  // Pole z, twist pi/2
@@ -648,7 +653,7 @@ mod ik_aim_job {
             job.twist_angle = K_PI_2;
             assert_eq!(job.run(), true);
             let x_pi = Quaternion::from_axis_angle(&Float3::x_axis(), K_PI);
-            expect_simd_quaternion_eq_tol!(quat, x_pi.x, x_pi.y, x_pi.z, x_pi.w, 2e-3);
+            expect_simd_quaternion_eq_tol!(job.joint_correction.as_ref().unwrap(), x_pi.x, x_pi.y, x_pi.z, x_pi.w, 2e-3);
         }
     }
 
@@ -667,7 +672,7 @@ mod ik_aim_job {
             job.target = SimdFloat4::x_axis();
             job.up = SimdFloat4::y_axis();
             assert_eq!(job.run(), true);
-            expect_simd_quaternion_eq_tol!(quat, 0.0, 0.0, 0.0, 1.0, 2e-3);
+            expect_simd_quaternion_eq_tol!(job.joint_correction.as_ref().unwrap(), 0.0, 0.0, 0.0, 1.0, 2e-3);
         }
 
         {  // Aligned y
@@ -675,7 +680,7 @@ mod ik_aim_job {
             job.up = SimdFloat4::y_axis();
             assert_eq!(job.run(), true);
             let z_pi_2 = Quaternion::from_axis_angle(&Float3::z_axis(), K_PI_2);
-            expect_simd_quaternion_eq_tol!(quat, z_pi_2.x, z_pi_2.y, z_pi_2.z, z_pi_2.w,
+            expect_simd_quaternion_eq_tol!(job.joint_correction.as_ref().unwrap(), z_pi_2.x, z_pi_2.y, z_pi_2.z, z_pi_2.w,
                                          2e-3);
         }
 
@@ -684,7 +689,7 @@ mod ik_aim_job {
             job.up = SimdFloat4::y_axis();
             assert_eq!(job.run(), true);
             let z_pi_2 = Quaternion::from_axis_angle(&Float3::z_axis(), K_PI_2);
-            expect_simd_quaternion_eq_tol!(quat, z_pi_2.x, z_pi_2.y, z_pi_2.z, z_pi_2.w,
+            expect_simd_quaternion_eq_tol!(job.joint_correction.as_ref().unwrap(), z_pi_2.x, z_pi_2.y, z_pi_2.z, z_pi_2.w,
                                          2e-3);
         }
 
@@ -693,7 +698,7 @@ mod ik_aim_job {
             job.up = SimdFloat4::y_axis();
             assert_eq!(job.run(), true);
             let z_m_pi_2 = Quaternion::from_axis_angle(&Float3::z_axis(), -K_PI_2);
-            expect_simd_quaternion_eq_tol!(quat, z_m_pi_2.x, z_m_pi_2.y, z_m_pi_2.z,
+            expect_simd_quaternion_eq_tol!(job.joint_correction.as_ref().unwrap(), z_m_pi_2.x, z_m_pi_2.y, z_m_pi_2.z,
                                          z_m_pi_2.w, 2e-3);
         }
     }
@@ -713,7 +718,7 @@ mod ik_aim_job {
             job.target = SimdFloat4::x_axis();
             job.pole_vector = SimdFloat4::y_axis();
             assert_eq!(job.run(), true);
-            expect_simd_quaternion_eq_tol!(quat, 0.0, 0.0, 0.0, 1.0, 2e-3);
+            expect_simd_quaternion_eq_tol!(job.joint_correction.as_ref().unwrap(), 0.0, 0.0, 0.0, 1.0, 2e-3);
         }
 
         {  // Aligned y
@@ -721,7 +726,7 @@ mod ik_aim_job {
             job.pole_vector = SimdFloat4::y_axis();
             assert_eq!(job.run(), true);
             let z_pi_2 = Quaternion::from_axis_angle(&Float3::z_axis(), K_PI_2);
-            expect_simd_quaternion_eq_tol!(quat, z_pi_2.x, z_pi_2.y, z_pi_2.z, z_pi_2.w, 2e-3);
+            expect_simd_quaternion_eq_tol!(job.joint_correction.as_ref().unwrap(), z_pi_2.x, z_pi_2.y, z_pi_2.z, z_pi_2.w, 2e-3);
         }
     }
 
@@ -739,7 +744,7 @@ mod ik_aim_job {
         job.pole_vector = SimdFloat4::y_axis();
 
         assert_eq!(job.run(), true);
-        expect_simd_quaternion_eq_tol!(quat, 0.0, 0.0, 0.0, 1.0, 2e-3);
+        expect_simd_quaternion_eq_tol!(job.joint_correction.as_ref().unwrap(), 0.0, 0.0, 0.0, 1.0, 2e-3);
     }
 
     #[test]
@@ -759,7 +764,7 @@ mod ik_aim_job {
             job.weight = 1.0;
             assert_eq!(job.run(), true);
             let y_m_pi2 = Quaternion::from_axis_angle(&Float3::y_axis(), -K_PI_2);
-            expect_simd_quaternion_eq_tol!(quat, y_m_pi2.x, y_m_pi2.y, y_m_pi2.z, y_m_pi2.w,
+            expect_simd_quaternion_eq_tol!(job.joint_correction.as_ref().unwrap(), y_m_pi2.x, y_m_pi2.y, y_m_pi2.z, y_m_pi2.w,
                                          2e-3);
         }
 
@@ -767,7 +772,7 @@ mod ik_aim_job {
             job.weight = 2.0;
             assert_eq!(job.run(), true);
             let y_m_pi2 = Quaternion::from_axis_angle(&Float3::y_axis(), -K_PI_2);
-            expect_simd_quaternion_eq_tol!(quat, y_m_pi2.x, y_m_pi2.y, y_m_pi2.z, y_m_pi2.w,
+            expect_simd_quaternion_eq_tol!(job.joint_correction.as_ref().unwrap(), y_m_pi2.x, y_m_pi2.y, y_m_pi2.z, y_m_pi2.w,
                                          2e-3);
         }
 
@@ -775,20 +780,20 @@ mod ik_aim_job {
             job.weight = 0.5;
             assert_eq!(job.run(), true);
             let y_m_pi4 = Quaternion::from_axis_angle(&Float3::y_axis(), -K_PI_4);
-            expect_simd_quaternion_eq_tol!(quat, y_m_pi4.x, y_m_pi4.y, y_m_pi4.z, y_m_pi4.w,
+            expect_simd_quaternion_eq_tol!(job.joint_correction.as_ref().unwrap(), y_m_pi4.x, y_m_pi4.y, y_m_pi4.z, y_m_pi4.w,
                                          2e-3);
         }
 
         {  // Zero weight
             job.weight = 0.0;
             assert_eq!(job.run(), true);
-            expect_simd_quaternion_eq_tol!(quat, 0.0, 0.0, 0.0, 1.0, 2e-3);
+            expect_simd_quaternion_eq_tol!(job.joint_correction.as_ref().unwrap(), 0.0, 0.0, 0.0, 1.0, 2e-3);
         }
 
         {  // < 0
             job.weight = -0.5;
             assert_eq!(job.run(), true);
-            expect_simd_quaternion_eq_tol!(quat, 0.0, 0.0, 0.0, 1.0, 2e-3);
+            expect_simd_quaternion_eq_tol!(job.joint_correction.as_ref().unwrap(), 0.0, 0.0, 0.0, 1.0, 2e-3);
         }
     }
 
@@ -801,6 +806,6 @@ mod ik_aim_job {
         job.joint = Some(&joint);
 
         assert_eq!(job.run(), true);
-        expect_simd_quaternion_eq_tol!(quat, 0.0, 0.0, 0.0, 1.0, 2e-3);
+        expect_simd_quaternion_eq_tol!(job.joint_correction.as_ref().unwrap(), 0.0, 0.0, 0.0, 1.0, 2e-3);
     }
 }
