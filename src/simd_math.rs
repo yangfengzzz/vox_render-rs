@@ -3059,7 +3059,7 @@ impl Float4x4 {
     // invertible. If _invertible is nullptr, then an assert is triggered in case the
     // matrix isn't invertible.
     #[inline]
-    pub fn invert(&self, _invertible: &mut Option<SimdInt4>) -> Float4x4 {
+    pub fn invert(&self, mut _invertible: Option<&mut SimdInt4>) -> Float4x4 {
         unsafe {
             let _t0 =
                 _mm_shuffle_ps(self.cols[0].data, self.cols[1].data, _mm_shuffle!(1, 0, 1, 0));
@@ -3133,7 +3133,7 @@ impl Float4x4 {
             debug_assert!((_invertible.is_some() || SimdInt4::are_all_true1(&invertible)) &&
                 "Matrix is not invertible".parse().unwrap_or(true));
             if _invertible.is_some() {
-                *_invertible = Some(invertible);
+                **_invertible.as_mut().unwrap() = invertible;
             }
             tmp1 = ozz_sse_select_f!(invertible.data, SimdFloat4::rcp_est_nr(&SimdFloat4::new(det)).data, SimdFloat4::zero().data);
             det = ozz_nmaddx!(det, _mm_mul_ss(tmp1, tmp1), _mm_add_ss(tmp1, tmp1));
@@ -4285,11 +4285,11 @@ mod ozz_simd_math {
                            6.0, 10.0, 14.0, 3.0, 7.0, 11.0, 15.0);
 
         // Invertible
-        let invert_ident = Float4x4::identity().invert(&mut None);
+        let invert_ident = Float4x4::identity().invert(None);
         expect_float4x4_eq!(invert_ident, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0,
                            0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0);
 
-        let invert = m2.invert(&mut None);
+        let invert = m2.invert(None);
         expect_float4x4_eq!(invert, 0.216667, 2.75, 1.6, 0.066666, 0.2, 2.5, 1.4,
                            0.1, 0.25, 0.5, 0.25, 0.0, 0.233333, 0.5, 0.3, 0.03333);
 
@@ -4297,19 +4297,19 @@ mod ozz_simd_math {
         expect_float4x4_eq!(invert_mul, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0,
                            0.0, 1.0, 0.0, 0.0, 0.0, 0.0, 1.0);
 
-        let mut invertible: Option<SimdInt4> = Some(SimdInt4::zero());
-        expect_float4x4_eq!(m2.invert(&mut invertible), 0.216667, 2.75, 1.6, 0.066666,
+        let mut invertible = SimdInt4::zero();
+        expect_float4x4_eq!(m2.invert(Some(&mut invertible)), 0.216667, 2.75, 1.6, 0.066666,
                            0.2, 2.5, 1.4, 0.1, 0.25, 0.5, 0.25, 0.0, 0.233333, 0.5,
                            0.3, 0.03333);
-        assert_eq!(invertible.unwrap().are_all_true(), true);
+        assert_eq!(invertible.are_all_true(), true);
 
         // Non invertible
         // EXPECT_ASSERTION(Invert(m0), "Matrix is not invertible");
 
-        let mut not_invertible: Option<SimdInt4> = Some(SimdInt4::zero());
-        expect_float4x4_eq!(m0.invert(&mut not_invertible), 0.0, 0.0, 0.0, 0.0, 0.0, 0.0,
+        let mut not_invertible = SimdInt4::zero();
+        expect_float4x4_eq!(m0.invert(Some(&mut not_invertible)), 0.0, 0.0, 0.0, 0.0, 0.0, 0.0,
                            0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0);
-        assert_eq!(not_invertible.unwrap().are_all_true1(), false);
+        assert_eq!(not_invertible.are_all_true1(), false);
     }
 
     #[test]
@@ -5079,37 +5079,37 @@ mod ozz_simd_math {
             SimdFloat4::load(2.0, 18.0, 34.0, 50.0),
             SimdFloat4::load(3.0, 19.0, 35.0, 51.0)),
             SoaFloat4::load(
-            SimdFloat4::load(4.0, 20.0, 36.0, 52.0),
-            SimdFloat4::load(5.0, 21.0, 37.0, 53.0),
-            SimdFloat4::load(6.0, 22.0, 38.0, 54.0),
-            SimdFloat4::load(7.0, 23.0, 39.0, 55.0)),
+                SimdFloat4::load(4.0, 20.0, 36.0, 52.0),
+                SimdFloat4::load(5.0, 21.0, 37.0, 53.0),
+                SimdFloat4::load(6.0, 22.0, 38.0, 54.0),
+                SimdFloat4::load(7.0, 23.0, 39.0, 55.0)),
             SoaFloat4::load(
-            SimdFloat4::load(8.0, 24.0, 40.0, 56.0),
-            SimdFloat4::load(9.0, 25.0, 41.0, 57.0),
-            SimdFloat4::load(10.0, 26.0, 42.0, 58.0),
-            SimdFloat4::load(11.0, 27.0, 43.0, 59.0)),
+                SimdFloat4::load(8.0, 24.0, 40.0, 56.0),
+                SimdFloat4::load(9.0, 25.0, 41.0, 57.0),
+                SimdFloat4::load(10.0, 26.0, 42.0, 58.0),
+                SimdFloat4::load(11.0, 27.0, 43.0, 59.0)),
             SoaFloat4::load(
-            SimdFloat4::load(12.0, 28.0, 44.0, 60.0),
-            SimdFloat4::load(13.0, 29.0, 45.0, 61.0),
-            SimdFloat4::load(14.0, 30.0, 46.0, 62.0),
-            SimdFloat4::load(15.0, 31.0, 47.0, 63.0))];
+                SimdFloat4::load(12.0, 28.0, 44.0, 60.0),
+                SimdFloat4::load(13.0, 29.0, 45.0, 61.0),
+                SimdFloat4::load(14.0, 30.0, 46.0, 62.0),
+                SimdFloat4::load(15.0, 31.0, 47.0, 63.0))];
         let mut t16x16 = [Float4x4::identity(); 4];
         SimdFloat4::transpose16x16(&src2, &mut t16x16);
         expect_simd_float_eq!(t16x16[0].cols[0], 0.0, 1.0, 2.0, 3.0);
-        expect_simd_float_eq!(t16x16[1].cols[1], 4.0, 5.0, 6.0, 7.0);
-        expect_simd_float_eq!(t16x16[2].cols[2], 8.0, 9.0, 10.0, 11.0);
-        expect_simd_float_eq!(t16x16[3].cols[3], 12.0, 13.0, 14.0, 15.0);
-        expect_simd_float_eq!(t16x16[0].cols[0], 16.0, 17.0, 18.0, 19.0);
+        expect_simd_float_eq!(t16x16[0].cols[1], 4.0, 5.0, 6.0, 7.0);
+        expect_simd_float_eq!(t16x16[0].cols[2], 8.0, 9.0, 10.0, 11.0);
+        expect_simd_float_eq!(t16x16[0].cols[3], 12.0, 13.0, 14.0, 15.0);
+        expect_simd_float_eq!(t16x16[1].cols[0], 16.0, 17.0, 18.0, 19.0);
         expect_simd_float_eq!(t16x16[1].cols[1], 20.0, 21.0, 22.0, 23.0);
-        expect_simd_float_eq!(t16x16[2].cols[2], 24.0, 25.0, 26.0, 27.0);
-        expect_simd_float_eq!(t16x16[3].cols[3], 28.0, 29.0, 30.0, 31.0);
-        expect_simd_float_eq!(t16x16[0].cols[0], 32.0, 33.0, 34.0, 35.0);
-        expect_simd_float_eq!(t16x16[1].cols[1], 36.0, 37.0, 38.0, 39.0);
+        expect_simd_float_eq!(t16x16[1].cols[2], 24.0, 25.0, 26.0, 27.0);
+        expect_simd_float_eq!(t16x16[1].cols[3], 28.0, 29.0, 30.0, 31.0);
+        expect_simd_float_eq!(t16x16[2].cols[0], 32.0, 33.0, 34.0, 35.0);
+        expect_simd_float_eq!(t16x16[2].cols[1], 36.0, 37.0, 38.0, 39.0);
         expect_simd_float_eq!(t16x16[2].cols[2], 40.0, 41.0, 42.0, 43.0);
-        expect_simd_float_eq!(t16x16[3].cols[3], 44.0, 45.0, 46.0, 47.0);
-        expect_simd_float_eq!(t16x16[0].cols[0], 48.0, 49.0, 50.0, 51.0);
-        expect_simd_float_eq!(t16x16[1].cols[1], 52.0, 53.0, 54.0, 55.0);
-        expect_simd_float_eq!(t16x16[2].cols[2], 56.0, 57.0, 58.0, 59.0);
+        expect_simd_float_eq!(t16x16[2].cols[3], 44.0, 45.0, 46.0, 47.0);
+        expect_simd_float_eq!(t16x16[3].cols[0], 48.0, 49.0, 50.0, 51.0);
+        expect_simd_float_eq!(t16x16[3].cols[1], 52.0, 53.0, 54.0, 55.0);
+        expect_simd_float_eq!(t16x16[3].cols[2], 56.0, 57.0, 58.0, 59.0);
         expect_simd_float_eq!(t16x16[3].cols[3], 60.0, 61.0, 62.0, 63.0);
     }
 }

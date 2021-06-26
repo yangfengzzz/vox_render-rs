@@ -200,9 +200,9 @@ impl IKConstantSetup {
         // Computes inverse matrices required to change to start and mid spaces.
         // If matrices aren't invertible, they'll be all 0 (ozz::math
         // implementation), which will result in identity correction quaternions.
-        let invertible = SimdInt4::zero();
-        setup.inv_start_joint = _job.start_joint.unwrap().invert(&mut Some(invertible));
-        let inv_mid_joint = _job.mid_joint.unwrap().invert(&mut Some(invertible));
+        let mut invertible = SimdInt4::zero();
+        setup.inv_start_joint = _job.start_joint.unwrap().invert(Some(&mut invertible));
+        let inv_mid_joint = _job.mid_joint.unwrap().invert(Some(&mut invertible));
 
         // Transform some positions to mid joint space (_ms)
         let start_ms = inv_mid_joint.transform_point(_job.start_joint.unwrap().cols[3]);
@@ -417,6 +417,25 @@ mod ik_two_bone_job {
     use crate::math_test_helper::*;
     use crate::simd_math::*;
     use crate::*;
+    use crate::ik_two_bone_job::IKTwoBoneJob;
+
+    fn _expect_reached(_job: &IKTwoBoneJob, _reachable: bool) {
+        // Computes local transforms
+        let mid_local = _job.start_joint.unwrap().invert(None) * *_job.mid_joint.unwrap();
+        let end_local = _job.mid_joint.unwrap().invert(None) * *_job.end_joint.unwrap();
+
+        // Rebuild corrected model transforms
+        let start_correction = Float4x4::from_quaternion(_job.start_joint_correction.as_ref().unwrap().xyzw);
+        let start_corrected = *_job.start_joint.unwrap() * start_correction;
+        let mid_correction = Float4x4::from_quaternion(_job.mid_joint_correction.as_ref().unwrap().xyzw);
+        let mid_corrected = start_corrected * mid_local * mid_correction;
+        let end_corrected = mid_corrected * end_local;
+
+        let diff = (end_corrected.cols[3] - _job.target).length3();
+        assert_eq!(diff.get_x() < 1e-2, _reachable);
+
+        assert_eq!(_job.reached.is_none() || **_job.reached.as_ref().unwrap() == _reachable, true);
+    }
 
     #[test]
     fn job_validity() {

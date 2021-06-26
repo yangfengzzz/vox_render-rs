@@ -104,8 +104,8 @@ impl<'a> IKAimJob<'a> {
 
         // If matrices aren't invertible, they'll be all 0 (ozz::math
         // implementation), which will result in identity correction quaternions.
-        let invertible = SimdInt4::zero();
-        let inv_joint = self.joint.unwrap().invert(&mut Some(invertible));
+        let mut invertible = SimdInt4::zero();
+        let inv_joint = self.joint.unwrap().invert(Some(&mut invertible));
 
         // Computes joint to target vector, in joint local-space (_js).
         let joint_to_target_js = inv_joint.transform_point(self.target);
