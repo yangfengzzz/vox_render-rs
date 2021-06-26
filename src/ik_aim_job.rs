@@ -242,67 +242,565 @@ fn compute_offsetted_forward(_forward: SimdFloat4, _offset: SimdFloat4,
 //--------------------------------------------------------------------------------------------------
 #[cfg(test)]
 mod ik_aim_job {
+    use crate::simd_quaternion::SimdQuaternion;
+    use crate::ik_aim_job::IKAimJob;
+    use crate::math_constant::*;
+    use crate::quaternion::Quaternion;
+    use crate::vec_float::Float3;
     use crate::math_test_helper::*;
     use crate::simd_math::*;
     use crate::*;
 
     #[test]
     fn job_validity() {
-        todo!()
+        let joint = Float4x4::identity();
+        let mut quat = SimdQuaternion::identity();
+
+        {  // Default is invalid
+            let job = IKAimJob::new();
+            assert_eq!(job.validate(), false);
+        }
+
+        {  // Invalid joint matrix
+            let mut job = IKAimJob::new();
+            job.joint = Some(&joint);
+            assert_eq!(job.validate(), false);
+        }
+
+        {  // Invalid output
+            let mut job = IKAimJob::new();
+            job.joint_correction = Some(&mut quat);
+            assert_eq!(job.validate(), false);
+        }
+
+        {  // Invalid non normalized forward vector.
+            let mut job = IKAimJob::new();
+            job.forward = SimdFloat4::load(0.5, 0.0, 0.0, 0.0);
+            assert_eq!(job.validate(), false);
+        }
+
+        {  // Valid
+            let mut job = IKAimJob::new();
+            job.joint = Some(&joint);
+            job.joint_correction = Some(&mut quat);
+            assert_eq!(job.validate(), true);
+            assert_eq!(job.run(), true);
+        }
     }
 
     #[test]
     fn correction() {
-        todo!()
+        let mut quat = SimdQuaternion::identity();
+
+        let mut job = IKAimJob::new();
+        job.joint_correction = Some(&mut quat);
+
+        // Test will be executed with different root transformations
+        let parents = [
+            Float4x4::identity(),  // No root transformation
+            Float4x4::translation(SimdFloat4::y_axis()),  // Up
+            Float4x4::from_euler(SimdFloat4::load(K_PI / 3.0, 0.0, 0.0, 0.0)),  // Rotated
+            Float4x4::scaling(SimdFloat4::load(2.0, 2.0, 2.0, 0.0)),  // Uniformly scaled
+            Float4x4::scaling(SimdFloat4::load(1.0, 2.0, 1.0, 0.0)),  // Non-uniformly scaled
+            Float4x4::scaling(SimdFloat4::load(-3.0, -3.0, -3.0, 0.0))  // Mirrored
+        ];
+
+        for i in 0..parents.len() {
+            let parent = &parents[i];
+            job.joint = Some(&parent);
+
+            // These are in joint local-space
+            job.forward = SimdFloat4::x_axis();
+            job.up = SimdFloat4::y_axis();
+
+            // Pole vector is in model space
+            job.pole_vector = parent.transform_vector(SimdFloat4::y_axis());
+
+            {  // x
+                job.target = parent.transform_point(SimdFloat4::x_axis());
+                assert_eq!(job.run(), true);
+                expect_simd_quaternion_eq_tol!(quat, 0.0, 0.0, 0.0, 1.0, 2e-3);
+            }
+
+            {  // -x
+                job.target = parent.transform_point(-SimdFloat4::x_axis());
+                assert_eq!(job.run(), true);
+                let y_pi = Quaternion::from_axis_angle(
+                    &Float3::y_axis(), K_PI);
+                expect_simd_quaternion_eq_tol!(quat, y_pi.x, y_pi.y, y_pi.z, y_pi.w, 2e-3);
+            }
+
+            {  // z
+                job.target = parent.transform_point(SimdFloat4::z_axis());
+                assert_eq!(job.run(), true);
+                let y_m_pi_2 = Quaternion::from_axis_angle(&Float3::y_axis(), -K_PI_2);
+                expect_simd_quaternion_eq_tol!(quat, y_m_pi_2.x, y_m_pi_2.y, y_m_pi_2.z,
+                                             y_m_pi_2.w, 2e-3);
+            }
+
+            {  // -z
+                job.target = parent.transform_point(-SimdFloat4::z_axis());
+                assert_eq!(job.run(), true);
+                let y_pi_2 = Quaternion::from_axis_angle(&Float3::y_axis(), K_PI_2);
+                expect_simd_quaternion_eq_tol!(quat, y_pi_2.x, y_pi_2.y, y_pi_2.z, y_pi_2.w,
+                                             2e-3);
+            }
+
+            {  // 45 up y
+                job.target = parent.transform_point(SimdFloat4::load(1.0, 1.0, 0.0, 0.0));
+                assert_eq!(job.run(), true);
+                let z_pi_4 = Quaternion::from_axis_angle(&Float3::z_axis(), K_PI_4);
+                expect_simd_quaternion_eq_tol!(quat, z_pi_4.x, z_pi_4.y, z_pi_4.z, z_pi_4.w,
+                                             2e-3);
+            }
+
+            {  // 45 up y, further
+                job.target = parent.transform_point(SimdFloat4::load(2.0, 2.0, 0.0, 0.0));
+                assert_eq!(job.run(), true);
+                let z_pi_4 = Quaternion::from_axis_angle(&Float3::z_axis(), K_PI_4);
+                expect_simd_quaternion_eq_tol!(quat, z_pi_4.x, z_pi_4.y, z_pi_4.z, z_pi_4.w,
+                                             2e-3);
+            }
+        }
     }
 
     #[test]
     fn forward() {
-        todo!()
+        let mut job = IKAimJob::new();
+        let mut quat = SimdQuaternion::identity();
+        job.joint_correction = Some(&mut quat);
+        let joint = Float4x4::identity();
+        job.joint = Some(&joint);
+
+        job.target = SimdFloat4::x_axis();
+        job.up = SimdFloat4::y_axis();
+        job.pole_vector = SimdFloat4::y_axis();
+
+        {  // forward x
+            job.forward = SimdFloat4::x_axis();
+            assert_eq!(job.run(), true);
+            expect_simd_quaternion_eq_tol!(quat, 0.0, 0.0, 0.0, 1.0, 2e-3);
+        }
+
+        {  // forward -x
+            job.forward = -SimdFloat4::x_axis();
+            assert_eq!(job.run(), true);
+            let y_pi = Quaternion::from_axis_angle(&Float3::y_axis(), -K_PI);
+            expect_simd_quaternion_eq_tol!(quat, y_pi.x, y_pi.y, y_pi.z, y_pi.w, 2e-3);
+        }
+
+        {  // forward z
+            job.forward = SimdFloat4::z_axis();
+            assert_eq!(job.run(), true);
+            let y_pi_2 = Quaternion::from_axis_angle(&Float3::y_axis(), K_PI_2);
+            expect_simd_quaternion_eq_tol!(quat, y_pi_2.x, y_pi_2.y, y_pi_2.z, y_pi_2.w,
+                                         2e-3);
+        }
     }
 
     #[test]
     fn up() {
-        todo!()
+        let mut job = IKAimJob::new();
+        let mut quat = SimdQuaternion::identity();
+        job.joint_correction = Some(&mut quat);
+        let joint = Float4x4::identity();
+        job.joint = Some(&joint);
+
+        job.target = SimdFloat4::x_axis();
+        job.forward = SimdFloat4::x_axis();
+        job.up = SimdFloat4::y_axis();
+        job.pole_vector = SimdFloat4::y_axis();
+
+        {  // up y
+            job.up = SimdFloat4::y_axis();
+            assert_eq!(job.run(), true);
+            expect_simd_quaternion_eq_tol!(quat, 0.0, 0.0, 0.0, 1.0, 2e-3);
+        }
+
+        {  // up -y
+            job.up = -SimdFloat4::y_axis();
+            assert_eq!(job.run(), true);
+            let x_pi = Quaternion::from_axis_angle(&Float3::x_axis(), K_PI);
+            expect_simd_quaternion_eq_tol!(quat, x_pi.x, x_pi.y, x_pi.z, x_pi.w, 2e-3);
+        }
+
+        {  // up z
+            job.up = SimdFloat4::z_axis();
+            assert_eq!(job.run(), true);
+            let x_m_pi_2 = Quaternion::from_axis_angle(&Float3::x_axis(), -K_PI_2);
+            expect_simd_quaternion_eq_tol!(quat, x_m_pi_2.x, x_m_pi_2.y, x_m_pi_2.z,
+                                         x_m_pi_2.w, 2e-3);
+        }
+
+        {  // up 2*z
+            job.up = SimdFloat4::z_axis() * SimdFloat4::load1(2.0);
+            assert_eq!(job.run(), true);
+            let x_m_pi_2 = Quaternion::from_axis_angle(&Float3::x_axis(), -K_PI_2);
+            expect_simd_quaternion_eq_tol!(quat, x_m_pi_2.x, x_m_pi_2.y, x_m_pi_2.z,
+                                         x_m_pi_2.w, 2e-3);
+        }
+
+        {  // up very small z
+            job.up = SimdFloat4::z_axis() * SimdFloat4::load1(1e-9);
+            assert_eq!(job.run(), true);
+            let x_m_pi_2 = Quaternion::from_axis_angle(&Float3::x_axis(), -K_PI_2);
+            expect_simd_quaternion_eq_tol!(quat, x_m_pi_2.x, x_m_pi_2.y, x_m_pi_2.z,
+                                         x_m_pi_2.w, 2e-3);
+        }
+
+        {  // up is zero
+            job.up = SimdFloat4::zero();
+            assert_eq!(job.run(), true);
+            expect_simd_quaternion_eq_tol!(quat, 0.0, 0.0, 0.0, 1.0, 2e-3);
+        }
     }
 
     #[test]
     fn pole() {
-        todo!()
+        let mut job = IKAimJob::new();
+        let mut quat = SimdQuaternion::identity();
+        job.joint_correction = Some(&mut quat);
+        let joint = Float4x4::identity();
+        job.joint = Some(&joint);
+
+        job.target = SimdFloat4::x_axis();
+        job.forward = SimdFloat4::x_axis();
+        job.up = SimdFloat4::y_axis();
+
+        {  // Pole y
+            job.pole_vector = SimdFloat4::y_axis();
+            assert_eq!(job.run(), true);
+            expect_simd_quaternion_eq_tol!(quat, 0.0, 0.0, 0.0, 1.0, 2e-3);
+        }
+
+        {  // Pole -y
+            job.pole_vector = -SimdFloat4::y_axis();
+            assert_eq!(job.run(), true);
+            let x_pi = Quaternion::from_axis_angle(&Float3::x_axis(), K_PI);
+            expect_simd_quaternion_eq_tol!(quat, x_pi.x, x_pi.y, x_pi.z, x_pi.w, 2e-3);
+        }
+
+        {  // Pole z
+            job.pole_vector = SimdFloat4::z_axis();
+            assert_eq!(job.run(), true);
+            let x_pi_2 = Quaternion::from_axis_angle(&Float3::x_axis(), K_PI_2);
+            expect_simd_quaternion_eq_tol!(quat, x_pi_2.x, x_pi_2.y, x_pi_2.z, x_pi_2.w,
+                                         2e-3);
+        }
+
+        {  // Pole 2*z
+            job.pole_vector = SimdFloat4::z_axis() * SimdFloat4::load1(2.0);
+            assert_eq!(job.run(), true);
+            let x_pi_2 = Quaternion::from_axis_angle(&Float3::x_axis(), K_PI_2);
+            expect_simd_quaternion_eq_tol!(quat, x_pi_2.x, x_pi_2.y, x_pi_2.z, x_pi_2.w,
+                                         2e-3);
+        }
+
+        {  // Pole very small z
+            job.pole_vector = SimdFloat4::z_axis() * SimdFloat4::load1(1e-9);
+            assert_eq!(job.run(), true);
+            let x_pi_2 = Quaternion::from_axis_angle(&Float3::x_axis(), K_PI_2);
+            expect_simd_quaternion_eq_tol!(quat, x_pi_2.x, x_pi_2.y, x_pi_2.z, x_pi_2.w,
+                                         2e-3);
+        }
     }
 
     #[test]
     fn offset() {
-        todo!()
+        let mut job = IKAimJob::new();
+        let mut quat = SimdQuaternion::identity();
+        job.joint_correction = Some(&mut quat);
+        let joint = Float4x4::identity();
+        job.joint = Some(&joint);
+        let mut reached = true;
+        job.reached = Some(&mut reached);
+
+        job.target = SimdFloat4::x_axis();
+        job.forward = SimdFloat4::x_axis();
+        job.up = SimdFloat4::y_axis();
+        job.pole_vector = SimdFloat4::y_axis();
+
+        {  // No offset
+            reached = false;
+            job.offset = SimdFloat4::zero();
+            assert_eq!(job.run(), true);
+            expect_simd_quaternion_eq_tol!(quat, 0.0, 0.0, 0.0, 1.0, 2e-3);
+            assert_eq!(reached, true);
+        }
+
+        {  // Offset inside target sphere
+            reached = false;
+            job.offset = SimdFloat4::load(0.0, K_SQRT2_2, 0.0, 0.0);
+            assert_eq!(job.run(), true);
+            let z_pi_4 = Quaternion::from_axis_angle(&Float3::z_axis(), -K_PI_4);
+            expect_simd_quaternion_eq_tol!(quat, z_pi_4.x, z_pi_4.y, z_pi_4.z, z_pi_4.w,
+                                         2e-3);
+            assert_eq!(reached, true);
+        }
+
+        {  // Offset inside target sphere
+            reached = false;
+            job.offset = SimdFloat4::load(0.5, 0.5, 0.0, 0.0);
+            assert_eq!(job.run(), true);
+            let z_pi_6 = Quaternion::from_axis_angle(&Float3::z_axis(), -K_PI / 6.0);
+            expect_simd_quaternion_eq_tol!(quat, z_pi_6.x, z_pi_6.y, z_pi_6.z, z_pi_6.w,
+                                         2e-3);
+            assert_eq!(reached, true);
+        }
+
+        {  // Offset inside target sphere
+            reached = false;
+            job.offset = SimdFloat4::load(-0.5, 0.5, 0.0, 0.0);
+            assert_eq!(job.run(), true);
+            let z_pi_6 = Quaternion::from_axis_angle(&Float3::z_axis(), -K_PI / 6.0);
+            expect_simd_quaternion_eq_tol!(quat, z_pi_6.x, z_pi_6.y, z_pi_6.z, z_pi_6.w,
+                                         2e-3);
+            assert_eq!(reached, true);
+        }
+
+        {  // Offset inside target sphere
+            reached = false;
+            job.offset = SimdFloat4::load(0.5, 0.0, 0.5, 0.0);
+            assert_eq!(job.run(), true);
+            let y_pi_6 = Quaternion::from_axis_angle(&Float3::y_axis(), K_PI / 6.0);
+            expect_simd_quaternion_eq_tol!(quat, y_pi_6.x, y_pi_6.y, y_pi_6.z, y_pi_6.w,
+                                         2e-3);
+            assert_eq!(reached, true);
+        }
+
+        {  // Offset on target sphere
+            reached = false;
+            job.offset = SimdFloat4::load(0.0, 1.0, 0.0, 0.0);
+            assert_eq!(job.run(), true);
+            let z_pi_2 = Quaternion::from_axis_angle(&Float3::z_axis(), -K_PI_2);
+            expect_simd_quaternion_eq_tol!(quat, z_pi_2.x, z_pi_2.y, z_pi_2.z, z_pi_2.w,
+                                         2e-3);
+            assert_eq!(reached, true);
+        }
+
+        {  // Offset outside of target sphere, unreachable
+            reached = true;
+            job.offset = SimdFloat4::load(0.0, 2.0, 0.0, 0.0);
+            assert_eq!(job.run(), true);
+            expect_simd_quaternion_eq_tol!(quat, 0.0, 0.0, 0.0, 1.0, 2e-3);
+            assert_eq!(reached, false);
+        }
+
+        let translated_joint = Float4x4::translation(SimdFloat4::y_axis());
+        job.joint = Some(&translated_joint);
+
+        {  // Offset inside of target sphere, unreachable
+            reached = false;
+            job.offset = SimdFloat4::y_axis();
+            assert_eq!(job.run(), true);
+            let z_pi_2 = Quaternion::from_axis_angle(&Float3::z_axis(), -K_PI_2);
+            expect_simd_quaternion_eq_tol!(quat, z_pi_2.x, z_pi_2.y, z_pi_2.z, z_pi_2.w,
+                                         2e-3);
+            assert_eq!(reached, true);
+        }
     }
 
     #[test]
     fn twist() {
-        todo!()
+        let mut job = IKAimJob::new();
+        let mut quat = SimdQuaternion::identity();
+        job.joint_correction = Some(&mut quat);
+        let joint = Float4x4::identity();
+        job.joint = Some(&joint);
+
+        job.target = SimdFloat4::x_axis();
+        job.forward = SimdFloat4::x_axis();
+        job.up = SimdFloat4::y_axis();
+
+        {  // Pole y, twist 0
+            job.pole_vector = SimdFloat4::y_axis();
+            job.twist_angle = 0.0;
+            assert_eq!(job.run(), true);
+            expect_simd_quaternion_eq_tol!(quat, 0.0, 0.0, 0.0, 1.0, 2e-3);
+        }
+
+        {  // Pole y, twist pi
+            job.pole_vector = SimdFloat4::y_axis();
+            job.twist_angle = K_PI;
+            assert_eq!(job.run(), true);
+            let x_pi = Quaternion::from_axis_angle(&Float3::x_axis(), -K_PI);
+            expect_simd_quaternion_eq_tol!(quat, x_pi.x, x_pi.y, x_pi.z, x_pi.w, 2e-3);
+        }
+
+        {  // Pole y, twist -pi
+            job.pole_vector = SimdFloat4::y_axis();
+            job.twist_angle = -K_PI;
+            assert_eq!(job.run(), true);
+            let x_m_pi = Quaternion::from_axis_angle(&Float3::x_axis(), -K_PI);
+            expect_simd_quaternion_eq_tol!(quat, x_m_pi.x, x_m_pi.y, x_m_pi.z, x_m_pi.w, 2e-3);
+        }
+
+        {  // Pole y, twist pi/2
+            job.pole_vector = SimdFloat4::y_axis();
+            job.twist_angle = K_PI_2;
+            assert_eq!(job.run(), true);
+            let x_pi_2 = Quaternion::from_axis_angle(&Float3::x_axis(), K_PI_2);
+            expect_simd_quaternion_eq_tol!(quat, x_pi_2.x, x_pi_2.y, x_pi_2.z, x_pi_2.w, 2e-3);
+        }
+
+        {  // Pole z, twist pi/2
+            job.pole_vector = SimdFloat4::z_axis();
+            job.twist_angle = K_PI_2;
+            assert_eq!(job.run(), true);
+            let x_pi = Quaternion::from_axis_angle(&Float3::x_axis(), K_PI);
+            expect_simd_quaternion_eq_tol!(quat, x_pi.x, x_pi.y, x_pi.z, x_pi.w, 2e-3);
+        }
     }
 
     #[test]
     fn aligned_target_up() {
-        todo!()
+        let mut job = IKAimJob::new();
+        let mut quat = SimdQuaternion::identity();
+        job.joint_correction = Some(&mut quat);
+        let joint = Float4x4::identity();
+        job.joint = Some(&joint);
+
+        job.forward = SimdFloat4::x_axis();
+        job.pole_vector = SimdFloat4::y_axis();
+
+        {  // Not aligned
+            job.target = SimdFloat4::x_axis();
+            job.up = SimdFloat4::y_axis();
+            assert_eq!(job.run(), true);
+            expect_simd_quaternion_eq_tol!(quat, 0.0, 0.0, 0.0, 1.0, 2e-3);
+        }
+
+        {  // Aligned y
+            job.target = SimdFloat4::y_axis();
+            job.up = SimdFloat4::y_axis();
+            assert_eq!(job.run(), true);
+            let z_pi_2 = Quaternion::from_axis_angle(&Float3::z_axis(), K_PI_2);
+            expect_simd_quaternion_eq_tol!(quat, z_pi_2.x, z_pi_2.y, z_pi_2.z, z_pi_2.w,
+                                         2e-3);
+        }
+
+        {  // Aligned 2*y
+            job.target = SimdFloat4::y_axis() * SimdFloat4::load1(2.0);
+            job.up = SimdFloat4::y_axis();
+            assert_eq!(job.run(), true);
+            let z_pi_2 = Quaternion::from_axis_angle(&Float3::z_axis(), K_PI_2);
+            expect_simd_quaternion_eq_tol!(quat, z_pi_2.x, z_pi_2.y, z_pi_2.z, z_pi_2.w,
+                                         2e-3);
+        }
+
+        {  // Aligned -2*y
+            job.target = SimdFloat4::y_axis() * SimdFloat4::load1(-2.0);
+            job.up = SimdFloat4::y_axis();
+            assert_eq!(job.run(), true);
+            let z_m_pi_2 = Quaternion::from_axis_angle(&Float3::z_axis(), -K_PI_2);
+            expect_simd_quaternion_eq_tol!(quat, z_m_pi_2.x, z_m_pi_2.y, z_m_pi_2.z,
+                                         z_m_pi_2.w, 2e-3);
+        }
     }
 
     #[test]
     fn aligned_target_pole() {
-        todo!()
+        let mut job = IKAimJob::new();
+        let mut quat = SimdQuaternion::identity();
+        job.joint_correction = Some(&mut quat);
+        let joint = Float4x4::identity();
+        job.joint = Some(&joint);
+
+        job.forward = SimdFloat4::x_axis();
+        job.up = SimdFloat4::y_axis();
+
+        {  // Not aligned
+            job.target = SimdFloat4::x_axis();
+            job.pole_vector = SimdFloat4::y_axis();
+            assert_eq!(job.run(), true);
+            expect_simd_quaternion_eq_tol!(quat, 0.0, 0.0, 0.0, 1.0, 2e-3);
+        }
+
+        {  // Aligned y
+            job.target = SimdFloat4::y_axis();
+            job.pole_vector = SimdFloat4::y_axis();
+            assert_eq!(job.run(), true);
+            let z_pi_2 = Quaternion::from_axis_angle(&Float3::z_axis(), K_PI_2);
+            expect_simd_quaternion_eq_tol!(quat, z_pi_2.x, z_pi_2.y, z_pi_2.z, z_pi_2.w, 2e-3);
+        }
     }
 
     #[test]
     fn target_too_close() {
-        todo!()
+        let mut job = IKAimJob::new();
+        let mut quat = SimdQuaternion::identity();
+        job.joint_correction = Some(&mut quat);
+        let joint = Float4x4::identity();
+        job.joint = Some(&joint);
+
+        job.target = SimdFloat4::zero();
+        job.forward = SimdFloat4::x_axis();
+        job.up = SimdFloat4::y_axis();
+        job.pole_vector = SimdFloat4::y_axis();
+
+        assert_eq!(job.run(), true);
+        expect_simd_quaternion_eq_tol!(quat, 0.0, 0.0, 0.0, 1.0, 2e-3);
     }
 
     #[test]
     fn weight() {
-        todo!()
+        let mut job = IKAimJob::new();
+        let mut quat = SimdQuaternion::identity();
+        job.joint_correction = Some(&mut quat);
+        let joint = Float4x4::identity();
+        job.joint = Some(&joint);
+
+        job.target = SimdFloat4::z_axis();
+        job.forward = SimdFloat4::x_axis();
+        job.up = SimdFloat4::y_axis();
+        job.pole_vector = SimdFloat4::y_axis();
+
+        {  // Full weight
+            job.weight = 1.0;
+            assert_eq!(job.run(), true);
+            let y_m_pi2 = Quaternion::from_axis_angle(&Float3::y_axis(), -K_PI_2);
+            expect_simd_quaternion_eq_tol!(quat, y_m_pi2.x, y_m_pi2.y, y_m_pi2.z, y_m_pi2.w,
+                                         2e-3);
+        }
+
+        {  // > 1
+            job.weight = 2.0;
+            assert_eq!(job.run(), true);
+            let y_m_pi2 = Quaternion::from_axis_angle(&Float3::y_axis(), -K_PI_2);
+            expect_simd_quaternion_eq_tol!(quat, y_m_pi2.x, y_m_pi2.y, y_m_pi2.z, y_m_pi2.w,
+                                         2e-3);
+        }
+
+        {  // Half weight
+            job.weight = 0.5;
+            assert_eq!(job.run(), true);
+            let y_m_pi4 = Quaternion::from_axis_angle(&Float3::y_axis(), -K_PI_4);
+            expect_simd_quaternion_eq_tol!(quat, y_m_pi4.x, y_m_pi4.y, y_m_pi4.z, y_m_pi4.w,
+                                         2e-3);
+        }
+
+        {  // Zero weight
+            job.weight = 0.0;
+            assert_eq!(job.run(), true);
+            expect_simd_quaternion_eq_tol!(quat, 0.0, 0.0, 0.0, 1.0, 2e-3);
+        }
+
+        {  // < 0
+            job.weight = -0.5;
+            assert_eq!(job.run(), true);
+            expect_simd_quaternion_eq_tol!(quat, 0.0, 0.0, 0.0, 1.0, 2e-3);
+        }
     }
 
     #[test]
     fn zero_scale() {
-        todo!()
+        let mut job = IKAimJob::new();
+        let mut quat = SimdQuaternion::identity();
+        job.joint_correction = Some(&mut quat);
+        let joint = Float4x4::scaling(SimdFloat4::zero());
+        job.joint = Some(&joint);
+
+        assert_eq!(job.run(), true);
+        expect_simd_quaternion_eq_tol!(quat, 0.0, 0.0, 0.0, 1.0, 2e-3);
     }
 }
