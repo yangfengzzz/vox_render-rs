@@ -113,7 +113,7 @@ impl<'a> IKTwoBoneJob<'a> {
     // The job is validated before any operation is performed, see validate() for
     // more details.
     // Returns false if *this job is not valid.
-    pub fn run(&'a mut self) -> bool {
+    pub fn run(&mut self) -> bool {
         if !self.validate() {
             return false;
         }
@@ -418,6 +418,10 @@ mod ik_two_bone_job {
     use crate::simd_math::*;
     use crate::*;
     use crate::ik_two_bone_job::IKTwoBoneJob;
+    use crate::math_constant::*;
+    use crate::simd_quaternion::SimdQuaternion;
+    use crate::quaternion::Quaternion;
+    use crate::vec_float::Float3;
 
     fn _expect_reached(_job: &IKTwoBoneJob, _reachable: bool) {
         // Computes local transforms
@@ -439,61 +443,851 @@ mod ik_two_bone_job {
 
     #[test]
     fn job_validity() {
-        todo!()
+        // Setup initial pose
+        let start = Float4x4::identity();
+        let mid = Float4x4::from_affine(
+            SimdFloat4::y_axis(),
+            SimdQuaternion::from_axis_angle(
+                SimdFloat4::z_axis(),
+                SimdFloat4::load1(K_PI_2)).xyzw,
+            SimdFloat4::one());
+        let end = Float4x4::translation(SimdFloat4::x_axis() + SimdFloat4::y_axis());
+
+        {  // Default is invalid
+            let job = IKTwoBoneJob::new();
+            assert_eq!(job.validate(), false);
+        }
+
+        {  // Missing start joint matrix
+            let mut job = IKTwoBoneJob::new();
+            job.mid_joint = Some(&mid);
+            job.end_joint = Some(&end);
+            let mut quat = SimdQuaternion::identity();
+            let mut quat2 = SimdQuaternion::identity();
+            job.start_joint_correction = Some(&mut quat);
+            job.mid_joint_correction = Some(&mut quat2);
+            assert_eq!(job.validate(), false);
+        }
+
+        {  // Missing mid joint matrix
+            let mut job = IKTwoBoneJob::new();
+            job.start_joint = Some(&start);
+            job.end_joint = Some(&end);
+            let mut quat = SimdQuaternion::identity();
+            let mut quat2 = SimdQuaternion::identity();
+            job.start_joint_correction = Some(&mut quat);
+            job.mid_joint_correction = Some(&mut quat2);
+            assert_eq!(job.validate(), false);
+        }
+
+        {  // Missing end joint matrix
+            let mut job = IKTwoBoneJob::new();
+            job.start_joint = Some(&start);
+            job.mid_joint = Some(&mid);
+            let mut quat = SimdQuaternion::identity();
+            let mut quat2 = SimdQuaternion::identity();
+            job.start_joint_correction = Some(&mut quat);
+            job.mid_joint_correction = Some(&mut quat2);
+            assert_eq!(job.validate(), false);
+        }
+
+        {  // Missing start joint output quaternion
+            let mut job = IKTwoBoneJob::new();
+            job.start_joint = Some(&start);
+            job.mid_joint = Some(&mid);
+            job.end_joint = Some(&end);
+            let mut quat = SimdQuaternion::identity();
+            job.mid_joint_correction = Some(&mut quat);
+            assert_eq!(job.validate(), false);
+        }
+
+        {  // Missing mid joint output quaternion
+            let mut job = IKTwoBoneJob::new();
+            job.start_joint = Some(&start);
+            job.mid_joint = Some(&mid);
+            job.end_joint = Some(&end);
+            let mut quat = SimdQuaternion::identity();
+            job.start_joint_correction = Some(&mut quat);
+            assert_eq!(job.validate(), false);
+        }
+
+        {  // Unnormalized mid axis
+            let mut job = IKTwoBoneJob::new();
+            job.mid_axis = SimdFloat4::load(0.0, 0.70710678, 0.0, 0.70710678);
+            job.start_joint = Some(&start);
+            job.mid_joint = Some(&mid);
+            job.end_joint = Some(&end);
+            let mut quat = SimdQuaternion::identity();
+            let mut quat2 = SimdQuaternion::identity();
+            job.start_joint_correction = Some(&mut quat);
+            job.mid_joint_correction = Some(&mut quat2);
+            assert_eq!(job.validate(), false);
+        }
+
+        {  // Valid
+            let mut job = IKTwoBoneJob::new();
+            job.start_joint = Some(&start);
+            job.mid_joint = Some(&mid);
+            job.end_joint = Some(&end);
+            let mut quat = SimdQuaternion::identity();
+            let mut quat2 = SimdQuaternion::identity();
+            job.start_joint_correction = Some(&mut quat);
+            job.mid_joint_correction = Some(&mut quat2);
+            assert_eq!(job.validate(), true);
+        }
     }
 
     #[test]
     fn start_joint_correction() {
-        todo!()
+        // Setup initial pose
+        let base_start = Float4x4::identity();
+        let base_mid = Float4x4::from_affine(
+            SimdFloat4::y_axis(),
+            SimdQuaternion::from_axis_angle(
+                SimdFloat4::z_axis(),
+                SimdFloat4::load1(K_PI_2)).xyzw,
+            SimdFloat4::one());
+        let base_end = Float4x4::translation(SimdFloat4::x_axis() + SimdFloat4::y_axis());
+
+        let mid_axis = (base_start.cols[3] - base_mid.cols[3]).cross3(base_end.cols[3] - base_mid.cols[3]);
+
+        // Test will be executed with different root transformations
+        let parents = [
+            Float4x4::identity(),  // No root transformation
+            Float4x4::translation(SimdFloat4::y_axis()),  // Up
+            Float4x4::from_euler(SimdFloat4::load(
+                K_PI / 3.0, 0.0, 0.0, 0.0)),  // Rotated
+            Float4x4::scaling(SimdFloat4::load(
+                2.0, 2.0, 2.0, 0.0)),  // Uniformly scaled
+            Float4x4::scaling(SimdFloat4::load(
+                1.0, 2.0, 1.0, 0.0)),  // Non-uniformly scaled
+            Float4x4::scaling(
+                SimdFloat4::load(-3.0, -3.0, -3.0, 0.0))  // Mirrored
+        ];
+
+        for i in 0..parents.len() {
+            let parent = &parents[i];
+            let start = *parent * base_start;
+            let mid = *parent * base_mid;
+            let end = *parent * base_end;
+
+            // Prepares job.
+            let mut job = IKTwoBoneJob::new();
+            job.pole_vector = parent.transform_vector(SimdFloat4::y_axis());
+            job.mid_axis = mid_axis;
+            job.start_joint = Some(&start);
+            job.mid_joint = Some(&mid);
+            job.end_joint = Some(&end);
+            let mut qstart = SimdQuaternion::identity();
+            job.start_joint_correction = Some(&mut qstart);
+            let mut qmid = SimdQuaternion::identity();
+            job.mid_joint_correction = Some(&mut qmid);
+            let mut reached = true;
+            job.reached = Some(&mut reached);
+            assert_eq!(job.validate(), true);
+
+            {  // No correction expected
+                job.target = parent.transform_point(SimdFloat4::load(1.0, 1.0, 0.0, 0.0));
+                assert_eq!(job.run(), true);
+
+                _expect_reached(&job, true);
+
+                expect_simd_quaternion_eq_tol!(qstart, 0.0, 0.0, 0.0, 1.0, 2e-3);
+                expect_simd_quaternion_eq_tol!(qmid, 0.0, 0.0, 0.0, 1.0, 2e-3);
+            }
+
+            {  // 90
+                job.target = parent.transform_point(SimdFloat4::load(0.0, 1.0, 1.0, 0.0));
+                assert_eq!(job.run(), true);
+
+                _expect_reached(&job, true);
+
+                let y_m_pi_2 = Quaternion::from_axis_angle(&Float3::y_axis(), -K_PI_2);
+                expect_simd_quaternion_eq_tol!(qstart, y_m_pi_2.x, y_m_pi_2.y, y_m_pi_2.z,
+                                             y_m_pi_2.w, 2e-3);
+                expect_simd_quaternion_eq_tol!(qmid, 0.0, 0.0, 0.0, 1.0, 2e-3);
+            }
+
+            {  // 180 behind
+                job.target = parent.transform_point(SimdFloat4::load(-1.0, 1.0, 0.0, 0.0));
+                assert_eq!(job.run(), true);
+
+                _expect_reached(&job, true);
+
+                let y_k_pi = Quaternion::from_axis_angle(&Float3::y_axis(), K_PI);
+                expect_simd_quaternion_eq_tol!(qstart, y_k_pi.x, y_k_pi.y, y_k_pi.z, y_k_pi.w, 2e-3);
+                expect_simd_quaternion_eq_tol!(qmid, 0.0, 0.0, 0.0, 1.0, 2e-3);
+            }
+
+            {  // 270
+                job.target = parent.transform_point(SimdFloat4::load(0.0, 1.0, -1.0, 0.0));
+                assert_eq!(job.run(), true);
+
+                _expect_reached(&job, true);
+
+                let y_k_pi_2 = Quaternion::from_axis_angle(&Float3::y_axis(), K_PI_2);
+                expect_simd_quaternion_eq_tol!(qstart, y_k_pi_2.x, y_k_pi_2.y, y_k_pi_2.z, y_k_pi_2.w, 2e-3);
+                expect_simd_quaternion_eq_tol!(qmid, 0.0, 0.0, 0.0, 1.0, 2e-3);
+            }
+        }
     }
 
     #[test]
     fn pole() {
-        todo!()
+        // Setup initial pose
+        let start = Float4x4::identity();
+        let mid = Float4x4::from_affine(
+            SimdFloat4::y_axis(),
+            SimdQuaternion::from_axis_angle(
+                SimdFloat4::z_axis(),
+                SimdFloat4::load1(K_PI_2)).xyzw,
+            SimdFloat4::one());
+        let end = Float4x4::translation(SimdFloat4::x_axis() + SimdFloat4::y_axis());
+
+        let mid_axis = (start.cols[3] - mid.cols[3]).cross3(end.cols[3] - mid.cols[3]);
+
+        // Prepares job.
+        let mut job = IKTwoBoneJob::new();
+        job.start_joint = Some(&start);
+        job.mid_joint = Some(&mid);
+        job.end_joint = Some(&end);
+        job.mid_axis = mid_axis;
+        let mut qstart = SimdQuaternion::identity();
+        job.start_joint_correction = Some(&mut qstart);
+        let mut qmid = SimdQuaternion::identity();
+        job.mid_joint_correction = Some(&mut qmid);
+        let mut reached = true;
+        job.reached = Some(&mut reached);
+        assert_eq!(job.validate(), true);
+
+        // Pole Y
+        {
+            job.pole_vector = SimdFloat4::y_axis();
+            job.target = SimdFloat4::load(1.0, 1.0, 0.0, 0.0);
+            assert_eq!(job.run(), true);
+
+            _expect_reached(&job, true);
+
+            expect_simd_quaternion_eq_tol!(qstart, 0.0, 0.0, 0.0, 1.0, 2e-3);
+            expect_simd_quaternion_eq_tol!(qmid, 0.0, 0.0, 0.0, 1.0, 2e-3);
+        }
+
+        // Pole Z
+        {
+            job.pole_vector = SimdFloat4::z_axis();
+            job.target = SimdFloat4::load(1.0, 0.0, 1.0, 0.0);
+            assert_eq!(job.run(), true);
+
+            _expect_reached(&job, true);
+
+            let x_k_pi_2 = Quaternion::from_axis_angle(&Float3::x_axis(), K_PI_2);
+            expect_simd_quaternion_eq_tol!(qstart, x_k_pi_2.x, x_k_pi_2.y, x_k_pi_2.z,
+                                         x_k_pi_2.w, 2e-3);
+            expect_simd_quaternion_eq_tol!(qmid, 0.0, 0.0, 0.0, 1.0, 2e-3);
+        }
+
+        // Pole -Z
+        {
+            job.pole_vector = -SimdFloat4::z_axis();
+            job.target = SimdFloat4::load(1.0, 0.0, -1.0, 0.0);
+            assert_eq!(job.run(), true);
+
+            _expect_reached(&job, true);
+
+            let x_m_pi_2 = Quaternion::from_axis_angle(&Float3::x_axis(), -K_PI_2);
+            expect_simd_quaternion_eq_tol!(qstart, x_m_pi_2.x, x_m_pi_2.y, x_m_pi_2.z,
+                                         x_m_pi_2.w, 2e-3);
+            expect_simd_quaternion_eq_tol!(qmid, 0.0, 0.0, 0.0, 1.0, 2e-3);
+        }
+
+        // Pole X
+        {
+            job.pole_vector = SimdFloat4::x_axis();
+            job.target = SimdFloat4::load(1.0, -1.0, 0.0, 0.0);
+            assert_eq!(job.run(), true);
+
+            _expect_reached(&job, true);
+
+            let z_m_pi_2 = Quaternion::from_axis_angle(&Float3::z_axis(), -K_PI_2);
+            expect_simd_quaternion_eq_tol!(qstart, z_m_pi_2.x, z_m_pi_2.y, z_m_pi_2.z,
+                                         z_m_pi_2.w, 2e-3);
+            expect_simd_quaternion_eq_tol!(qmid, 0.0, 0.0, 0.0, 1.0, 2e-3);
+        }
+
+        // Pole -X
+        {
+            job.pole_vector = -SimdFloat4::x_axis();
+            job.target = SimdFloat4::load(-1.0, 1.0, 0.0, 0.0);
+            assert_eq!(job.run(), true);
+
+            _expect_reached(&job, true);
+
+            let z_pi_2 = Quaternion::from_axis_angle(&Float3::z_axis(), K_PI_2);
+            expect_simd_quaternion_eq_tol!(qstart, z_pi_2.x, z_pi_2.y, z_pi_2.z, z_pi_2.w, 2e-3);
+            expect_simd_quaternion_eq_tol!(qmid, 0.0, 0.0, 0.0, 1.0, 2e-3);
+        }
     }
 
     #[test]
     fn zero_scale() {
-        todo!()
+        // Setup initial pose
+        let start = Float4x4::scaling(SimdFloat4::zero());
+        let mid = start;
+        let end = start;
+
+        // Prepares job.
+        let mut job = IKTwoBoneJob::new();
+        job.start_joint = Some(&start);
+        job.mid_joint = Some(&mid);
+        job.end_joint = Some(&end);
+        let mut qstart = SimdQuaternion::identity();
+        job.start_joint_correction = Some(&mut qstart);
+        let mut qmid = SimdQuaternion::identity();
+        job.mid_joint_correction = Some(&mut qmid);
+        assert_eq!(job.validate(), true);
+
+        assert_eq!(job.run(), true);
+
+        expect_simd_quaternion_eq_tol!(qstart, 0.0, 0.0, 0.0, 1.0, 2e-3);
+        expect_simd_quaternion_eq_tol!(qmid, 0.0, 0.0, 0.0, 1.0, 2e-3);
     }
 
     #[test]
     fn soften() {
-        todo!()
+        // Setup initial pose
+        let start = Float4x4::identity();
+        let mid = Float4x4::from_affine(
+            SimdFloat4::y_axis(),
+            SimdQuaternion::from_axis_angle(
+                SimdFloat4::z_axis(),
+                SimdFloat4::load1(K_PI_2)).xyzw,
+            SimdFloat4::one());
+        let end = Float4x4::translation(SimdFloat4::x_axis() + SimdFloat4::y_axis());
+        let mid_axis = (start.cols[3] - mid.cols[3]).cross3(end.cols[3] - mid.cols[3]);
+
+        // Prepares job.
+        let mut job = IKTwoBoneJob::new();
+        job.start_joint = Some(&start);
+        job.mid_joint = Some(&mid);
+        job.end_joint = Some(&end);
+        job.mid_axis = mid_axis;
+        let mut qstart = SimdQuaternion::identity();
+        job.start_joint_correction = Some(&mut qstart);
+        let mut qmid = SimdQuaternion::identity();
+        job.mid_joint_correction = Some(&mut qmid);
+        let mut reached = true;
+        job.reached = Some(&mut reached);
+        assert_eq!(job.validate(), true);
+
+        // Reachable
+        {
+            job.pole_vector = SimdFloat4::y_axis();
+            job.target = SimdFloat4::load(2.0, 0.0, 0.0, 0.0);
+            job.soften = 1.0;
+            assert_eq!(job.run(), true);
+
+            _expect_reached(&job, true);
+
+            let z_m_pi_2 = Quaternion::from_axis_angle(&Float3::z_axis(), -K_PI_2);
+            expect_simd_quaternion_eq_tol!(qstart, z_m_pi_2.x, z_m_pi_2.y, z_m_pi_2.z,
+                                         z_m_pi_2.w, 2e-3);
+            let z_pi_2 = Quaternion::from_axis_angle(&Float3::z_axis(), K_PI_2);
+            expect_simd_quaternion_eq_tol!(qmid, z_pi_2.x, z_pi_2.y, z_pi_2.z, z_pi_2.w, 2e-3);
+        }
+
+        // Reachable, softened
+        {
+            job.pole_vector = SimdFloat4::y_axis();
+            job.target = SimdFloat4::load(2.0 * 0.5, 0.0, 0.0, 0.0);
+            job.soften = 0.5;
+            assert_eq!(job.run(), true);
+
+            _expect_reached(&job, true);
+        }
+
+        // Reachable, softened
+        {
+            job.pole_vector = SimdFloat4::y_axis();
+            job.target = SimdFloat4::load(2.0 * 0.4, 0.0, 0.0, 0.0);
+            job.soften = 0.5;
+            assert_eq!(job.run(), true);
+
+            _expect_reached(&job, true);
+        }
+
+        // Not reachable, softened
+        {
+            job.pole_vector = SimdFloat4::y_axis();
+            job.target = SimdFloat4::load(2.0 * 0.6, 0.0, 0.0, 0.0);
+            job.soften = 0.5;
+            assert_eq!(job.run(), true);
+
+            _expect_reached(&job, true);
+        }
+
+        // Not reachable, softened at max
+        {
+            job.pole_vector = SimdFloat4::y_axis();
+            job.target = SimdFloat4::load(2.0 * 0.6, 0.0, 0.0, 0.0);
+            job.soften = 0.0;
+            assert_eq!(job.run(), true);
+
+            _expect_reached(&job, false);
+        }
+
+        // Not reachable, softened
+        {
+            job.pole_vector = SimdFloat4::y_axis();
+            job.target = SimdFloat4::load(2.0, 0.0, 0.0, 0.0);
+            job.soften = 0.5;
+            assert_eq!(job.run(), true);
+
+            _expect_reached(&job, false);
+        }
+
+        // Not reachable, a bit too far
+        {
+            job.pole_vector = SimdFloat4::y_axis();
+            job.target = SimdFloat4::load(3.0, 0.0, 0.0, 0.0);
+            job.soften = 1.0;
+            assert_eq!(job.run(), true);
+
+            _expect_reached(&job, false);
+        }
     }
 
     #[test]
     fn twist() {
-        todo!()
+        // Setup initial pose
+        let start = Float4x4::identity();
+        let mid = Float4x4::from_affine(
+            SimdFloat4::y_axis(),
+            SimdQuaternion::from_axis_angle(
+                SimdFloat4::z_axis(),
+                SimdFloat4::load1(K_PI_2)).xyzw,
+            SimdFloat4::one());
+        let end = Float4x4::translation(SimdFloat4::x_axis() + SimdFloat4::y_axis());
+        let mid_axis = (start.cols[3] - mid.cols[3]).cross3(end.cols[3] - mid.cols[3]);
+
+        // Prepares job.
+        let mut job = IKTwoBoneJob::new();
+        job.pole_vector = SimdFloat4::y_axis();
+        job.target = SimdFloat4::load(1.0, 1.0, 0.0, 0.0);
+        job.start_joint = Some(&start);
+        job.mid_joint = Some(&mid);
+        job.end_joint = Some(&end);
+        job.mid_axis = mid_axis;
+        let mut qstart = SimdQuaternion::identity();
+        job.start_joint_correction = Some(&mut qstart);
+        let mut qmid = SimdQuaternion::identity();
+        job.mid_joint_correction = Some(&mut qmid);
+        let mut reached = true;
+        job.reached = Some(&mut reached);
+        assert_eq!(job.validate(), true);
+
+        // Twist angle 0
+        {
+            job.twist_angle = 0.0;
+            assert_eq!(job.run(), true);
+
+            _expect_reached(&job, true);
+
+            expect_simd_quaternion_eq_tol!(qstart, 0.0, 0.0, 0.0, 1.0, 2e-3);
+            expect_simd_quaternion_eq_tol!(qmid, 0.0, 0.0, 0.0, 1.0, 2e-3);
+        }
+
+        // Twist angle pi / 2
+        {
+            job.twist_angle = K_PI_2;
+            assert_eq!(job.run(), true);
+
+            _expect_reached(&job, true);
+
+            let h_pi_2 = Quaternion::from_axis_angle(&Float3::new(0.70710678, 0.70710678, 0.0), K_PI_2);
+            expect_simd_quaternion_eq_tol!(qstart, h_pi_2.x, h_pi_2.y, h_pi_2.z, h_pi_2.w, 2e-3);
+            expect_simd_quaternion_eq_tol!(qmid, 0.0, 0.0, 0.0, 1.0, 2e-3);
+        }
+
+        // Twist angle pi
+        {
+            job.twist_angle = K_PI;
+            assert_eq!(job.run(), true);
+
+            _expect_reached(&job, true);
+
+            let h_pi = Quaternion::from_axis_angle(&Float3::new(0.70710678, 0.70710678, 0.0), -K_PI);
+            expect_simd_quaternion_eq_tol!(qstart, h_pi.x, h_pi.y, h_pi.z, h_pi.w, 2e-3);
+            expect_simd_quaternion_eq_tol!(qmid, 0.0, 0.0, 0.0, 1.0, 2e-3);
+        }
+
+        // Twist angle 2pi
+        {
+            job.twist_angle = K_PI * 2.0;
+            assert_eq!(job.run(), true);
+
+            _expect_reached(&job, true);
+
+            expect_simd_quaternion_eq_tol!(qstart, 0.0, 0.0, 0.0, 1.0, 2e-3);
+            expect_simd_quaternion_eq_tol!(qmid, 0.0, 0.0, 0.0, 1.0, 2e-3);
+        }
     }
 
     #[test]
     fn weight() {
-        todo!()
+        // Setup initial pose
+        let start = Float4x4::identity();
+        let mid = Float4x4::from_affine(
+            SimdFloat4::y_axis(),
+            SimdQuaternion::from_axis_angle(
+                SimdFloat4::z_axis(),
+                SimdFloat4::load1(K_PI_2)).xyzw,
+            SimdFloat4::one());
+        let end = Float4x4::translation(SimdFloat4::x_axis() + SimdFloat4::y_axis());
+        let mid_axis = (start.cols[3] - mid.cols[3]).cross3(end.cols[3] - mid.cols[3]);
+
+        // Prepares job.
+        let mut job = IKTwoBoneJob::new();
+        job.start_joint = Some(&start);
+        job.mid_joint = Some(&mid);
+        job.end_joint = Some(&end);
+        job.mid_axis = mid_axis;
+        let mut qstart = SimdQuaternion::identity();
+        job.start_joint_correction = Some(&mut qstart);
+        let mut qmid = SimdQuaternion::identity();
+        job.mid_joint_correction = Some(&mut qmid);
+        let mut reached = true;
+        job.reached = Some(&mut reached);
+        assert_eq!(job.validate(), true);
+
+        // Maximum weight
+        {
+            job.pole_vector = SimdFloat4::y_axis();
+            job.target = SimdFloat4::load(2.0, 0.0, 0.0, 0.0);
+            job.weight = 1.0;
+            assert_eq!(job.run(), true);
+
+            _expect_reached(&job, true);
+
+            let z_m_pi_2 = Quaternion::from_axis_angle(&Float3::z_axis(), -K_PI_2);
+            expect_simd_quaternion_eq_tol!(qstart, z_m_pi_2.x, z_m_pi_2.y, z_m_pi_2.z,
+                                         z_m_pi_2.w, 2e-3);
+            let z_pi_2 = Quaternion::from_axis_angle(&Float3::z_axis(), K_PI_2);
+            expect_simd_quaternion_eq_tol!(qmid, z_pi_2.x, z_pi_2.y, z_pi_2.z, z_pi_2.w,
+                                         2e-3);
+        }
+
+        // Weight > 1 is clamped
+        {
+            job.pole_vector = SimdFloat4::y_axis();
+            job.target = SimdFloat4::load(2.0, 0.0, 0.0, 0.0);
+            job.weight = 1.1;
+            assert_eq!(job.run(), true);
+
+            _expect_reached(&job, true);
+
+            let z_m_pi_2 = Quaternion::from_axis_angle(&Float3::z_axis(), -K_PI_2);
+            expect_simd_quaternion_eq_tol!(qstart, z_m_pi_2.x, z_m_pi_2.y, z_m_pi_2.z,
+                                         z_m_pi_2.w, 2e-3);
+            let z_pi_2 = Quaternion::from_axis_angle(&Float3::z_axis(), K_PI_2);
+            expect_simd_quaternion_eq_tol!(qmid, z_pi_2.x, z_pi_2.y, z_pi_2.z, z_pi_2.w,
+                                         2e-3);
+        }
+
+        // 0 weight
+        {
+            job.pole_vector = SimdFloat4::y_axis();
+            job.target = SimdFloat4::load(2.0, 0.0, 0.0, 0.0);
+            job.weight = 0.0;
+            assert_eq!(job.run(), true);
+
+            _expect_reached(&job, false);
+
+            expect_simd_quaternion_eq_est!(qstart, 0.0, 0.0, 0.0, 1.0);
+            expect_simd_quaternion_eq_est!(qmid, 0.0, 0.0, 0.0, 1.0);
+        }
+
+        // Weight < 0 is clamped
+        {
+            job.pole_vector = SimdFloat4::y_axis();
+            job.target = SimdFloat4::load(2.0, 0.0, 0.0, 0.0);
+            job.weight = -0.1;
+            assert_eq!(job.run(), true);
+
+            _expect_reached(&job, false);
+
+            expect_simd_quaternion_eq_est!(qstart, 0.0, 0.0, 0.0, 1.0);
+            expect_simd_quaternion_eq_est!(qmid, 0.0, 0.0, 0.0, 1.0);
+        }
+
+        // .5 weight
+        {
+            job.pole_vector = SimdFloat4::y_axis();
+            job.target = SimdFloat4::load(2.0, 0.0, 0.0, 0.0);
+            job.weight = 0.5;
+            assert_eq!(job.run(), true);
+
+            _expect_reached(&job, false);
+
+            let z_m_pi_2 = Quaternion::from_axis_angle(&Float3::z_axis(), -K_PI_2 * job.weight);
+            expect_simd_quaternion_eq_tol!(qstart, z_m_pi_2.x, z_m_pi_2.y, z_m_pi_2.z,
+                                         z_m_pi_2.w, 2e-3);
+            let z_pi_2 = Quaternion::from_axis_angle(&Float3::z_axis(), K_PI_2 * job.weight);
+            expect_simd_quaternion_eq_tol!(qmid, z_pi_2.x, z_pi_2.y, z_pi_2.z, z_pi_2.w,
+                                         2e-3);
+        }
     }
 
     #[test]
     fn pole_target_alignment() {
-        todo!()
+        // Setup initial pose
+        let start = Float4x4::identity();
+        let mid = Float4x4::from_affine(
+            SimdFloat4::y_axis(),
+            SimdQuaternion::from_axis_angle(
+                SimdFloat4::z_axis(),
+                SimdFloat4::load1(K_PI_2)).xyzw,
+            SimdFloat4::one());
+        let end = Float4x4::translation(SimdFloat4::x_axis() + SimdFloat4::y_axis());
+        let mid_axis = (start.cols[3] - mid.cols[3]).cross3(end.cols[3] - mid.cols[3]);
+
+        // Prepares job.
+        let mut job = IKTwoBoneJob::new();
+        job.start_joint = Some(&start);
+        job.mid_joint = Some(&mid);
+        job.end_joint = Some(&end);
+        job.mid_axis = mid_axis;
+        let mut qstart = SimdQuaternion::identity();
+        job.start_joint_correction = Some(&mut qstart);
+        let mut qmid = SimdQuaternion::identity();
+        job.mid_joint_correction = Some(&mut qmid);
+        let mut reached = true;
+        job.reached = Some(&mut reached);
+        assert_eq!(job.validate(), true);
+
+        {  // Reachable, undefined qstart
+            job.pole_vector = SimdFloat4::y_axis();
+            job.target = SimdFloat4::load(0.0, K_SQRT2, 0.0, 0.0);
+            assert_eq!(job.run(), true);
+
+            _expect_reached(&job, true);
+
+            // qstart is undefined, many solutions in this case
+            expect_simd_quaternion_eq_tol!(qmid, 0.0, 0.0, 0.0, 1.0, 2e-3);
+        }
+
+        {  // Reachable, defined qstart
+            job.pole_vector = SimdFloat4::y_axis();
+            job.target = SimdFloat4::load(0.001, K_SQRT2, 0.0, 0.0);
+            assert_eq!(job.run(), true);
+
+            _expect_reached(&job, true);
+
+            let z_pi_4 = Quaternion::from_axis_angle(&Float3::z_axis(), K_PI_4);
+            expect_simd_quaternion_eq_tol!(qstart, z_pi_4.x, z_pi_4.y, z_pi_4.z, z_pi_4.w,
+                                         2e-3);
+            expect_simd_quaternion_eq_tol!(qmid, 0.0, 0.0, 0.0, 1.0, 2e-3);
+        }
+
+        {  // Full extent, undefined qstart, end not reached
+            job.pole_vector = SimdFloat4::y_axis();
+            job.target = SimdFloat4::load(0.0, 3.0, 0.0, 0.0);
+            assert_eq!(job.run(), true);
+
+            // qstart is undefined, many solutions in this case
+            let z_pi_2 = Quaternion::from_axis_angle(&Float3::z_axis(), K_PI_2);
+            expect_simd_quaternion_eq_tol!(qmid, z_pi_2.x, z_pi_2.y, z_pi_2.z, z_pi_2.w,
+                                         2e-3);
+        }
     }
 
     #[test]
     fn mid_axis() {
-        todo!()
+        // Setup initial pose
+        let start = Float4x4::identity();
+        let mid = Float4x4::from_affine(
+            SimdFloat4::y_axis(),
+            SimdQuaternion::from_axis_angle(
+                SimdFloat4::z_axis(),
+                SimdFloat4::load1(K_PI_2)).xyzw,
+            SimdFloat4::one());
+        let end = Float4x4::translation(SimdFloat4::x_axis() + SimdFloat4::y_axis());
+        let mid_axis = (start.cols[3] - mid.cols[3]).cross3(end.cols[3] - mid.cols[3]);
+
+        // Prepares job.
+        let mut job = IKTwoBoneJob::new();
+        job.pole_vector = SimdFloat4::y_axis();
+        job.target = SimdFloat4::load(1.0, 1.0, 0.0, 0.0);
+        job.start_joint = Some(&start);
+        job.mid_joint = Some(&mid);
+        job.end_joint = Some(&end);
+        let mut qstart = SimdQuaternion::identity();
+        job.start_joint_correction = Some(&mut qstart);
+        let mut qmid = SimdQuaternion::identity();
+        job.mid_joint_correction = Some(&mut qmid);
+        let mut reached = true;
+        job.reached = Some(&mut reached);
+        assert_eq!(job.validate(), true);
+
+        // Positive mid_axis
+        {
+            job.mid_axis = mid_axis;
+            job.target = SimdFloat4::load(1.0, 1.0, 0.0, 0.0);
+
+            assert_eq!(job.run(), true);
+
+            _expect_reached(&job, true);
+
+            expect_simd_quaternion_eq_tol!(qstart, 0.0, 0.0, 0.0, 1.0, 2e-3);
+            expect_simd_quaternion_eq_tol!(qmid, 0.0, 0.0, 0.0, 1.0, 2e-3);
+        }
+
+        // Negative mid_axis
+        {
+            job.mid_axis = -mid_axis;
+            job.target = SimdFloat4::load(1.0, 1.0, 0.0, 0.0);
+
+            assert_eq!(job.run(), true);
+
+            _expect_reached(&job, true);
+
+            let y_pi = Quaternion::from_axis_angle(&Float3::y_axis(), K_PI);
+            expect_simd_quaternion_eq_tol!(qstart, y_pi.x, y_pi.y, y_pi.z, y_pi.w, 2e-3);
+            let z_pi = Quaternion::from_axis_angle(&Float3::z_axis(), K_PI);
+            expect_simd_quaternion_eq_tol!(qmid, z_pi.x, z_pi.y, z_pi.z, z_pi.w, 2e-3);
+        }
+
+        // Aligned joints
+        {
+            // Replaces "end" joint matrix to align the 3 joints.
+            let aligned_end = Float4x4::translation(SimdFloat4::load(0.0, 2.0, 0.0, 0.0));
+            job.end_joint = Some(&aligned_end);
+
+            job.mid_axis = mid_axis;
+            job.target = SimdFloat4::load(1.0, 1.0, 0.0, 0.0);
+
+            assert_eq!(job.run(), true);
+
+            _expect_reached(&job, true);
+
+            // Restore end joint matrix
+            job.end_joint = Some(&end);
+
+            // Start rotates 180 on y, to allow Mid to turn positively on z axis.
+            expect_simd_quaternion_eq_tol!(qstart, 0.0, 0.0, 0.0, 1.0, 2e-3);
+            let z_m_pi_2 = Quaternion::from_axis_angle(&Float3::z_axis(), -K_PI_2);
+            expect_simd_quaternion_eq_tol!(qmid, z_m_pi_2.x, z_m_pi_2.y, z_m_pi_2.z,
+                                         z_m_pi_2.w, 2e-3);
+        }
     }
 
     #[test]
     fn aligned_joints_and_target() {
-        todo!()
+        // Setup initial pose
+        let start = Float4x4::identity();
+        let mid = Float4x4::translation(SimdFloat4::x_axis());
+        let end = Float4x4::translation(SimdFloat4::x_axis() + SimdFloat4::x_axis());
+        let mid_axis = SimdFloat4::z_axis();
+
+        // Prepares job.
+        let mut job = IKTwoBoneJob::new();
+        job.pole_vector = SimdFloat4::y_axis();
+        job.mid_axis = mid_axis;
+        job.start_joint = Some(&start);
+        job.mid_joint = Some(&mid);
+        job.end_joint = Some(&end);
+        let mut qstart = SimdQuaternion::identity();
+        job.start_joint_correction = Some(&mut qstart);
+        let mut qmid = SimdQuaternion::identity();
+        job.mid_joint_correction = Some(&mut qmid);
+        let mut reached = true;
+        job.reached = Some(&mut reached);
+        assert_eq!(job.validate(), true);
+
+        // Aligned and reachable
+        {
+            job.target = SimdFloat4::load(2.0, 0.0, 0.0, 0.0);
+
+            assert_eq!(job.run(), true);
+
+            _expect_reached(&job, true);
+
+            // Start rotates 180 on y, to allow Mid to turn positively on z axis.
+            expect_simd_quaternion_eq_tol!(qstart, 0.0, 0.0, 0.0, 1.0, 2e-3);
+            expect_simd_quaternion_eq_tol!(qmid, 0.0, 0.0, 0.0, 1.0, 2e-3);
+        }
+
+        // Aligned and unreachable
+        {
+            job.target = SimdFloat4::load(3.0, 0.0, 0.0, 0.0);
+
+            assert_eq!(job.run(), true);
+
+            _expect_reached(&job, false);
+
+            // Start rotates 180 on y, to allow Mid to turn positively on z axis.
+            expect_simd_quaternion_eq_tol!(qstart, 0.0, 0.0, 0.0, 1.0, 2e-3);
+            expect_simd_quaternion_eq_tol!(qmid, 0.0, 0.0, 0.0, 1.0, 2e-3);
+        }
     }
 
     #[test]
     fn zero_length_start_target() {
-        todo!()
+        // Setup initial pose
+        let start = Float4x4::identity();
+        let mid = Float4x4::from_affine(
+            SimdFloat4::y_axis(),
+            SimdQuaternion::from_axis_angle(
+                SimdFloat4::z_axis(),
+                SimdFloat4::load1(K_PI_2)).xyzw,
+            SimdFloat4::one());
+        let end = Float4x4::translation(SimdFloat4::x_axis() + SimdFloat4::y_axis());
+
+        // Prepares job.
+        let mut job = IKTwoBoneJob::new();
+        job.pole_vector = SimdFloat4::y_axis();
+        job.target = start.cols[3];  // 0 length from start to target
+        job.start_joint = Some(&start);
+        job.mid_joint = Some(&mid);
+        job.end_joint = Some(&end);
+        let mut qstart = SimdQuaternion::identity();
+        job.start_joint_correction = Some(&mut qstart);
+        let mut qmid = SimdQuaternion::identity();
+        job.mid_joint_correction = Some(&mut qmid);
+        let mut reached = true;
+        job.reached = Some(&mut reached);
+        assert_eq!(job.validate(), true);
+
+        assert_eq!(job.run(), true);
+
+        expect_simd_quaternion_eq_tol!(qstart, 0.0, 0.0, 0.0, 1.0, 2e-3);
+        // Mid joint is bent -90 degrees to reach start.
+        let z_m_pi_2 = Quaternion::from_axis_angle(&Float3::z_axis(), -K_PI_2);
+        expect_simd_quaternion_eq_tol!(qmid, z_m_pi_2.x, z_m_pi_2.y, z_m_pi_2.z, z_m_pi_2.w, 2e-3);
     }
 
     #[test]
     fn zero_length_bone_chain() {
-        todo!()
+        // Setup initial pose
+        let start = Float4x4::identity();
+        let mid = Float4x4::identity();
+        let end = Float4x4::identity();
+
+        // Prepares job.
+        let mut job = IKTwoBoneJob::new();
+        job.pole_vector = SimdFloat4::y_axis();
+        job.target = SimdFloat4::x_axis();
+        job.start_joint = Some(&start);
+        job.mid_joint = Some(&mid);
+        job.end_joint = Some(&end);
+        let mut qstart = SimdQuaternion::identity();
+        job.start_joint_correction = Some(&mut qstart);
+        let mut qmid = SimdQuaternion::identity();
+        job.mid_joint_correction = Some(&mut qmid);
+        assert_eq!(job.validate(), true);
+
+        // Just expecting it's not crashing
+        assert_eq!(job.run(), true);
+
+        _expect_reached(&job, false);
     }
 }
