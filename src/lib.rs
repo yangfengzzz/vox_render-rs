@@ -50,3 +50,5 @@ pub mod blending_job;
 pub mod local_to_model_job;
 pub mod ik_aim_job;
 pub mod ik_two_bone_job;
+
+pub mod skinning_job;
