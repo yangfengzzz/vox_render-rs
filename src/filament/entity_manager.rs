@@ -45,6 +45,10 @@ impl EntityManager {
             m_free_list: None,
         };
         unsafe {
+            if INSTANCE.m_free_list.is_none() {
+                INSTANCE.m_free_list = Some(Default::default());
+            }
+
             return &mut INSTANCE;
         }
     }
@@ -64,7 +68,7 @@ impl EntityManager {
         let mut index: u32;
 
         // this must be thread-safe, acquire the free-list mutex
-        let lock  = self.m_free_list.as_ref().unwrap().lock().unwrap();
+        let lock = self.m_free_list.as_ref().unwrap().lock().unwrap();
         let mut current_index = self.m_current_index;
         for i in 0..entities.len() {
             if current_index >= EntityManager::RAW_INDEX_COUNT as u32 || lock.len() >= MIN_FREE_INDICES {
